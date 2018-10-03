@@ -23,7 +23,7 @@ VERSION	:=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)
 # DATA is a list of directories containing binary files embedded using bin2o
 # GRAPHICS is a list of directories containing image files to be converted with grit
 #---------------------------------------------------------------------------------
-TARGET		:=	GodMoDeS
+TARGET		:=	GodMode9i
 BUILD		:=	build
 SOURCES		:=	source
 INCLUDES	:=	include source
@@ -130,7 +130,7 @@ dist:	all
 	
 $(TARGET).nds:	$(TARGET).arm7 $(TARGET).arm9
 	ndstool	-u 00030004 -g HGMA -c $(TARGET).nds -7 $(TARGET).arm7.elf -9 $(TARGET).arm9.elf\
-  -b icon.bmp "GodMoDeS;Robz8"
+  -b icon.bmp "GodMode9i;Robz8"
 
 $(TARGET).arm7: arm7/$(TARGET).elf
 	cp arm7/$(TARGET).elf $(TARGET).arm7.elf

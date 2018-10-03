@@ -170,7 +170,7 @@ string browseForFile (const vector<string> extensionList) {
 			iprintf ("%i Bytes", (int)fileSize);
 		}
 		iprintf ("\x1b[23;0H");
-		printf ("GodMoDeS v0.1.0");
+		printf ("GodMode9i v0.1.0");
 
 		consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
 		//consoleClear();
