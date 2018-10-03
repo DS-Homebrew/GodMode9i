@@ -38,6 +38,13 @@ void driveMenu (void) {
 
 	while (true) {
 		consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+		if (dmCursorPosition == 0 && isDSiMode()) {
+			printf ("[sd:] SDCARD\n");
+			printf ("(SD FAT)");
+		} else {
+			printf ("[fat:] GAMECART\n");
+			printf ("(Flashcart FAT)");
+		}
 		iprintf ("\x1b[23;0H");
 		printf (titleName);
 
@@ -72,8 +79,8 @@ void driveMenu (void) {
 			swiWaitForVBlank();
 		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN) && !(pressed & KEY_A));
 	
-		if (pressed & KEY_UP) 		dmCursorPosition -= 1;
-		if (pressed & KEY_DOWN) 	dmCursorPosition += 1;
+		if ((pressed & KEY_UP) && isDSiMode()) 		dmCursorPosition -= 1;
+		if ((pressed & KEY_DOWN) && isDSiMode()) 		dmCursorPosition += 1;
 		
 		if (dmCursorPosition < 0) 	dmCursorPosition = 1;		// Wrap around to bottom of list
 		if (dmCursorPosition > 1)	dmCursorPosition = 0;		// Wrap around to top of list
