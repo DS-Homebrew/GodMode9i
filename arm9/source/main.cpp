@@ -29,9 +29,16 @@
 #include <unistd.h>
 
 #include "nds_loader_arm9.h"
+#include "driveMenu.h"
 #include "file_browse.h"
 
 //#include "iconTitle.h"
+
+char titleName[32];
+
+int screenMode = 0;
+
+bool applaunch = false;
 
 using namespace std;
 
@@ -59,6 +66,8 @@ int main(int argc, char **argv) {
 	std::string filename;
 
 	//iconTitleInit();
+	
+	snprintf(titleName, sizeof(titleName), "GodMode9i v%i.%i.%i", 0, 1, 0);
 
 	// Subscreen as a console
 	videoSetMode(MODE_0_2D);
@@ -74,69 +83,68 @@ int main(int argc, char **argv) {
 
 	keysSetRepeat(25,5);
 
-	vector<string> extensionList;
-	extensionList.push_back(".nds");
-	extensionList.push_back(".firm");
-	//extensionList.push_back(".argv");
-
-	chdir("/nds");
-
 	while(1) {
 
-		filename = browseForFile(extensionList);
+		if (screenMode == 0) {
+			driveMenu();
+		} else {
+			filename = browseForFile();
+		}
 
-		// Construct a command line
-		getcwd (filePath, PATH_MAX);
-		pathLen = strlen (filePath);
-		vector<char*> argarray;
+		if (applaunch) {
+			// Construct a command line
+			getcwd (filePath, PATH_MAX);
+			pathLen = strlen (filePath);
+			vector<char*> argarray;
 
-		if ( strcasecmp (filename.c_str() + filename.size() - 5, ".argv") == 0) {
+			if ( strcasecmp (filename.c_str() + filename.size() - 5, ".argv") == 0) {
 
-			FILE *argfile = fopen(filename.c_str(),"rb");
-			char str[PATH_MAX], *pstr;
-			const char seps[]= "\n\r\t ";
+				FILE *argfile = fopen(filename.c_str(),"rb");
+				char str[PATH_MAX], *pstr;
+				const char seps[]= "\n\r\t ";
 
-			while( fgets(str, PATH_MAX, argfile) ) {
-				// Find comment and end string there
-				if( (pstr = strchr(str, '#')) )
-					*pstr= '\0';
+				while( fgets(str, PATH_MAX, argfile) ) {
+					// Find comment and end string there
+					if( (pstr = strchr(str, '#')) )
+						*pstr= '\0';
 
-				// Tokenize arguments
-				pstr= strtok(str, seps);
+					// Tokenize arguments
+					pstr= strtok(str, seps);
 
-				while( pstr != NULL ) {
-					argarray.push_back(strdup(pstr));
-					pstr= strtok(NULL, seps);
+					while( pstr != NULL ) {
+						argarray.push_back(strdup(pstr));
+						pstr= strtok(NULL, seps);
+					}
 				}
+				fclose(argfile);
+				filename = argarray.at(0);
+			} else {
+				argarray.push_back(strdup(filename.c_str()));
 			}
-			fclose(argfile);
-			filename = argarray.at(0);
-		} else {
-			argarray.push_back(strdup(filename.c_str()));
-		}
 
-		if ( strcasecmp (filename.c_str() + filename.size() - 4, ".nds") != 0 || argarray.size() == 0 ) {
-			iprintf("no nds file specified\n");
-		} else {
-			char *name = argarray.at(0);
-			strcpy (filePath + pathLen, name);
-			free(argarray.at(0));
-			argarray.at(0) = filePath;
-			iprintf ("Running %s with %d parameters\n", argarray[0], argarray.size());
-			int err = runNdsFile (argarray[0], argarray.size(), (const char **)&argarray[0]);
-			iprintf ("Start failed. Error %i\n", err);
+			if ( strcasecmp (filename.c_str() + filename.size() - 4, ".nds") != 0 || argarray.size() == 0 ) {
+				iprintf("no nds file specified\n");
+			} else {
+				char *name = argarray.at(0);
+				strcpy (filePath + pathLen, name);
+				free(argarray.at(0));
+				argarray.at(0) = filePath;
+				iprintf ("Running %s with %d parameters\n", argarray[0], argarray.size());
+				int err = runNdsFile (argarray[0], argarray.size(), (const char **)&argarray[0]);
+				iprintf ("Start failed. Error %i\n", err);
 
-		}
+			}
 
-		while(argarray.size() !=0 ) {
-			free(argarray.at(0));
-			argarray.erase(argarray.begin());
-		}
+			while(argarray.size() !=0 ) {
+				free(argarray.at(0));
+				argarray.erase(argarray.begin());
+			}
 
-		while (1) {
-			swiWaitForVBlank();
-			scanKeys();
-			if (!(keysHeld() & KEY_A)) break;
+			while (1) {
+				swiWaitForVBlank();
+				scanKeys();
+				if (!(keysHeld() & KEY_A)) break;
+			}
 		}
 
 	}

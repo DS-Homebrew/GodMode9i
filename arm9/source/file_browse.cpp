@@ -30,6 +30,7 @@
 
 #include <nds.h>
 
+#include "main.h"
 #include "date.h"
 #include "fileOperations.h"
 
@@ -45,17 +46,11 @@ struct DirEntry {
 	bool isDirectory;
 } ;
 
-bool nameEndsWith (const string& name, const vector<string> extensionList) {
+bool nameEndsWith (const string& name) {
 
 	if (name.size() == 0) return false;
 
-	if (extensionList.size() == 0) return true;
-
-	for (int i = 0; i < (int)extensionList.size(); i++) {
-		const string ext = extensionList.at(i);
-		if ( strcasecmp (name.c_str() + name.size() - ext.size(), ext.c_str()) == 0) return true;
-	}
-	return false;
+	return true;
 }
 
 bool dirEntryPredicate (const DirEntry& lhs, const DirEntry& rhs) {
@@ -69,7 +64,7 @@ bool dirEntryPredicate (const DirEntry& lhs, const DirEntry& rhs) {
 	return strcasecmp(lhs.name.c_str(), rhs.name.c_str()) < 0;
 }
 
-void getDirectoryContents (vector<DirEntry>& dirContents, const vector<string> extensionList) {
+void getDirectoryContents (vector<DirEntry>& dirContents) {
 	struct stat st;
 
 	dirContents.clear();
@@ -90,7 +85,7 @@ void getDirectoryContents (vector<DirEntry>& dirContents, const vector<string> e
 			dirEntry.name = pent->d_name;
 			dirEntry.isDirectory = (st.st_mode & S_IFDIR) ? true : false;
 
-			if (dirEntry.name.compare(".") != 0 && (dirEntry.isDirectory || nameEndsWith(dirEntry.name, extensionList))) {
+			if (dirEntry.name.compare(".") != 0 && (dirEntry.isDirectory || nameEndsWith(dirEntry.name))) {
 				dirContents.push_back (dirEntry);
 			}
 
@@ -100,11 +95,6 @@ void getDirectoryContents (vector<DirEntry>& dirContents, const vector<string> e
 	}	
 	
 	sort(dirContents.begin(), dirContents.end(), dirEntryPredicate);
-}
-
-void getDirectoryContents (vector<DirEntry>& dirContents) {
-	vector<string> extensionList;
-	getDirectoryContents (dirContents, extensionList);
 }
 
 void showDirectoryContents (const vector<DirEntry>& dirContents, int startRow) {
@@ -148,14 +138,14 @@ void showDirectoryContents (const vector<DirEntry>& dirContents, int startRow) {
 	}
 }
 
-string browseForFile (const vector<string> extensionList) {
+string browseForFile (void) {
 	int pressed = 0;
 	int screenOffset = 0;
 	int fileOffset = 0;
 	off_t fileSize = 0;
 	vector<DirEntry> dirContents;
 	
-	getDirectoryContents (dirContents, extensionList);
+	getDirectoryContents (dirContents);
 
 	while (true) {
 		consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
@@ -170,7 +160,7 @@ string browseForFile (const vector<string> extensionList) {
 			iprintf ("%i Bytes", (int)fileSize);
 		}
 		iprintf ("\x1b[23;0H");
-		printf ("GodMode9i v0.1.0");
+		printf (titleName);
 
 		consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
 		//consoleClear();
@@ -195,7 +185,8 @@ string browseForFile (const vector<string> extensionList) {
 			scanKeys();
 			pressed = keysDownRepeat();
 			swiWaitForVBlank();
-		} while (!pressed);
+		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN) && !(pressed & KEY_LEFT) && !(pressed & KEY_RIGHT)
+				&& !(pressed & KEY_A) && !(pressed & KEY_B));
 	
 		if (pressed & KEY_UP) 		fileOffset -= 1;
 		if (pressed & KEY_DOWN) 	fileOffset += 1;
@@ -221,11 +212,12 @@ string browseForFile (const vector<string> extensionList) {
 				iprintf("Entering directory\n");
 				// Enter selected directory
 				chdir (entry->name.c_str());
-				getDirectoryContents (dirContents, extensionList);
+				getDirectoryContents (dirContents);
 				screenOffset = 0;
 				fileOffset = 0;
 				showDirectoryContents (dirContents, screenOffset);
 			} else {
+				applaunch = true;
 				// Clear the screen
 				iprintf ("\x1b[2J");
 				// Return the chosen file
@@ -234,9 +226,15 @@ string browseForFile (const vector<string> extensionList) {
 		}
 		
 		if (pressed & KEY_B) {
+			char path[PATH_MAX];
+			getcwd(path, PATH_MAX);
+			if ((strcmp (path, "sd:/") == 0) || (strcmp (path, "fat:/") == 0)) {
+				screenMode = 0;
+				return "null";
+			}
 			// Go up a directory
 			chdir ("..");
-			getDirectoryContents (dirContents, extensionList);
+			getDirectoryContents (dirContents);
 			screenOffset = 0;
 			fileOffset = 0;
 			showDirectoryContents (dirContents, screenOffset);
