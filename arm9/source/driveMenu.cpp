@@ -24,6 +24,7 @@
 
 #include "main.h"
 #include "date.h"
+#include "driveOperations.h"
 
 #define SCREEN_COLS 32
 #define ENTRIES_PER_SCREEN 22
@@ -86,8 +87,20 @@ void driveMenu (void) {
 		if (dmCursorPosition > 1)	dmCursorPosition = 0;		// Wrap around to top of list
 
 		if (pressed & KEY_A) {
-			screenMode = 1;
-			break;
+			if (dmCursorPosition == 0 && isDSiMode()) {
+				chdir("sd:/");
+				screenMode = 1;
+				break;
+			} else {
+				if (isDSiMode()) {
+					flashcardMount();
+				}
+				if (flashcardFound()) {
+					chdir("fat:/");
+					screenMode = 1;
+					break;
+				}
+			}
 		}
 	}
 }

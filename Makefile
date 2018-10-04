@@ -27,7 +27,7 @@ TARGET		:=	GodMode9i
 BUILD		:=	build
 SOURCES		:=	source
 INCLUDES	:=	include source
-DATA		:=	data
+DATA		:=	data dldi
 GRAPHICS	:=  gfx
 
 #---------------------------------------------------------------------------------

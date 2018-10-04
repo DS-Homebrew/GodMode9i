@@ -34,7 +34,7 @@
 
 //#include "iconTitle.h"
 
-char titleName[32];
+char titleName[32] = {" "};
 
 int screenMode = 0;
 
