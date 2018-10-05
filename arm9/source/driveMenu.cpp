@@ -42,7 +42,7 @@ void driveMenu (void) {
 	int held = 0;
 
 	while (true) {
-		if (isDSiMode() && !pressed) {
+		if (isDSiMode() && !pressed && !held) {
 			if (REG_SCFG_MC == 0x11) {
 				if (flashcardMounted) {
 					flashcardUnmount();
