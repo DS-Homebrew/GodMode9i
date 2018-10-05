@@ -160,8 +160,10 @@ string browseForFile (void) {
 			fileSize = getFileSize(entry->name.c_str());
 			printf ("%i Bytes", (int)fileSize);
 		}
-		printf ("\x1b[23;0H");
+		printf ("\x1b[22;0H");
 		printf (titleName);
+		printf ("\x1b[23;0H");
+		printf ("X - DELETE");
 
 		consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
 		showDirectoryContents (dirContents, screenOffset);
@@ -190,8 +192,10 @@ string browseForFile (void) {
 				break;
 			}
 		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN) && !(pressed & KEY_LEFT) && !(pressed & KEY_RIGHT)
-				&& !(pressed & KEY_A) && !(pressed & KEY_B));
+				&& !(pressed & KEY_A) && !(pressed & KEY_B) && !(pressed & KEY_X));
 	
+		iprintf ("\x1b[%d;0H*", fileOffset - screenOffset + ENTRIES_START_ROW);
+
 		if (isDSiMode() && !pressed && dmCursorPosition == 1 && REG_SCFG_MC == 0x11 && flashcardMounted) {
 			flashcardUnmount();
 			screenMode = 0;
@@ -225,7 +229,6 @@ string browseForFile (void) {
 				getDirectoryContents (dirContents);
 				screenOffset = 0;
 				fileOffset = 0;
-				showDirectoryContents (dirContents, screenOffset);
 			} else {
 				applaunch = true;
 				// Clear the screen
@@ -234,7 +237,7 @@ string browseForFile (void) {
 				return entry->name;
 			}
 		}
-		
+
 		if (pressed & KEY_B) {
 			char path[PATH_MAX];
 			getcwd(path, PATH_MAX);
@@ -247,7 +250,37 @@ string browseForFile (void) {
 			getDirectoryContents (dirContents);
 			screenOffset = 0;
 			fileOffset = 0;
-			showDirectoryContents (dirContents, screenOffset);
+		}
+
+		// Delete file/folder
+		if ((pressed & KEY_X) && (strcmp (entry->name.c_str(), "..") != 0)) {
+			printf ("\x1b[0;27H");
+			printf ("     ");	// Clear time
+			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+			iprintf("Delete \"%s\"?\n", entry->name.c_str());
+			printf ("(<A> yes, <B> no)");
+			while (true) {
+				scanKeys();
+				pressed = keysDownRepeat();
+				swiWaitForVBlank();
+				if (pressed & KEY_A) {
+					consoleClear();
+					if (entry->isDirectory) {
+						printf ("Deleting folder, please wait...");
+					} else {
+						printf ("Deleting file, please wait...");
+					}
+					remove(entry->name.c_str());
+					getDirectoryContents (dirContents);
+					fileOffset--;
+					pressed = 0;
+					break;
+				}
+				if (pressed & KEY_B) {
+					pressed = 0;
+					break;
+				}
+			}
 		}
 	}
 }
