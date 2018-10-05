@@ -33,6 +33,7 @@
 
 using namespace std;
 
+static bool dmTextPrinted = false;
 static int dmCursorPosition = 0;
 static bool sdMounted = false;
 
@@ -45,50 +46,54 @@ void driveMenu (void) {
 	}
 
 	while (true) {
-		consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
-		if (dmCursorPosition == 0 && isDSiMode()) {
-			printf ("[sd:] SDCARD\n");
-			printf ("(SD FAT)");
-		} else {
-			printf ("[fat:] GAMECART\n");
-			printf ("(Flashcart FAT)");
-		}
-		iprintf ("\x1b[%i;0H", 23-isDSiMode());
-		printf (titleName);
-		if (isDSiMode()) {
-			printf ("\x1b[23;0H");
-			if (sdMounted) {
-				printf ("R+B - Unmount SD card");
+		if (!dmTextPrinted) {
+			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+			if (dmCursorPosition == 0 && isDSiMode()) {
+				printf ("[sd:] SDCARD\n");
+				printf ("(SD FAT)");
 			} else {
-				printf ("R+B - Remount SD card");
+				printf ("[fat:] GAMECART\n");
+				printf ("(Flashcart FAT)");
 			}
-		}
+			iprintf ("\x1b[%i;0H", 23-isDSiMode());
+			printf (titleName);
+			if (isDSiMode()) {
+				printf ("\x1b[23;0H");
+				if (sdMounted) {
+					printf ("R+B - Unmount SD card");
+				} else {
+					printf ("R+B - Remount SD card");
+				}
+			}
 
-		consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
+			consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
 
-		printf ("[root]");
+			printf ("[root]");
 
-		// Move to 2nd row
-		printf ("\x1b[1;0H");
-		// Print line of dashes
-		printf ("--------------------------------");
+			// Move to 2nd row
+			printf ("\x1b[1;0H");
+			// Print line of dashes
+			printf ("--------------------------------");
 
-		// Show cursor
-		printf ("\x1b[%d;0H*", dmCursorPosition + ENTRIES_START_ROW);
+			// Show cursor
+			printf ("\x1b[%d;0H*", dmCursorPosition + ENTRIES_START_ROW);
 
-		printf ("\x1b[2;1H");
-		if (isDSiMode()){
-			printf ("[sd:] SDCARD");
-			if (!sdMounted) {
-				printf ("\x1b[2;29H");
+			printf ("\x1b[2;1H");
+			if (isDSiMode()){
+				printf ("[sd:] SDCARD");
+				if (!sdMounted) {
+					printf ("\x1b[2;29H");
+					printf ("[x]");
+				}
+				printf ("\x1b[3;1H");
+			}
+			printf ("[fat:] GAMECART");
+			if (!flashcardFound()) {
+				iprintf ("\x1b[%i;29H", 2+isDSiMode());
 				printf ("[x]");
 			}
-			printf ("\x1b[3;1H");
-		}
-		printf ("[fat:] GAMECART");
-		if (!flashcardFound()) {
-			iprintf ("\x1b[%i;29H", 2+isDSiMode());
-			printf ("[x]");
+
+			dmTextPrinted = true;
 		}
 
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
@@ -104,8 +109,14 @@ void driveMenu (void) {
 			swiWaitForVBlank();
 		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN) && !(pressed & KEY_A) && !(held & KEY_R));
 	
-		if ((pressed & KEY_UP) && isDSiMode()) 		dmCursorPosition -= 1;
-		if ((pressed & KEY_DOWN) && isDSiMode()) 		dmCursorPosition += 1;
+		if ((pressed & KEY_UP) && isDSiMode()) {
+			dmCursorPosition -= 1;
+			dmTextPrinted = false;
+		}
+		if ((pressed & KEY_DOWN) && isDSiMode()) {
+			dmCursorPosition += 1;
+			dmTextPrinted = false;
+		}
 		
 		if (dmCursorPosition < 0) 	dmCursorPosition = 1;		// Wrap around to bottom of list
 		if (dmCursorPosition > 1)	dmCursorPosition = 0;		// Wrap around to top of list
@@ -113,6 +124,7 @@ void driveMenu (void) {
 		if (pressed & KEY_A) {
 			if (dmCursorPosition == 0 && isDSiMode()) {
 				if (sdMounted) {
+					dmTextPrinted = false;
 					chdir("sd:/");
 					screenMode = 1;
 					break;
@@ -122,6 +134,7 @@ void driveMenu (void) {
 					flashcardMount();
 				}
 				if (flashcardFound()) {
+					dmTextPrinted = false;
 					chdir("fat:/");
 					screenMode = 1;
 					break;
@@ -132,9 +145,11 @@ void driveMenu (void) {
 		// Unmount/Remount SD card
 		if ((held & KEY_R) && (pressed & KEY_B) && isDSiMode()) {
 			if (sdMounted) {
+				dmTextPrinted = false;
 				sdUnmount();
 				sdMounted = false;
 			} else {
+				dmTextPrinted = false;
 				sdMounted = sdMount();
 			}
 		}
