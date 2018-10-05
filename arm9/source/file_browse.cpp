@@ -46,6 +46,7 @@ using namespace std;
 struct DirEntry {
 	string name;
 	bool isDirectory;
+	bool isApp;
 } ;
 
 bool nameEndsWith (const string& name) {
@@ -86,7 +87,16 @@ void getDirectoryContents (vector<DirEntry>& dirContents) {
 			stat(pent->d_name, &st);
 			dirEntry.name = pent->d_name;
 			dirEntry.isDirectory = (st.st_mode & S_IFDIR) ? true : false;
-
+			if((dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "nds")
+			|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "NDS")
+			|| (isDSiMode() && sdMounted && dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "firm")
+			|| (isDSiMode() && sdMounted && dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "FIRM"))
+			{
+				dirEntry.isApp = true;
+			} else {
+				dirEntry.isApp = false;
+			}
+	
 			if (dirEntry.name.compare(".") != 0 && (dirEntry.isDirectory || nameEndsWith(dirEntry.name))) {
 				dirContents.push_back (dirEntry);
 			}
@@ -232,7 +242,9 @@ string browseForFile (void) {
 				screenOffset = 0;
 				fileOffset = 0;
 			} else {
-				applaunch = true;
+				if (entry->isApp) {
+					applaunch = true;
+				}
 				// Clear the screen
 				iprintf ("\x1b[2J");
 				// Return the chosen file

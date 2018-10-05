@@ -32,6 +32,7 @@
 #include "driveMenu.h"
 #include "driveOperations.h"
 #include "file_browse.h"
+#include "fileOperations.h"
 
 #include "gm9i_logo.h"
 
@@ -166,9 +167,8 @@ int main(int argc, char **argv) {
 				argarray.push_back(strdup(filename.c_str()));
 			}
 
-			if ( strcasecmp (filename.c_str() + filename.size() - 4, ".nds") != 0 || argarray.size() == 0 ) {
-				iprintf("no nds file specified\n");
-			} else {
+			if ((strcasecmp (filename.c_str() + filename.size() - 4, ".nds") == 0)
+			|| (strcasecmp (filename.c_str() + filename.size() - 4, ".NDS") == 0)) {
 				char *name = argarray.at(0);
 				strcpy (filePath + pathLen, name);
 				free(argarray.at(0));
@@ -176,7 +176,17 @@ int main(int argc, char **argv) {
 				iprintf ("Running %s with %d parameters\n", argarray[0], argarray.size());
 				int err = runNdsFile (argarray[0], argarray.size(), (const char **)&argarray[0]);
 				iprintf ("Start failed. Error %i\n", err);
+			}
 
+			if ((strcasecmp (filename.c_str() + filename.size() - 4, ".firm") == 0)
+			|| (strcasecmp (filename.c_str() + filename.size() - 4, ".FIRM") == 0)) {
+				char *name = argarray.at(0);
+				strcpy (filePath + pathLen, name);
+				free(argarray.at(0));
+				argarray.at(0) = filePath;
+				fcopy(argarray[0], "sd:/bootonce.firm");
+				fifoSendValue32(FIFO_USER_02, 1);	// Reboot into selected .firm payload
+				swiWaitForVBlank();
 			}
 
 			while(argarray.size() !=0 ) {
