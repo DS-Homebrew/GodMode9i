@@ -102,11 +102,13 @@ int main(int argc, char **argv) {
 		swiWaitForVBlank();
 	}
 
-	if (!fatInitDefault()) {
+	/*if (!fatInitDefault()) {
 		consoleClear();
 		iprintf ("fatinitDefault failed!\n");
 		stop();
-	}
+	}*/
+	
+	fatInitDefault();
 
 	// Top screen as a console
 	videoSetMode(MODE_0_2D);

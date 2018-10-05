@@ -33,6 +33,14 @@ bool bothSDandFlashcard(void) {
 	}
 }
 
+bool sdMount(void) {
+	return fatMountSimple("sd", get_io_dsisd());
+}
+
+void sdUnmount(void) {
+	fatUnmount("sd");
+}
+
 DLDI_INTERFACE* dldiLoadFromBin (const u8 dldiAddr[]) {
 	DLDI_INTERFACE* device;
 	size_t dldiSize;
