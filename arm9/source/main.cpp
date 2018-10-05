@@ -32,13 +32,15 @@
 #include "driveMenu.h"
 #include "file_browse.h"
 
-//#include "iconTitle.h"
+#include "gm9i_logo.h"
 
 char titleName[32] = {" "};
 
 int screenMode = 0;
 
 bool applaunch = false;
+
+static int bg3;
 
 using namespace std;
 
@@ -65,21 +67,50 @@ int main(int argc, char **argv) {
 	int pathLen;
 	std::string filename;
 
-	//iconTitleInit();
-	
 	snprintf(titleName, sizeof(titleName), "GodMode9i v%i.%i.%i", 0, 1, 0);
 
+	// initialize video mode
+	videoSetMode(MODE_4_2D);
+
+	// initialize VRAM banks
+	vramSetPrimaryBanks(VRAM_A_MAIN_BG,
+	                    VRAM_B_MAIN_SPRITE,
+	                    VRAM_C_LCD,
+	                    VRAM_D_LCD);
+
 	// Subscreen as a console
-	videoSetMode(MODE_0_2D);
-	vramSetBankG(VRAM_G_MAIN_BG);
 	videoSetModeSub(MODE_0_2D);
 	vramSetBankH(VRAM_H_SUB_BG);
-	consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
+	consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+
+	// Display GM9i logo
+	bg3 = bgInit(3, BgType_Bmp16,    BgSize_B16_256x256, 1, 0);
+	bgSetScroll(bg3, 0, 0);
+	decompress(gm9i_logoBitmap, bgGetGfxPtr(bg3), LZ77Vram);
+
+	printf ("\x1b[1;1H");
+	printf(titleName);
+	printf ("\x1b[2;1H");
+	printf ("------------------------------");
+	printf ("\x1b[3;1H");
+	printf ("https:/github.com/");
+	printf ("\x1b[4;11H");
+	printf ("RocketRobz/GodMode9i");
+
+	// Display for 2 seconds
+	for (int i = 0; i < 60*2; i++) {
+		swiWaitForVBlank();
+	}
 
 	if (!fatInitDefault()) {
+		consoleClear();
 		iprintf ("fatinitDefault failed!\n");
 		stop();
 	}
+
+	// Top screen as a console
+	videoSetMode(MODE_0_2D);
+	vramSetBankG(VRAM_G_MAIN_BG);
 
 	keysSetRepeat(25,5);
 
