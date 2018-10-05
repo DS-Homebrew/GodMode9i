@@ -9,6 +9,8 @@
 
 static sNDSHeader nds;
 
+u8 stored_SCFG_MC = 0;
+
 bool sdMounted = false;
 bool flashcardMounted = false;
 

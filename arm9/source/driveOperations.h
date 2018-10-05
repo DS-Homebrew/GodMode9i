@@ -1,6 +1,8 @@
 #ifndef FLASHCARD_H
 #define FLASHCARD_H
 
+extern u8 stored_SCFG_MC;
+
 extern bool sdMounted;
 extern bool flashcardMounted;
 

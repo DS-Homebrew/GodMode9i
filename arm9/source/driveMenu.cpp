@@ -34,8 +34,7 @@
 using namespace std;
 
 static bool dmTextPrinted = false;
-static int dmCursorPosition = 0;
-static u8 dm_SCFG_MC = 0;
+int dmCursorPosition = 0;
 
 void driveMenu (void) {
 	int pressed = 0;
@@ -101,8 +100,8 @@ void driveMenu (void) {
 
 			dmTextPrinted = true;
 		}
-		
-		dm_SCFG_MC = REG_SCFG_MC;
+
+		stored_SCFG_MC = REG_SCFG_MC;
 
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
@@ -116,7 +115,7 @@ void driveMenu (void) {
 			held = keysHeld();
 			swiWaitForVBlank();
 			
-			if (REG_SCFG_MC != dm_SCFG_MC) {
+			if (REG_SCFG_MC != stored_SCFG_MC) {
 				dmTextPrinted = false;
 				break;
 			}

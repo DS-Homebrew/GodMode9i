@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+extern int dmCursorPosition;
+
 extern void driveMenu (void);
 
 

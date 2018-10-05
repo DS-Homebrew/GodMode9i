@@ -33,6 +33,8 @@
 #include "main.h"
 #include "date.h"
 #include "fileOperations.h"
+#include "driveMenu.h"
+#include "driveOperations.h"
 
 #define SCREEN_COLS 32
 #define ENTRIES_PER_SCREEN 22
@@ -148,8 +150,15 @@ string browseForFile (void) {
 	getDirectoryContents (dirContents);
 
 	while (true) {
+		if (isDSiMode() && !pressed && dmCursorPosition == 1 && REG_SCFG_MC == 0x11) {
+			if (flashcardMounted) {
+				flashcardUnmount();
+				screenMode = 0;
+				return "null";
+			}
+		}
+
 		consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
-		//consoleClear();
 		DirEntry* entry = &dirContents.at(fileOffset);
 		printf (entry->name.c_str());
 		printf ("\n");
@@ -157,13 +166,12 @@ string browseForFile (void) {
 			printf ("(dir)");
 		} else {
 			fileSize = getFileSize(entry->name.c_str());
-			iprintf ("%i Bytes", (int)fileSize);
+			printf ("%i Bytes", (int)fileSize);
 		}
-		iprintf ("\x1b[23;0H");
+		printf ("\x1b[23;0H");
 		printf (titleName);
 
 		consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
-		//consoleClear();
 		showDirectoryContents (dirContents, screenOffset);
 
 		// Clear old cursors
@@ -173,18 +181,22 @@ string browseForFile (void) {
 		// Show cursor
 		iprintf ("\x1b[%d;0H*", fileOffset - screenOffset + ENTRIES_START_ROW);
 
-		//iconTitleUpdate (dirContents.at(fileOffset).isDirectory,dirContents.at(fileOffset).name.c_str());
+		stored_SCFG_MC = REG_SCFG_MC;
 
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
 			// Move to right side of screen
-			iprintf ("\x1b[0;27H");
+			printf ("\x1b[0;27H");
 			// Print time
 			printf (RetTime().c_str());
 	
 			scanKeys();
 			pressed = keysDownRepeat();
 			swiWaitForVBlank();
+
+			if (REG_SCFG_MC != stored_SCFG_MC) {
+				break;
+			}
 		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN) && !(pressed & KEY_LEFT) && !(pressed & KEY_RIGHT)
 				&& !(pressed & KEY_A) && !(pressed & KEY_B));
 	
