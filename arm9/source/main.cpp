@@ -39,6 +39,8 @@ char titleName[32] = {" "};
 
 int screenMode = 0;
 
+bool isRegularDS = true;
+
 bool applaunch = false;
 
 static int bg3;
@@ -102,6 +104,11 @@ int main(int argc, char **argv) {
 	for (int i = 0; i < 60*2; i++) {
 		swiWaitForVBlank();
 	}
+
+	fifoWaitValue32(FIFO_USER_06);
+	u16 arm7_SNDEXCNT = fifoGetValue32(FIFO_USER_07);
+	if (arm7_SNDEXCNT != 0) isRegularDS = false;	// If sound frequency setting is found, then the console is not a DS Phat/Lite
+	fifoSendValue32(FIFO_USER_07, 0);
 
 	/*if (!fatInitDefault()) {
 		consoleClear();

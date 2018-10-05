@@ -60,16 +60,18 @@ void driveMenu (void) {
 				printf ("[fat:] GAMECART\n");
 				printf ("(Flashcart FAT)");
 			}
-			iprintf ("\x1b[%i;0H", 23-isDSiMode());
+			iprintf ("\x1b[%i;0H", 22-isDSiMode());
 			printf (titleName);
 			if (isDSiMode()) {
-				printf ("\x1b[23;0H");
+				printf ("\x1b[22;0H");
 				if (sdMounted) {
 					printf ("R+B - Unmount SD card");
 				} else {
 					printf ("R+B - Remount SD card");
 				}
 			}
+			printf ("\x1b[23;0H");
+			printf (isRegularDS ? POWERTEXT_DS : POWERTEXT);
 
 			consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
 

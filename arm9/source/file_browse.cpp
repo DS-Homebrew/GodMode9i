@@ -160,10 +160,12 @@ string browseForFile (void) {
 			fileSize = getFileSize(entry->name.c_str());
 			printf ("%i Bytes", (int)fileSize);
 		}
-		printf ("\x1b[22;0H");
+		printf ("\x1b[21;0H");
 		printf (titleName);
-		printf ("\x1b[23;0H");
+		printf ("\x1b[22;0H");
 		printf ("X - DELETE");
+		printf ("\x1b[23;0H");
+		printf (isRegularDS ? POWERTEXT_DS : POWERTEXT);
 
 		consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
 		showDirectoryContents (dirContents, screenOffset);
