@@ -33,21 +33,39 @@ bool bothSDandFlashcard(void) {
 	}
 }
 
-DLDI_INTERFACE* dldiLoadFromBin (void* dldiAddr, u16 size) {
+DLDI_INTERFACE* dldiLoadFromBin (const u8 dldiAddr[]) {
 	DLDI_INTERFACE* device;
+	size_t dldiSize;
 
+	// Read in the DLDI header
 	if ((device = (DLDI_INTERFACE*)malloc (sizeof(DLDI_INTERFACE))) == NULL) {
 		return NULL;
 	}
 
-	// Load entire DLDI
-	memcpy(device, dldiAddr, size);
+	memcpy(device, dldiAddr, sizeof(DLDI_INTERFACE));
 
 	// Check that it is a valid DLDI
 	if (!dldiIsValid (device)) {
 		free (device);
 		return NULL;
 	}
+
+	// Calculate actual size of DLDI
+	// Although the file may only go to the dldiEnd, the BSS section can extend past that
+	if (device->dldiEnd > device->bssEnd) {
+		dldiSize = (char*)device->dldiEnd - (char*)device->dldiStart;
+	} else {
+		dldiSize = (char*)device->bssEnd - (char*)device->dldiStart;
+	}
+	dldiSize = (dldiSize + 0x03) & ~0x03; 		// Round up to nearest integer multiple
+
+	// Load entire DLDI
+	free (device);
+	if ((device = (DLDI_INTERFACE*)malloc (dldiSize)) == NULL) {
+		return NULL;
+	}
+	
+	memcpy(device, dldiAddr, dldiSize);
 
 	dldiFixDriverAddresses (device);
 
@@ -109,10 +127,10 @@ void flashcardMount(void) {
 
 		// Read a DLDI driver specific to the cart
 		if (!memcmp(gamename, "R4DSULTRA", 9)) {
-			io_dldi_data = dldiLoadFromBin((void*)r4idsn_sd_bin, r4idsn_sd_bin_size);
+			io_dldi_data = dldiLoadFromBin(r4idsn_sd_bin);
 			fatMountSimple("fat", &io_dldi_data->ioInterface);
 		} else if (!memcmp(gameid, "YCEP", 4) || !memcmp(gameid, "AHZH", 4)) {
-			io_dldi_data = dldiLoadFromBin((void*)ak2_sd_bin, ak2_sd_bin_size);
+			io_dldi_data = dldiLoadFromBin(ak2_sd_bin);
 			fatMountSimple("fat", &io_dldi_data->ioInterface);
 		}
 	}
