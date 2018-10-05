@@ -9,6 +9,9 @@
 
 static sNDSHeader nds;
 
+bool sdMounted = false;
+bool flashcardMounted = false;
+
 bool sdFound(void) {
 	if (access("sd:/", F_OK) == 0) {
 		return true;
@@ -39,6 +42,7 @@ bool sdMount(void) {
 
 void sdUnmount(void) {
 	fatUnmount("sd");
+	sdMounted = false;
 }
 
 DLDI_INTERFACE* dldiLoadFromBin (const u8 dldiAddr[]) {
@@ -100,8 +104,10 @@ void ShowGameInfo(const char gameid[], const char gamename[]) {
 	iprintf("Game id: %s\nName:    %s", gameid, gamename);
 }
 
-void flashcardMount(void) {
-	if (!flashcardFound() && REG_SCFG_MC != 0x11) {
+bool flashcardMount(void) {
+	if (flashcardFound()) {
+		return true;
+	} else if (REG_SCFG_MC != 0x11) {
 		// Reset Slot-1 to allow reading title name and ID
 		sysSetCardOwner (BUS_OWNER_ARM9);
 		disableSlot1();
@@ -136,10 +142,16 @@ void flashcardMount(void) {
 		// Read a DLDI driver specific to the cart
 		if (!memcmp(gamename, "R4DSULTRA", 9)) {
 			io_dldi_data = dldiLoadFromBin(r4idsn_sd_bin);
-			fatMountSimple("fat", &io_dldi_data->ioInterface);
+			return fatMountSimple("fat", &io_dldi_data->ioInterface);
 		} else if (!memcmp(gameid, "YCEP", 4) || !memcmp(gameid, "AHZH", 4)) {
 			io_dldi_data = dldiLoadFromBin(ak2_sd_bin);
-			fatMountSimple("fat", &io_dldi_data->ioInterface);
+			return fatMountSimple("fat", &io_dldi_data->ioInterface);
 		}
+		return false;
 	}
+}
+
+void flashcardUnmount(void) {
+	fatUnmount("fat");
+	flashcardMounted = false;
 }

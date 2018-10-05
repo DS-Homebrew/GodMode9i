@@ -35,17 +35,17 @@ using namespace std;
 
 static bool dmTextPrinted = false;
 static int dmCursorPosition = 0;
-static bool sdMounted = false;
+static u8 dm_SCFG_MC = 0;
 
 void driveMenu (void) {
 	int pressed = 0;
 	int held = 0;
 
-	if (isDSiMode()) {
-		sdMounted = sdFound();
-	}
-
 	while (true) {
+		if (isDSiMode() && !pressed) { 
+			flashcardMounted = flashcardMount();	// Try to mount flashcard
+		}
+
 		if (!dmTextPrinted) {
 			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
 			if (dmCursorPosition == 0 && isDSiMode()) {
@@ -95,6 +95,8 @@ void driveMenu (void) {
 
 			dmTextPrinted = true;
 		}
+		
+		dm_SCFG_MC = REG_SCFG_MC;
 
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
@@ -107,6 +109,10 @@ void driveMenu (void) {
 			pressed = keysDownRepeat();
 			held = keysHeld();
 			swiWaitForVBlank();
+			
+			if (REG_SCFG_MC != dm_SCFG_MC) {
+				break;
+			}
 		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN) && !(pressed & KEY_A) && !(held & KEY_R));
 	
 		if ((pressed & KEY_UP) && isDSiMode()) {
@@ -130,10 +136,7 @@ void driveMenu (void) {
 					break;
 				}
 			} else {
-				if (isDSiMode()) {
-					flashcardMount();
-				}
-				if (flashcardFound()) {
+				if (flashcardMounted) {
 					dmTextPrinted = false;
 					chdir("fat:/");
 					screenMode = 1;
@@ -144,12 +147,10 @@ void driveMenu (void) {
 
 		// Unmount/Remount SD card
 		if ((held & KEY_R) && (pressed & KEY_B) && isDSiMode()) {
+			dmTextPrinted = false;
 			if (sdMounted) {
-				dmTextPrinted = false;
 				sdUnmount();
-				sdMounted = false;
 			} else {
-				dmTextPrinted = false;
 				sdMounted = sdMount();
 			}
 		}

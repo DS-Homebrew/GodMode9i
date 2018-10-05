@@ -1,11 +1,15 @@
 #ifndef FLASHCARD_H
 #define FLASHCARD_H
 
-bool sdFound(void);
-bool flashcardFound(void);
-bool bothSDandFlashcard(void);
-bool sdMount(void);
-void sdUnmount(void);
-void flashcardMount(void);
+extern bool sdMounted;
+extern bool flashcardMounted;
+
+extern bool sdFound(void);
+extern bool flashcardFound(void);
+extern bool bothSDandFlashcard(void);
+extern bool sdMount(void);
+extern void sdUnmount(void);
+extern bool flashcardMount(void);
+extern void flashcardUnmount(void);
 
 #endif //FLASHCARD_H

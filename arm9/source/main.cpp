@@ -30,6 +30,7 @@
 
 #include "nds_loader_arm9.h"
 #include "driveMenu.h"
+#include "driveOperations.h"
 #include "file_browse.h"
 
 #include "gm9i_logo.h"
@@ -108,7 +109,10 @@ int main(int argc, char **argv) {
 		stop();
 	}*/
 	
-	fatInitDefault();
+	if (isDSiMode()) {
+		sdMounted = sdMount();
+	}
+	flashcardMounted = flashcardMount();
 
 	// Top screen as a console
 	videoSetMode(MODE_0_2D);
