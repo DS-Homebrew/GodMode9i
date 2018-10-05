@@ -42,8 +42,14 @@ void driveMenu (void) {
 	int held = 0;
 
 	while (true) {
-		if (isDSiMode() && !pressed) { 
-			flashcardMounted = flashcardMount();	// Try to mount flashcard
+		if (isDSiMode() && !pressed) {
+			if (REG_SCFG_MC == 0x11) {
+				if (flashcardMounted) {
+					flashcardUnmount();
+				}
+			} else {
+				flashcardMounted = flashcardMount();	// Try to mount flashcard
+			}
 		}
 
 		if (!dmTextPrinted) {
@@ -88,7 +94,7 @@ void driveMenu (void) {
 				printf ("\x1b[3;1H");
 			}
 			printf ("[fat:] GAMECART");
-			if (!flashcardFound()) {
+			if (!flashcardMounted) {
 				iprintf ("\x1b[%i;29H", 2+isDSiMode());
 				printf ("[x]");
 			}
@@ -111,6 +117,7 @@ void driveMenu (void) {
 			swiWaitForVBlank();
 			
 			if (REG_SCFG_MC != dm_SCFG_MC) {
+				dmTextPrinted = false;
 				break;
 			}
 		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN) && !(pressed & KEY_A) && !(held & KEY_R));
