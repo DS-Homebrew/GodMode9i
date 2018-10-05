@@ -130,7 +130,7 @@ dist:	all
 	
 $(TARGET).nds:	$(TARGET).arm7 $(TARGET).arm9
 	ndstool	-u 00030004 -g HGMA -c $(TARGET).nds -7 $(TARGET).arm7.elf -9 $(TARGET).arm9.elf\
-  -b icon.bmp "GodMode9i;Robz8"
+  -b icon.bmp "GodMode9i;RocketRobz"
 
 $(TARGET).arm7: arm7/$(TARGET).elf
 	cp arm7/$(TARGET).elf $(TARGET).arm7.elf
