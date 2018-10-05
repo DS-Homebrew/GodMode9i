@@ -150,14 +150,6 @@ string browseForFile (void) {
 	getDirectoryContents (dirContents);
 
 	while (true) {
-		if (isDSiMode() && !pressed && dmCursorPosition == 1 && REG_SCFG_MC == 0x11) {
-			if (flashcardMounted) {
-				flashcardUnmount();
-				screenMode = 0;
-				return "null";
-			}
-		}
-
 		consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
 		DirEntry* entry = &dirContents.at(fileOffset);
 		printf (entry->name.c_str());
@@ -200,6 +192,12 @@ string browseForFile (void) {
 		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN) && !(pressed & KEY_LEFT) && !(pressed & KEY_RIGHT)
 				&& !(pressed & KEY_A) && !(pressed & KEY_B));
 	
+		if (isDSiMode() && !pressed && dmCursorPosition == 1 && REG_SCFG_MC == 0x11 && flashcardMounted) {
+			flashcardUnmount();
+			screenMode = 0;
+			return "null";
+		}
+
 		if (pressed & KEY_UP) 		fileOffset -= 1;
 		if (pressed & KEY_DOWN) 	fileOffset += 1;
 		if (pressed & KEY_LEFT) 	fileOffset -= ENTRY_PAGE_LENGTH;
