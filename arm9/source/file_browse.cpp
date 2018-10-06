@@ -185,12 +185,12 @@ int fileBrowse_A(DirEntry* entry) {
 	if (sdMounted && (strcmp (path, "sd:/gm9i/out/") != 0)) {
 		maxCursors++;
 		assignedOp[maxCursors] = 1;
-		printf("   Copy to sd:/gmi9/out\n");
+		printf("   Copy to sd:/gm9i/out\n");
 	}
 	if (flashcardMounted && (strcmp (path, "fat:/gm9i/out/") != 0)) {
 		maxCursors++;
 		assignedOp[maxCursors] = 2;
-		printf("   Copy to fat:/gmi9/out\n");
+		printf("   Copy to fat:/gm9i/out\n");
 	}
 	printf("\n");
 	printf("(<A> select, <B> cancel)");
