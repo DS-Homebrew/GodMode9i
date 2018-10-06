@@ -110,7 +110,7 @@ bool flashcardMount(void) {
 	if (flashcardFound()) {
 		return true;
 	} else if (!isDSiMode()) {
-		return fatMountSimple("fat", &io_dldi_data->ioInterface);
+		return fatInitDefault();
 	} else if (REG_SCFG_MC != 0x11) {
 		// Reset Slot-1 to allow reading title name and ID
 		sysSetCardOwner (BUS_OWNER_ARM9);
