@@ -29,6 +29,7 @@
 	.global argStart
 	.global argSize
 	.global dsiSD
+	.global dsiMode
 @---------------------------------------------------------------------------------
 	.align	4
 	.arm
@@ -51,6 +52,8 @@ argSize:
 dldiOffset:
 	.word	_dldi_start - _start
 dsiSD:
+	.word	0
+dsiMode:
 	.word	0
 
 startUp:
