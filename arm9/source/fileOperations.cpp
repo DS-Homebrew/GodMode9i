@@ -1,7 +1,9 @@
 #include <nds.h>
 #include <stdio.h>
 
-u32 copyBuf[0x8000];
+#define copyBufSize 0x20000
+
+u32 copyBuf[copyBufSize];
 
 off_t getFileSize(const char *fileName)
 {
@@ -43,19 +45,19 @@ int fcopy(const char *sourcePath, const char *destinationPath)
 	int numr;
 	while (1)
 	{
-		/* scanKeys();
-		if (keysHeld() & KEY_A) {
+		scanKeys();
+		if (keysHeld() & KEY_B) {
 			// Cancel copying
 			fclose(sourceFile);
 			fclose(destinationFile);
 			return -1;
 			break;
-		} */
+		}
 
 		// Copy file to destination path
-		numr = fread(copyBuf, 2, 0x8000, sourceFile);
+		numr = fread(copyBuf, 2, copyBufSize, sourceFile);
 		fwrite(copyBuf, 2, numr, destinationFile);
-		offset += 0x8000;
+		offset += copyBufSize;
 
 		if (offset > fsize) {
 			fclose(sourceFile);
