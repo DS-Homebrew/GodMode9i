@@ -142,7 +142,8 @@ int main(int argc, char **argv) {
 			pathLen = strlen (filePath);
 			vector<char*> argarray;
 
-			if ( strcasecmp (filename.c_str() + filename.size() - 5, ".argv") == 0) {
+			if ((strcasecmp (filename.c_str() + filename.size() - 5, ".argv") == 0)
+			|| (strcasecmp (filename.c_str() + filename.size() - 5, ".ARGV") == 0)) {
 
 				FILE *argfile = fopen(filename.c_str(),"rb");
 				char str[PATH_MAX], *pstr;
