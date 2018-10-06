@@ -1,7 +1,6 @@
 #---------------------------------------------------------------------------------
 .SUFFIXES:
 #---------------------------------------------------------------------------------
-.SECONDARY:
 
 ifeq ($(strip $(DEVKITARM)),)
 $(error "Please set DEVKITARM in your environment. export DEVKITARM=<path to>devkitARM")
@@ -9,12 +8,6 @@ endif
 
 include $(DEVKITARM)/ds_rules
 
-export VERSION_MAJOR	:= 1
-export VERSION_MINOR	:= 1
-export VERSION_PATCH	:= 0
-
-
-VERSION	:=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)
 #---------------------------------------------------------------------------------
 # TARGET is the name of the output
 # BUILD is the directory where object files & intermediate files will be placed
@@ -23,34 +16,34 @@ VERSION	:=	$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)
 # DATA is a list of directories containing binary files embedded using bin2o
 # GRAPHICS is a list of directories containing image files to be converted with grit
 #---------------------------------------------------------------------------------
-TARGET		:=	GodMode9i
+TARGET		:=	$(shell basename $(CURDIR))
 BUILD		:=	build
 SOURCES		:=	source
-INCLUDES	:=	include source
-DATA		:=	data dldi
-GRAPHICS	:=  gfx
+INCLUDES	:=	include ../include
+DATA		:=	data  
+GRAPHICS	:=	gfx  
 
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
-ARCH	:=	-mthumb -mthumb-interwork
 
-CFLAGS	:=	-g -Wall -O2 \
-		-ffunction-sections -fdata-sections \
+ARCH	:=	-mthumb -mthumb-interwork -flto -Os
+
+CFLAGS	:=	-g -Wall \
  		-march=armv5te -mtune=arm946e-s -fomit-frame-pointer\
 		-ffast-math \
 		$(ARCH)
 
 CFLAGS	+=	$(INCLUDE) -DARM9
-CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=c++11
+CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions
 
 ASFLAGS	:=	-g $(ARCH)
-LDFLAGS	=	-specs=ds_arm9.specs -g -Wl,--gc-sections $(ARCH) -Wl,-Map,$(notdir $*.map)
+LDFLAGS	=	-nostartfiles -T../exceptionstub.ld -Wl,--section-start,.crt0=0x2ffa000 -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project (order is important)
 #---------------------------------------------------------------------------------
-LIBS	:= 	-lfat -lnds9
+LIBS	:= 	-lnds9
  
  
 #---------------------------------------------------------------------------------
@@ -65,9 +58,9 @@ LIBDIRS	:=	$(LIBNDS)
 #---------------------------------------------------------------------------------
 ifneq ($(BUILD),$(notdir $(CURDIR)))
 #---------------------------------------------------------------------------------
-export TOPDIR	:=	$(CURDIR)
 
-export OUTPUT	:=	$(CURDIR)/$(TARGET)
+export STUBBIN	?=	$(CURDIR)/$(TARGET).bin
+export STUBELF	:=	$(CURDIR)/$(TARGET).elf
 
 export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
 					$(foreach dir,$(DATA),$(CURDIR)/$(dir)) \
@@ -77,10 +70,9 @@ export DEPSDIR	:=	$(CURDIR)/$(BUILD)
 
 CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
 CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
-BMPFILES	:=	$(foreach dir,$(GRAPHICS),$(notdir $(wildcard $(dir)/*.bmp)))
-PNGFILES	:=	$(foreach dir,$(GRAPHICS),$(notdir $(wildcard $(dir)/*.png)))
 SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
-BINFILES	:=	load.bin bootstub.bin exceptionstub.bin
+PNGFILES	:=	$(foreach dir,$(GRAPHICS),$(notdir $(wildcard $(dir)/*.png)))
+BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
  
 #---------------------------------------------------------------------------------
 # use CXX for linking C++ projects, CC for standard C
@@ -97,6 +89,7 @@ endif
 #---------------------------------------------------------------------------------
 
 export OFILES	:=	$(addsuffix .o,$(BINFILES)) \
+					$(PNGFILES:.png=.o) \
 					$(CPPFILES:.cpp=.o) $(CFILES:.c=.o) $(SFILES:.s=.o)
  
 export INCLUDE	:=	$(foreach dir,$(INCLUDES),-iquote $(CURDIR)/$(dir)) \
@@ -115,66 +108,17 @@ else
 	endif
 endif
  
-export GAME_TITLE := $(TARGET)
-
-.PHONY: bootloader bootstub exceptionstub clean arm7/$(TARGET).elf arm9/$(TARGET).elf
-
-all:	bootloader bootstub exceptionstub $(TARGET).nds
-	
-dist:	all
-	@rm	-fr	hbmenu
-	@mkdir hbmenu
-	@cp $(TARGET).nds hbmenu/BOOT.NDS
-	@cp BootStrap/_BOOT_MP.NDS BootStrap/TTMENU.DAT BootStrap/_DS_MENU.DAT BootStrap/ez5sys.bin BootStrap/akmenu4.nds hbmenu
-	@tar -cvjf $(TARGET)-$(VERSION).tar.bz2 hbmenu testfiles README.html COPYING hbmenu -X exclude.lst
-	
-$(TARGET).nds:	$(TARGET).arm7 $(TARGET).arm9
-	ndstool	-c $(TARGET).nds -7 $(TARGET).arm7.elf -9 $(TARGET).arm9.elf \
-			-b icon.bmp "GodMode9i;RocketRobz" \
-			-g HGMA 01 "GODMODE9I" -z 80040000 -u 00030004 
-
-$(TARGET).arm7: arm7/$(TARGET).elf
-	cp arm7/$(TARGET).elf $(TARGET).arm7.elf
-
-$(TARGET).arm9: arm9/$(TARGET).elf
-	cp arm9/$(TARGET).elf $(TARGET).arm9.elf
-
+.PHONY: $(BUILD) clean
+ 
 #---------------------------------------------------------------------------------
-arm7/$(TARGET).elf:
-	@$(MAKE) -C arm7
-	
-#---------------------------------------------------------------------------------
-arm9/$(TARGET).elf:
-	@$(MAKE) -C arm9
-
-#---------------------------------------------------------------------------------
-#$(BUILD):
-	#@[ -d $@ ] || mkdir -p $@
-	#@make --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
+$(BUILD):
+	@[ -d $@ ] || mkdir -p $@
+	@make --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
+ 
 #---------------------------------------------------------------------------------
 clean:
 	@echo clean ...
-	@rm -fr data
-	@rm -fr $(BUILD) $(TARGET).elf $(TARGET).nds
-	@rm -fr $(TARGET).arm7.elf
-	@rm -fr $(TARGET).arm9.elf
-	@$(MAKE) -C bootloader clean
-	@$(MAKE) -C bootstub clean
-	@$(MAKE) -C nds-exception-stub clean
-	@$(MAKE) -C arm9 clean
-	@$(MAKE) -C arm7 clean
-
-data:
-	@mkdir -p data
-
-bootloader: data
-	@$(MAKE) -C bootloader LOADBIN=$(CURDIR)/data/load.bin
-	
-exceptionstub: data
-	@$(MAKE) -C nds-exception-stub STUBBIN=$(CURDIR)/data/exceptionstub.bin
-
-bootstub: data
-	@$(MAKE) -C bootstub
+	@rm -fr $(BUILD) $(TARGET).elf $(TARGET).bin
 
 #---------------------------------------------------------------------------------
 else
@@ -182,8 +126,11 @@ else
 #---------------------------------------------------------------------------------
 # main targets
 #---------------------------------------------------------------------------------
-#$(OUTPUT).nds	: 	$(OUTPUT).elf
-#$(OUTPUT).elf	:	$(OFILES)
+$(STUBBIN)	:	$(STUBELF)
+	$(OBJCOPY) -O binary $< $@
+	@echo built ... $(notdir $@)
+
+$(STUBELF)	:	$(OFILES)
  
 #---------------------------------------------------------------------------------
 %.bin.o	:	%.bin

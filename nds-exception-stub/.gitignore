@@ -1,0 +1,5 @@
+*.elf
+*.bin
+build
+
+!/data/font.bin
