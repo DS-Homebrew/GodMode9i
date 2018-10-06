@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
 	int pathLen;
 	std::string filename;
 
-	snprintf(titleName, sizeof(titleName), "GodMode9i v%i.%i.%i", 0, 1, 0);
+	snprintf(titleName, sizeof(titleName), "GodMode9i v%i.%i.%i", 1, 0, 0);
 
 	// initialize video mode
 	videoSetMode(MODE_4_2D);
@@ -173,6 +173,7 @@ int main(int argc, char **argv) {
 				strcpy (filePath + pathLen, name);
 				free(argarray.at(0));
 				argarray.at(0) = filePath;
+				consoleClear();
 				iprintf ("Running %s with %d parameters\n", argarray[0], argarray.size());
 				int err = runNdsFile (argarray[0], argarray.size(), (const char **)&argarray[0]);
 				iprintf ("Start failed. Error %i\n", err);

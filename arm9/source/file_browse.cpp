@@ -89,6 +89,8 @@ void getDirectoryContents (vector<DirEntry>& dirContents) {
 			dirEntry.isDirectory = (st.st_mode & S_IFDIR) ? true : false;
 			if((dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "nds")
 			|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "NDS")
+			|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "argv")
+			|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "ARGV")
 			|| (isDSiMode() && sdMounted && dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "firm")
 			|| (isDSiMode() && sdMounted && dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "FIRM"))
 			{
@@ -146,6 +148,104 @@ void showDirectoryContents (const vector<DirEntry>& dirContents, int startRow) {
 			strncpy (entryName, entry->name.c_str(), SCREEN_COLS);
 			entryName[SCREEN_COLS - 1] = '\0';
 			iprintf (" %s", entryName);
+		}
+	}
+}
+
+int fileBrowse_A(DirEntry* entry) {
+	int pressed = 0;
+	int assignedOp[3] = {0};
+	int optionOffset = 0;
+	int maxCursors = -1;
+
+	char path[PATH_MAX];
+	getcwd(path, PATH_MAX);
+	printf ("\x1b[0;27H");
+	printf ("     ");	// Clear time
+	consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+	iprintf("%s%s", path, entry->name.c_str());
+	printf("\n\n");
+	if (entry->isApp) {
+		maxCursors++;
+		assignedOp[maxCursors] = 0;
+		printf("   Boot file\n");
+	}
+	if (sdMounted && (strcmp (path, "sd:/gm9i/out/") != 0)) {
+		maxCursors++;
+		assignedOp[maxCursors] = 1;
+		printf("   Copy to sd:/gmi9/out\n");
+	}
+	if (flashcardMounted && (strcmp (path, "fat:/gm9i/out/") != 0)) {
+		maxCursors++;
+		assignedOp[maxCursors] = 2;
+		printf("   Copy to fat:/gmi9/out\n");
+	}
+	printf("\n");
+	printf("(<A> select, <B> cancel)");
+	while (true) {
+		// Clear old cursors
+		for (int i = ENTRIES_START_ROW; i < (maxCursors+1) + ENTRIES_START_ROW; i++) {
+			iprintf ("\x1b[%d;0H  ", i);
+		}
+		// Show cursor
+		iprintf ("\x1b[%d;0H->", optionOffset + ENTRIES_START_ROW);
+
+		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
+		do {
+			scanKeys();
+			pressed = keysDownRepeat();
+			swiWaitForVBlank();
+		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN)
+				&& !(pressed & KEY_A) && !(pressed & KEY_B));
+
+		if (pressed & KEY_UP) 		optionOffset -= 1;
+		if (pressed & KEY_DOWN) 	optionOffset += 1;
+		
+		if (optionOffset < 0) 				optionOffset = maxCursors;		// Wrap around to bottom of list
+		if (optionOffset > maxCursors)		optionOffset = 0;		// Wrap around to top of list
+
+		if (pressed & KEY_A) {
+			if (assignedOp[optionOffset] == 0) {
+				applaunch = true;
+				iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW);
+				printf("Now loading...");
+			} else if (assignedOp[optionOffset] == 1) {
+				if (access("sd:/gm9i", F_OK) != 0) {
+					iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW);
+					printf("Creating directory...");
+					mkdir("sd:/gm9i", 0777);
+				}
+				if (access("sd:/gm9i/out", F_OK) != 0) {
+					iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW);
+					printf("Creating directory...");
+					mkdir("sd:/gm9i/out", 0777);
+				}
+				char destPath[256];
+				snprintf(destPath, sizeof(destPath), "sd:/gm9i/out/%s", entry->name.c_str());
+				iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW);
+				printf("Copying...           ");
+				fcopy(entry->name.c_str(), destPath);
+			} else if (assignedOp[optionOffset] == 2) {
+				if (access("fat:/gm9i", F_OK) != 0) {
+					iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW);
+					printf("Creating directory...");
+					mkdir("fat:/gm9i", 0777);
+				}
+				if (access("fat:/gm9i/out", F_OK) != 0) {
+					iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW);
+					printf("Creating directory...");
+					mkdir("fat:/gm9i/out", 0777);
+				}
+				char destPath[256];
+				snprintf(destPath, sizeof(destPath), "fat:/gm9i/out/%s", entry->name.c_str());
+				iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW);
+				printf("Copying...           ");
+				fcopy(entry->name.c_str(), destPath);
+			}
+			return assignedOp[optionOffset];
+		}
+		if (pressed & KEY_B) {
+			return -1;
 		}
 	}
 }
@@ -242,13 +342,13 @@ string browseForFile (void) {
 				screenOffset = 0;
 				fileOffset = 0;
 			} else {
-				if (entry->isApp) {
-					applaunch = true;
+				int getOp = fileBrowse_A(entry);
+				if (getOp == 0) {
+					// Return the chosen file
+					return entry->name;
+				} else if (getOp == 1 || getOp == 2) {
+					getDirectoryContents (dirContents);		// Refresh directory listing
 				}
-				// Clear the screen
-				iprintf ("\x1b[2J");
-				// Return the chosen file
-				return entry->name;
 			}
 		}
 
