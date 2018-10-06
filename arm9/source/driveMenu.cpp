@@ -49,9 +49,8 @@ void driveMenu (void) {
 				}
 			} else if (!flashcardMountRan) {
 				flashcardMounted = flashcardMount();	// Try to mount flashcard
-			} else {
-				flashcardMountRan = false;
 			}
+			flashcardMountRan = false;
 		}
 
 		if (!dmTextPrinted) {
