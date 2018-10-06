@@ -156,6 +156,7 @@ int fileBrowse_A(DirEntry* entry) {
 	int pressed = 0;
 	int assignedOp[3] = {0};
 	int optionOffset = 0;
+	int cursorScreenPos = 0;
 	int maxCursors = -1;
 
 	char path[PATH_MAX];
@@ -163,8 +164,19 @@ int fileBrowse_A(DirEntry* entry) {
 	printf ("\x1b[0;27H");
 	printf ("     ");	// Clear time
 	consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
-	iprintf("%s%s", path, entry->name.c_str());
-	printf("\n\n");
+	char fullPath[256];
+	snprintf(fullPath, sizeof(fullPath), "%s%s", path, entry->name.c_str());
+	printf(fullPath);
+	// Position cursor, depending on how long the full file path is
+	for (int i = 0; i < 256; i++) {
+		if (i == 33 || i == 65 || i == 97 || i == 129 || i == 161 || i == 193 || i == 225) {
+			cursorScreenPos++;
+		}
+		if (fullPath[i] == '\0') {
+			break;
+		}
+	}
+	iprintf ("\x1b[%d;0H", cursorScreenPos + ENTRIES_START_ROW);
 	if (entry->isApp) {
 		maxCursors++;
 		assignedOp[maxCursors] = 0;
@@ -184,11 +196,11 @@ int fileBrowse_A(DirEntry* entry) {
 	printf("(<A> select, <B> cancel)");
 	while (true) {
 		// Clear old cursors
-		for (int i = ENTRIES_START_ROW; i < (maxCursors+1) + ENTRIES_START_ROW; i++) {
+		for (int i = ENTRIES_START_ROW+cursorScreenPos; i < (maxCursors+1) + ENTRIES_START_ROW+cursorScreenPos; i++) {
 			iprintf ("\x1b[%d;0H  ", i);
 		}
 		// Show cursor
-		iprintf ("\x1b[%d;0H->", optionOffset + ENTRIES_START_ROW);
+		iprintf ("\x1b[%d;0H->", optionOffset + ENTRIES_START_ROW+cursorScreenPos);
 
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
@@ -207,38 +219,38 @@ int fileBrowse_A(DirEntry* entry) {
 		if (pressed & KEY_A) {
 			if (assignedOp[optionOffset] == 0) {
 				applaunch = true;
-				iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW);
+				iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW+cursorScreenPos);
 				printf("Now loading...");
 			} else if (assignedOp[optionOffset] == 1) {
 				if (access("sd:/gm9i", F_OK) != 0) {
-					iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW);
+					iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW+cursorScreenPos);
 					printf("Creating directory...");
 					mkdir("sd:/gm9i", 0777);
 				}
 				if (access("sd:/gm9i/out", F_OK) != 0) {
-					iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW);
+					iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW+cursorScreenPos);
 					printf("Creating directory...");
 					mkdir("sd:/gm9i/out", 0777);
 				}
 				char destPath[256];
 				snprintf(destPath, sizeof(destPath), "sd:/gm9i/out/%s", entry->name.c_str());
-				iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW);
+				iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW+cursorScreenPos);
 				printf("Copying...           ");
 				fcopy(entry->name.c_str(), destPath);
 			} else if (assignedOp[optionOffset] == 2) {
 				if (access("fat:/gm9i", F_OK) != 0) {
-					iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW);
+					iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW+cursorScreenPos);
 					printf("Creating directory...");
 					mkdir("fat:/gm9i", 0777);
 				}
 				if (access("fat:/gm9i/out", F_OK) != 0) {
-					iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW);
+					iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW+cursorScreenPos);
 					printf("Creating directory...");
 					mkdir("fat:/gm9i/out", 0777);
 				}
 				char destPath[256];
 				snprintf(destPath, sizeof(destPath), "fat:/gm9i/out/%s", entry->name.c_str());
-				iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW);
+				iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW+cursorScreenPos);
 				printf("Copying...           ");
 				fcopy(entry->name.c_str(), destPath);
 			}
