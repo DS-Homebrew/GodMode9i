@@ -178,8 +178,8 @@ int main(int argc, char **argv) {
 				iprintf ("Start failed. Error %i\n", err);
 			}
 
-			if ((strcasecmp (filename.c_str() + filename.size() - 4, ".firm") == 0)
-			|| (strcasecmp (filename.c_str() + filename.size() - 4, ".FIRM") == 0)) {
+			if ((strcasecmp (filename.c_str() + filename.size() - 5, ".firm") == 0)
+			|| (strcasecmp (filename.c_str() + filename.size() - 5, ".FIRM") == 0)) {
 				char *name = argarray.at(0);
 				strcpy (filePath + pathLen, name);
 				free(argarray.at(0));
