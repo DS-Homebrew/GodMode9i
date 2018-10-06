@@ -33,6 +33,7 @@
 
 using namespace std;
 
+static bool flashcardMountRan = true;
 static bool dmTextPrinted = false;
 int dmCursorPosition = 0;
 
@@ -46,8 +47,10 @@ void driveMenu (void) {
 				if (flashcardMounted) {
 					flashcardUnmount();
 				}
-			} else {
+			} else if (!flashcardMountRan) {
 				flashcardMounted = flashcardMount();	// Try to mount flashcard
+			} else {
+				flashcardMountRan = false;
 			}
 		}
 
