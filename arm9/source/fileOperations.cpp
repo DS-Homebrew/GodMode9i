@@ -1,7 +1,7 @@
 #include <nds.h>
 #include <stdio.h>
 
-#define copyBufSize 0x20000
+#define copyBufSize 0x8000
 
 u32 copyBuf[copyBufSize];
 
