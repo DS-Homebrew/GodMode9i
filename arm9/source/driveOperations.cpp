@@ -130,10 +130,9 @@ bool flashcardMount(void) {
 		}
 		memcpy(&nds, (void*)0x02000000, sizeof(nds));*/
 		UpdateCardInfo(&nds, &gameid[0], &gamename[0]);
+		swiWaitForVBlank();
 
-		/*SetBrightness(0, 0);
-		SetBrightness(1, 0);
-		consoleDemoInit();
+		/*consoleClear();
 		iprintf("REG_SCFG_MC: %x\n", REG_SCFG_MC);
 		ShowGameInfo(gameid, gamename);
 
@@ -142,6 +141,7 @@ bool flashcardMount(void) {
 		}*/
 
 		sysSetCardOwner (BUS_OWNER_ARM7);	// 3DS fix
+		swiWaitForVBlank();
 
 		// Read a DLDI driver specific to the cart
 		if (!memcmp(gamename, "R4DSULTRA", 9)) {
