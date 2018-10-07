@@ -267,8 +267,6 @@ bool fileBrowse_paste(void) {
 	int optionOffset = 0;
 	int maxCursors = -1;
 
-	char path[PATH_MAX];
-	getcwd(path, PATH_MAX);
 	printf ("\x1b[0;27H");
 	printf ("     ");	// Clear time
 	consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
