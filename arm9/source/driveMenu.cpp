@@ -72,9 +72,9 @@ void gbaCartDump(void) {
 				printf("Creating directory...");
 				mkdir("fat:/gm9i/out", 0777);
 			}
-			char gbaHeaderGameTitle[13] = "/0";
-			char gbaHeaderGameCode[5] = "/0";
-			char gbaHeaderMakerCode[3] = "/0";
+			char gbaHeaderGameTitle[13] = "\0";
+			char gbaHeaderGameCode[5] = "\0";
+			char gbaHeaderMakerCode[3] = "\0";
 			for (int i = 0; i < 12; i++) {
 				gbaHeaderGameTitle[i] = *(char*)(0x080000A0+i);
 				if (*(u8*)(0x080000A0+i) == 0) {
@@ -247,6 +247,7 @@ void driveMenu (void) {
 				if (isDSiMode()) {
 					if (sdMounted) {
 						dmTextPrinted = false;
+						secondaryDrive = false;
 						chdir("sd:/");
 						screenMode = 1;
 						break;
@@ -254,6 +255,7 @@ void driveMenu (void) {
 				} else {
 					if (flashcardMounted) {
 						dmTextPrinted = false;
+						secondaryDrive = true;
 						chdir("fat:/");
 						screenMode = 1;
 						break;
@@ -263,6 +265,7 @@ void driveMenu (void) {
 				if (isDSiMode()) {
 					if (flashcardMounted) {
 						dmTextPrinted = false;
+						secondaryDrive = true;
 						chdir("fat:/");
 						screenMode = 1;
 						break;

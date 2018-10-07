@@ -262,6 +262,69 @@ int fileBrowse_A(DirEntry* entry) {
 	}
 }
 
+bool fileBrowse_paste(void) {
+	int pressed = 0;
+	int optionOffset = 0;
+	int maxCursors = -1;
+
+	char path[PATH_MAX];
+	getcwd(path, PATH_MAX);
+	printf ("\x1b[0;27H");
+	printf ("     ");	// Clear time
+	consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+	printf("Paste file here?\n\n");
+	iprintf ("\x1b[%d;0H", ENTRIES_START_ROW);
+	maxCursors++;
+	printf("   Copy path\n");
+	if (secondaryDrive == clipboardDrive) {
+		maxCursors++;
+		printf("   Move path\n");
+	}
+	printf("\n");
+	printf("(<A> select, <B> cancel)");
+	while (true) {
+		// Clear old cursors
+		for (int i = ENTRIES_START_ROW; i < (maxCursors+1) + ENTRIES_START_ROW; i++) {
+			iprintf ("\x1b[%d;0H  ", i);
+		}
+		// Show cursor
+		iprintf ("\x1b[%d;0H->", optionOffset + ENTRIES_START_ROW);
+
+		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
+		do {
+			scanKeys();
+			pressed = keysDownRepeat();
+			swiWaitForVBlank();
+		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN)
+				&& !(pressed & KEY_A) && !(pressed & KEY_B));
+
+		if (pressed & KEY_UP) 		optionOffset -= 1;
+		if (pressed & KEY_DOWN) 	optionOffset += 1;
+		
+		if (optionOffset < 0) 				optionOffset = maxCursors;		// Wrap around to bottom of list
+		if (optionOffset > maxCursors)		optionOffset = 0;		// Wrap around to top of list
+
+		if (pressed & KEY_A) {
+			char path[PATH_MAX];
+			getcwd(path, PATH_MAX);
+			char destPath[256];
+			snprintf(destPath, sizeof(destPath), "%s%s", path, clipboardFilename);
+			iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW);
+			if (optionOffset == 0) {
+				printf("Copying...");
+				fcopy(clipboard, destPath);
+			} else {
+				printf("Moving...");
+				rename(clipboard, destPath);
+			}
+			return true;
+		}
+		if (pressed & KEY_B) {
+			return false;
+		}
+	}
+}
+
 string browseForFile (void) {
 	int pressed = 0;
 	int screenOffset = 0;
@@ -282,10 +345,19 @@ string browseForFile (void) {
 			fileSize = getFileSize(entry->name.c_str());
 			printf ("%i Bytes", (int)fileSize);
 		}
-		printf ("\x1b[21;0H");
+		if (clipboardOn) {
+			printf ("\x1b[10;0H");
+			printf ("[CLIPBOARD]\n");
+			printf (clipboardFilename);
+		}
+		printf ("\x1b[19;0H");
 		printf (titleName);
+		printf ("\x1b[20;0H");
+		printf ("X - DELETE file");
+		printf ("\x1b[21;0H");
+		printf (clipboardOn ? "Y - PASTE file" : "Y - COPY file");
 		printf ("\x1b[22;0H");
-		printf ("X - DELETE");
+		printf (clipboardOn ? "SELECT - Clear Clipboard" : "SELECT - Restore Clipboard");
 		printf ("\x1b[23;0H");
 		printf ((!isDSiMode() && isRegularDS) ? POWERTEXT_DS : POWERTEXT);
 
@@ -316,7 +388,8 @@ string browseForFile (void) {
 				break;
 			}
 		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN) && !(pressed & KEY_LEFT) && !(pressed & KEY_RIGHT)
-				&& !(pressed & KEY_A) && !(pressed & KEY_B) && !(pressed & KEY_X));
+				&& !(pressed & KEY_A) && !(pressed & KEY_B) && !(pressed & KEY_X) && !(pressed & KEY_Y)
+				&& !(pressed & KEY_SELECT));
 	
 		iprintf ("\x1b[%d;0H*", fileOffset - screenOffset + ENTRIES_START_ROW);
 
@@ -407,6 +480,26 @@ string browseForFile (void) {
 					break;
 				}
 			}
+		}
+
+		if (pressed & KEY_Y) {
+			if (clipboardOn) {
+				if (fileBrowse_paste()) {
+					getDirectoryContents (dirContents);
+				}
+			} else {
+				char path[PATH_MAX];
+				getcwd(path, PATH_MAX);
+				snprintf(clipboard, sizeof(clipboard), "%s%s", path, entry->name.c_str());
+				snprintf(clipboardFilename, sizeof(clipboardFilename), "%s", entry->name.c_str());
+				clipboardOn = true;
+				clipboardDrive = secondaryDrive;
+			}
+			clipboardUsed = true;
+		}
+
+		if ((pressed & KEY_SELECT) && clipboardUsed) {
+			clipboardOn = !clipboardOn;
 		}
 	}
 }

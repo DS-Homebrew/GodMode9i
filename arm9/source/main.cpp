@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
 	int pathLen;
 	std::string filename;
 
-	snprintf(titleName, sizeof(titleName), "GodMode9i v%i.%i.%i", 1, 0, 0);
+	snprintf(titleName, sizeof(titleName), "GodMode9i v%i.%i.%i", 1, 1, 0);
 
 	// initialize video mode
 	videoSetMode(MODE_4_2D);

@@ -5,6 +5,12 @@
 
 u32 copyBuf[copyBufSize];
 
+char clipboard[256];
+char clipboardFilename[256];
+bool clipboardOn = false;
+bool clipboardUsed = false;
+bool clipboardDrive = false;	// false == SD card, true == Flashcard
+
 off_t getFileSize(const char *fileName)
 {
     FILE* fp = fopen(fileName, "rb");

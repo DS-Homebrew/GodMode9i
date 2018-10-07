@@ -6,6 +6,8 @@ extern u8 stored_SCFG_MC;
 extern bool sdMounted;
 extern bool flashcardMounted;
 
+extern bool secondaryDrive;		// false == SD card, true == Flashcard
+
 extern bool sdFound(void);
 extern bool flashcardFound(void);
 extern bool bothSDandFlashcard(void);

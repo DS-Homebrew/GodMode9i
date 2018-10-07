@@ -13,6 +13,8 @@ u8 stored_SCFG_MC = 0;
 bool sdMounted = false;
 bool flashcardMounted = false;
 
+bool secondaryDrive = false;		// false == SD card, true == Flashcard
+
 bool sdFound(void) {
 	if (access("sd:/", F_OK) == 0) {
 		return true;
