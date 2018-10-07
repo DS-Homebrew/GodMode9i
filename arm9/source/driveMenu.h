@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+extern bool flashcardMountSkipped;
 extern int dmCursorPosition;
 
 extern void driveMenu (void);

@@ -33,6 +33,7 @@
 
 using namespace std;
 
+bool flashcardMountSkipped = true;
 static bool flashcardMountRan = true;
 static bool dmTextPrinted = false;
 int dmCursorPosition = 0;
@@ -42,7 +43,7 @@ void driveMenu (void) {
 	int held = 0;
 
 	while (true) {
-		if (isDSiMode() && !pressed && !held) {
+		if (isDSiMode() && !flashcardMountSkipped && !pressed && !held) {
 			if (REG_SCFG_MC == 0x11) {
 				if (flashcardMounted) {
 					flashcardUnmount();

@@ -120,7 +120,11 @@ int main(int argc, char **argv) {
 	if (isDSiMode()) {
 		sdMounted = sdMount();
 	}
-	flashcardMounted = flashcardMount();
+	scanKeys();
+	if (!isDSiMode() || !(keysHeld() & KEY_Y)) {
+		flashcardMounted = flashcardMount();
+		flashcardMountSkipped = false;
+	}
 
 	// Top screen as a console
 	videoSetMode(MODE_0_2D);
