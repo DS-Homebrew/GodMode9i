@@ -133,7 +133,9 @@ void driveMenu (void) {
 			flashcardMountRan = false;
 		}
 
-		gbaFixedValue = *(u8*)(0x080000B2);
+		if (!isDSiMode() && isRegularDS) {
+			gbaFixedValue = *(u8*)(0x080000B2);
+		}
 
 		if (!dmTextPrinted) {
 			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
@@ -216,11 +218,17 @@ void driveMenu (void) {
 			pressed = keysDownRepeat();
 			held = keysHeld();
 			swiWaitForVBlank();
-			
-			if ((REG_SCFG_MC != stored_SCFG_MC)
-			|| (*(u8*)(0x080000B2) != gbaFixedValue)) {
-				dmTextPrinted = false;
-				break;
+
+			if (!isDSiMode() && isRegularDS) {
+				if (*(u8*)(0x080000B2) != gbaFixedValue) {
+					dmTextPrinted = false;
+					break;
+				}
+			} else if (isDSiMode()) {
+				if (REG_SCFG_MC != stored_SCFG_MC) {
+					dmTextPrinted = false;
+					break;
+				}
 			}
 		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN) && !(pressed & KEY_A) && !(held & KEY_R));
 	

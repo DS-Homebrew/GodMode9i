@@ -70,6 +70,8 @@ int main(int argc, char **argv) {
 
 	int pathLen;
 	std::string filename;
+	
+	bool yHeld = false;
 
 	snprintf(titleName, sizeof(titleName), "GodMode9i v%i.%i.%i", 1, 1, 0);
 
@@ -125,10 +127,13 @@ int main(int argc, char **argv) {
 	sysSetCartOwner (BUS_OWNER_ARM9);	// Allow arm9 to access GBA ROM
 
 	if (isDSiMode()) {
+		scanKeys();
+		if (keysHeld() & KEY_Y) {
+			yHeld = true;
+		}
 		sdMounted = sdMount();
 	}
-	scanKeys();
-	if (!isDSiMode() || !(keysHeld() & KEY_Y)) {
+	if (!isDSiMode() || !yHeld) {
 		flashcardMounted = flashcardMount();
 		flashcardMountSkipped = false;
 	}
