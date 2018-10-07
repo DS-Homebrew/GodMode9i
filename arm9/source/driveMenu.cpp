@@ -94,12 +94,20 @@ void gbaCartDump(void) {
 			snprintf(destPath, sizeof(destPath), "fat:/gm9i/out/%s_%s_%s.gba", gbaHeaderGameTitle, gbaHeaderGameCode, gbaHeaderMakerCode);
 			consoleClear();
 			printf("Dumping...\n");
-			printf("This may take a while.\n");
-			printf("\n");
 			printf("Do not remove the GBA cart.\n");
+			// Determine ROM size
+			u32 romSize = 0x02000000;
+			for (u32 i = 0x09FE0000; i > 0x08000000; i -= 0x20000) {
+				if (*(u32*)(i) == 0xFFFE0000) {
+					romSize -= 0x20000;
+				} else {
+					break;
+				}
+			}
+			// Dump!
 			remove(destPath);
 			FILE* destinationFile = fopen(destPath, "wb");
-			fwrite((void*)0x08000000, 1, 0x400000, destinationFile);
+			fwrite((void*)0x08000000, 1, romSize, destinationFile);
 			fclose(destinationFile);
 			break;
 		}
