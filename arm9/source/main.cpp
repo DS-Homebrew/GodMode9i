@@ -122,6 +122,8 @@ int main(int argc, char **argv) {
 	printf ("\x1b[22;11H");
 	printf ("mounting drive(s)...");
 
+	sysSetCartOwner (BUS_OWNER_ARM9);	// Allow arm9 to access GBA ROM
+
 	if (isDSiMode()) {
 		sdMounted = sdMount();
 	}
