@@ -100,6 +100,10 @@ int main(int argc, char **argv) {
 	printf ("https:/github.com/");
 	printf ("\x1b[4;11H");
 	printf ("RocketRobz/GodMode9i");
+	if (isDSiMode()) {
+		printf ("\x1b[22;1H");
+		printf ("Y Held - Disable cart access");
+	}
 
 	// Display for 2 seconds
 	for (int i = 0; i < 60*2; i++) {
@@ -111,12 +115,13 @@ int main(int argc, char **argv) {
 	if (arm7_SNDEXCNT != 0) isRegularDS = false;	// If sound frequency setting is found, then the console is not a DS Phat/Lite
 	fifoSendValue32(FIFO_USER_07, 0);
 
-	/*if (!fatInitDefault()) {
-		consoleClear();
-		iprintf ("fatinitDefault failed!\n");
-		stop();
-	}*/
-	
+	if (isDSiMode()) {
+		printf ("\x1b[22;1H");
+		printf ("                            ");	// Clear "Y Held" text
+	}
+	printf ("\x1b[22;11H");
+	printf ("mounting drive(s)...");
+
 	if (isDSiMode()) {
 		sdMounted = sdMount();
 	}
