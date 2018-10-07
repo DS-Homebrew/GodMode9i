@@ -154,15 +154,13 @@ void driveMenu (void) {
 					printf ("(GBA Game)");
 				}
 			}
-			iprintf ("\x1b[%i;0H", 22-isDSiMode());
+			iprintf ("\x1b[%i;0H", 21);
 			printf (titleName);
+			printf ("\x1b[22;0H");
 			if (isDSiMode()) {
-				printf ("\x1b[22;0H");
-				if (sdMounted) {
-					printf ("R+B - Unmount SD card");
-				} else {
-					printf ("R+B - Remount SD card");
-				}
+				printf (sdMounted ? "R+B - Unmount SD card" : "R+B - Remount SD card");
+			} else {
+				printf (flashcardMounted ? "R+B - Unmount Flashcard" : "R+B - Remount Flashcard");
 			}
 			printf ("\x1b[23;0H");
 			printf ((!isDSiMode() && isRegularDS) ? POWERTEXT_DS : POWERTEXT);
@@ -278,12 +276,20 @@ void driveMenu (void) {
 		}
 
 		// Unmount/Remount SD card
-		if ((held & KEY_R) && (pressed & KEY_B) && isDSiMode()) {
+		if ((held & KEY_R) && (pressed & KEY_B)) {
 			dmTextPrinted = false;
-			if (sdMounted) {
-				sdUnmount();
+			if (isDSiMode()) {
+				if (sdMounted) {
+					sdUnmount();
+				} else {
+					sdMounted = sdMount();
+				}
 			} else {
-				sdMounted = sdMount();
+				if (flashcardMounted) {
+					flashcardUnmount();
+				} else {
+					flashcardMounted = flashcardMount();
+				}
 			}
 		}
 	}
