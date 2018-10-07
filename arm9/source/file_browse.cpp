@@ -152,15 +152,13 @@ void showDirectoryContents (const vector<DirEntry>& dirContents, int startRow) {
 	}
 }
 
-int fileBrowse_A(DirEntry* entry) {
+int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 	int pressed = 0;
 	int assignedOp[3] = {0};
 	int optionOffset = 0;
 	int cursorScreenPos = 0;
 	int maxCursors = -1;
 
-	char path[PATH_MAX];
-	getcwd(path, PATH_MAX);
 	printf ("\x1b[0;27H");
 	printf ("     ");	// Clear time
 	consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
@@ -426,12 +424,18 @@ string browseForFile (void) {
 				screenOffset = 0;
 				fileOffset = 0;
 			} else {
-				int getOp = fileBrowse_A(entry);
-				if (getOp == 0) {
-					// Return the chosen file
-					return entry->name;
-				} else if (getOp == 1 || getOp == 2) {
-					getDirectoryContents (dirContents);		// Refresh directory listing
+				char path[PATH_MAX];
+				getcwd(path, PATH_MAX);
+				if (bothSDandFlashcard() || entry->isApp
+				|| strcmp (path, (secondaryDrive ? "fat:/gm9i/out/" : "sd:/gm9i/out/")) != 0)
+				{
+					int getOp = fileBrowse_A(entry, path);
+					if (getOp == 0) {
+						// Return the chosen file
+						return entry->name;
+					} else if (getOp == 1 || getOp == 2) {
+						getDirectoryContents (dirContents);		// Refresh directory listing
+					}
 				}
 			}
 		}

@@ -32,7 +32,7 @@ bool flashcardFound(void) {
 }
 
 bool bothSDandFlashcard(void) {
-	if ((access("sd:/", F_OK) == 0) && (access("fat:/", F_OK) == 0)) {
+	if (sdMounted && flashcardMounted) {
 		return true;
 	} else {
 		return false;
