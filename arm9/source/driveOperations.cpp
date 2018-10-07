@@ -141,7 +141,7 @@ TWL_CODE bool twl_flashcardMount(void) {
 		swiWaitForVBlank();
 
 		// Read a DLDI driver specific to the cart
-		if (!memcmp(gamename, "R4DSULTRA", 9)) {
+		if (!memcmp(gamename, "QMATETRIAL", 9) || !memcmp(gamename, "R4DSULTRA", 9)) {
 			io_dldi_data = dldiLoadFromBin(r4idsn_sd_dldi);
 			return fatMountSimple("fat", &io_dldi_data->ioInterface);
 		} else if (!memcmp(gameid, "YCEP", 4) || !memcmp(gameid, "AHZH", 4)) {
