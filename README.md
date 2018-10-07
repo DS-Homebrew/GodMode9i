@@ -8,6 +8,6 @@ GodMode9i is a full access file browser for the Nintendo DS and DSi consoles, si
 * R4 Ultra (r4ultra.com)
 
 ## Credits
-* d0k3: Original GM9 app
+* d0k3: Original GM9 app and name, though he is not involved with the development of GM9i.
 * devkitPro: devkitARM, libnds, and original nds-hb-menu code
 * THEGUY: GM9i logo
