@@ -317,6 +317,7 @@ bool fileBrowse_paste(void) {
 				printf("Moving...");
 				rename(clipboard, destPath);
 			}
+			clipboardOn = false;	// Clear clipboard after copying or moving
 			return true;
 		}
 		if (pressed & KEY_B) {
