@@ -4,8 +4,7 @@
 #include <sys/stat.h>
 #include <stdio.h>
 
-#include "r4idsn_sd_bin.h"
-#include "ak2_sd_bin.h"
+#include "dldi-include.h"
 
 static sNDSHeader nds;
 
@@ -38,16 +37,16 @@ bool bothSDandFlashcard(void) {
 	}
 }
 
-bool sdMount(void) {
+TWL_CODE bool sdMount(void) {
 	return fatMountSimple("sd", get_io_dsisd());
 }
 
-void sdUnmount(void) {
+TWL_CODE void sdUnmount(void) {
 	fatUnmount("sd");
 	sdMounted = false;
 }
 
-DLDI_INTERFACE* dldiLoadFromBin (const u8 dldiAddr[]) {
+TWL_CODE DLDI_INTERFACE* dldiLoadFromBin (const u8 dldiAddr[]) {
 	DLDI_INTERFACE* device;
 	size_t dldiSize;
 
@@ -93,7 +92,7 @@ DLDI_INTERFACE* dldiLoadFromBin (const u8 dldiAddr[]) {
 	return device;
 }
 
-bool UpdateCardInfo(sNDSHeader* nds, char* gameid, char* gamename) {
+TWL_CODE bool UpdateCardInfo(sNDSHeader* nds, char* gameid, char* gamename) {
 	cardReadHeader((uint8*)nds);
 	memcpy(gameid, nds->gameCode, 4);
 	gameid[4] = 0x00;
@@ -102,16 +101,12 @@ bool UpdateCardInfo(sNDSHeader* nds, char* gameid, char* gamename) {
 	return true;
 }
 
-void ShowGameInfo(const char gameid[], const char gamename[]) {
+TWL_CODE void ShowGameInfo(const char gameid[], const char gamename[]) {
 	iprintf("Game id: %s\nName:    %s", gameid, gamename);
 }
 
-bool flashcardMount(void) {
-	if (flashcardFound()) {
-		return true;
-	} else if (!isDSiMode()) {
-		return fatInitDefault();
-	} else if (REG_SCFG_MC != 0x11) {
+TWL_CODE bool twl_flashcardMount(void) {
+	if (REG_SCFG_MC != 0x11) {
 		// Reset Slot-1 to allow reading title name and ID
 		sysSetCardOwner (BUS_OWNER_ARM9);
 		disableSlot1();
@@ -145,14 +140,24 @@ bool flashcardMount(void) {
 
 		// Read a DLDI driver specific to the cart
 		if (!memcmp(gamename, "R4DSULTRA", 9)) {
-			io_dldi_data = dldiLoadFromBin(r4idsn_sd_bin);
+			io_dldi_data = dldiLoadFromBin(r4idsn_sd_dldi);
 			return fatMountSimple("fat", &io_dldi_data->ioInterface);
 		} else if (!memcmp(gameid, "YCEP", 4) || !memcmp(gameid, "AHZH", 4)) {
-			io_dldi_data = dldiLoadFromBin(ak2_sd_bin);
+			io_dldi_data = dldiLoadFromBin(ak2_sd_dldi);
 			return fatMountSimple("fat", &io_dldi_data->ioInterface);
 		}
 	}
 	return false;
+}
+
+bool flashcardMount(void) {
+	if (flashcardFound()) {
+		return true;
+	} else if (!isDSiMode()) {
+		return fatInitDefault();
+	} else {
+		return twl_flashcardMount();
+	}
 }
 
 void flashcardUnmount(void) {
