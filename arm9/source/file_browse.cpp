@@ -44,6 +44,8 @@
 
 using namespace std;
 
+static char path[PATH_MAX];
+
 struct DirEntry {
 	string name;
 	bool isDirectory;
@@ -431,7 +433,9 @@ string browseForFile (void) {
 			screenOffset = fileOffset - ENTRIES_PER_SCREEN + 1;
 			showDirectoryContents (dirContents, screenOffset);
 		}
-		
+
+		getcwd(path, PATH_MAX);
+
 		if (pressed & KEY_A) {
 			DirEntry* entry = &dirContents.at(fileOffset);
 			if (entry->isDirectory) {
@@ -441,30 +445,24 @@ string browseForFile (void) {
 				getDirectoryContents (dirContents);
 				screenOffset = 0;
 				fileOffset = 0;
-			} else {
-				char path[PATH_MAX];
-				getcwd(path, PATH_MAX);
-				if (bothSDandFlashcard() || entry->isApp
-				|| strcmp (path, (secondaryDrive ? "fat:/gm9i/out/" : "sd:/gm9i/out/")) != 0)
-				{
-					int getOp = fileBrowse_A(entry, path);
-					if (getOp == 0) {
-						// Return the chosen file
-						return entry->name;
-					} else if (getOp == 1 || getOp == 2 || (getOp == 3 && nitroMounted)) {
-						getDirectoryContents (dirContents);		// Refresh directory listing
-						if (getOp == 3 && nitroMounted) {
-							screenOffset = 0;
-							fileOffset = 0;
-						}
+			} else if (bothSDandFlashcard() || entry->isApp
+					|| strcmp (path, (secondaryDrive ? "fat:/gm9i/out/" : "sd:/gm9i/out/")) != 0)
+			{
+				int getOp = fileBrowse_A(entry, path);
+				if (getOp == 0) {
+					// Return the chosen file
+					return entry->name;
+				} else if (getOp == 1 || getOp == 2 || (getOp == 3 && nitroMounted)) {
+					getDirectoryContents (dirContents);		// Refresh directory listing
+					if (getOp == 3 && nitroMounted) {
+						screenOffset = 0;
+						fileOffset = 0;
 					}
 				}
 			}
 		}
 
 		if (pressed & KEY_B) {
-			char path[PATH_MAX];
-			getcwd(path, PATH_MAX);
 			if ((strcmp (path, "sd:/") == 0) || (strcmp (path, "fat:/") == 0) || (strcmp (path, "nitro:/") == 0)) {
 				screenMode = 0;
 				return "null";
@@ -477,7 +475,7 @@ string browseForFile (void) {
 		}
 
 		// Delete file/folder
-		if ((pressed & KEY_X) && (strcmp (entry->name.c_str(), "..") != 0)) {
+		if ((pressed & KEY_X) && (strcmp (entry->name.c_str(), "..") != 0) && (strncmp (path, "nitro:/", 7) != 0)) {
 			printf ("\x1b[0;27H");
 			printf ("     ");	// Clear time
 			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
@@ -509,16 +507,12 @@ string browseForFile (void) {
 
 		if (pressed & KEY_Y) {
 			if (clipboardOn) {
-				char path[PATH_MAX];
-				getcwd(path, PATH_MAX);
 				if (strncmp (path, "nitro:/", 7) != 0) {
 					if (fileBrowse_paste(path)) {
 						getDirectoryContents (dirContents);
 					}
 				}
 			} else if (strcmp(entry->name.c_str(), "..") != 0) {
-				char path[PATH_MAX];
-				getcwd(path, PATH_MAX);
 				snprintf(clipboard, sizeof(clipboard), "%s%s", path, entry->name.c_str());
 				snprintf(clipboardFilename, sizeof(clipboardFilename), "%s", entry->name.c_str());
 				clipboardOn = true;
