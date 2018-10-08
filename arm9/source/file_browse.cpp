@@ -490,15 +490,15 @@ string browseForFile (void) {
 				if (fileBrowse_paste()) {
 					getDirectoryContents (dirContents);
 				}
-			} else {
+			} else if (strcmp(entry->name.c_str(), "..") != 0) {
 				char path[PATH_MAX];
 				getcwd(path, PATH_MAX);
 				snprintf(clipboard, sizeof(clipboard), "%s%s", path, entry->name.c_str());
 				snprintf(clipboardFilename, sizeof(clipboardFilename), "%s", entry->name.c_str());
 				clipboardOn = true;
 				clipboardDrive = secondaryDrive;
+				clipboardUsed = true;
 			}
-			clipboardUsed = true;
 		}
 
 		if ((pressed & KEY_SELECT) && clipboardUsed) {
