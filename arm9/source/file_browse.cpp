@@ -286,7 +286,7 @@ bool fileBrowse_paste(char path[PATH_MAX]) {
 	iprintf ("\x1b[%d;0H", ENTRIES_START_ROW);
 	maxCursors++;
 	printf("   Copy path\n");
-	if (!clipboardInNitro && secondaryDrive == clipboardDrive) {
+	if (!clipboardInNitro) {
 		maxCursors++;
 		printf("   Move path\n");
 	}
@@ -323,7 +323,12 @@ bool fileBrowse_paste(char path[PATH_MAX]) {
 				fcopy(clipboard, destPath);
 			} else {
 				printf("Moving...");
-				rename(clipboard, destPath);
+				if (secondaryDrive == clipboardDrive) {
+					rename(clipboard, destPath);
+				} else {
+					fcopy(clipboard, destPath);		// Copy file to destination, since renaming won't work
+					remove(clipboard);				// Delete source file after copying
+				}
 			}
 			clipboardOn = false;	// Clear clipboard after copying or moving
 			return true;
