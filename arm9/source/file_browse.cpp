@@ -450,9 +450,9 @@ string browseForFile (void) {
 					if (getOp == 0) {
 						// Return the chosen file
 						return entry->name;
-					} else if (getOp == 1 || getOp == 2 || nitroMounted) {
+					} else if (getOp == 1 || getOp == 2 || (getOp == 3 && nitroMounted)) {
 						getDirectoryContents (dirContents);		// Refresh directory listing
-						if (nitroMounted) {
+						if (getOp == 3 && nitroMounted) {
 							screenOffset = 0;
 							fileOffset = 0;
 						}
