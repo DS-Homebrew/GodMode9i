@@ -90,8 +90,9 @@ void gbaCartDump(void) {
 			for (int i = 0; i < 2; i++) {
 				gbaHeaderMakerCode[i] = *(char*)(0x080000B0+i);
 			}
+			u8 gbaHeaderSoftwareVersion = *(u8*)(0x080000BC);
 			char destPath[256];
-			snprintf(destPath, sizeof(destPath), "fat:/gm9i/out/%s_%s_%s.gba", gbaHeaderGameTitle, gbaHeaderGameCode, gbaHeaderMakerCode);
+			snprintf(destPath, sizeof(destPath), "fat:/gm9i/out/%s_%s%s_%x.gba", gbaHeaderGameTitle, gbaHeaderGameCode, gbaHeaderMakerCode, gbaHeaderSoftwareVersion);
 			consoleClear();
 			printf("Dumping...\n");
 			printf("Do not remove the GBA cart.\n");
