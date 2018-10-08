@@ -10,6 +10,7 @@ char clipboardFilename[256];
 bool clipboardOn = false;
 bool clipboardUsed = false;
 bool clipboardDrive = false;	// false == SD card, true == Flashcard
+bool clipboardInNitro = false;
 
 off_t getFileSize(const char *fileName)
 {

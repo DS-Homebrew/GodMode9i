@@ -40,7 +40,7 @@ using namespace std;
 bool flashcardMountSkipped = true;
 static bool flashcardMountRan = true;
 static bool dmTextPrinted = false;
-int dmCursorPosition = 0;
+static int dmCursorPosition = 0;
 
 static u8 gbaFixedValue = 0;
 
@@ -120,6 +120,8 @@ void gbaCartDump(void) {
 void driveMenu (void) {
 	int pressed = 0;
 	int held = 0;
+	int assignedOp[3] = {0};
+	int maxCursors = -1;
 
 	while (true) {
 		if (isDSiMode() && !flashcardMountSkipped && !pressed && !held) {
@@ -137,24 +139,36 @@ void driveMenu (void) {
 			gbaFixedValue = *(u8*)(0x080000B2);
 		}
 
+		maxCursors = -1;
+		if (isDSiMode()){
+			maxCursors++;
+			assignedOp[maxCursors] = 0;
+		}
+		maxCursors++;
+		assignedOp[maxCursors] = 1;
+		if (!isDSiMode() && isRegularDS) {
+			maxCursors++;
+			assignedOp[maxCursors] = 2;
+		}
+		if (nitroMounted) {
+			maxCursors++;
+			assignedOp[maxCursors] = 3;
+		}
+
 		if (!dmTextPrinted) {
 			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
-			if (isDSiMode()) {
-				if (dmCursorPosition == 0) {
-					printf ("[sd:] SDCARD\n");
-					printf ("(SD FAT)");
-				} else {
-					printf ("[fat:] GAMECART\n");
-					printf ("(Flashcart FAT)");
-				}
-			} else {
-				if (dmCursorPosition == 0) {
-					printf ("[fat:] GAMECART\n");
-					printf ("(Flashcart FAT)");
-				} else if (!isDSiMode() && isRegularDS) {
-					printf ("GBA GAMECART\n");
-					printf ("(GBA Game)");
-				}
+			if (assignedOp[dmCursorPosition] == 0) {
+				printf ("[sd:] SDCARD\n");
+				printf ("(SD FAT)");
+			} else if (assignedOp[dmCursorPosition] == 1) {
+				printf ("[fat:] GAMECART\n");
+				printf ("(Flashcart FAT)");
+			} else if (assignedOp[dmCursorPosition] == 2) {
+				printf ("GBA GAMECART\n");
+				printf ("(GBA Game)");
+			} else if (assignedOp[dmCursorPosition] == 3) {
+				printf ("[nitro:] NDS GAME IMAGE\n");
+				printf ("(Game Virtual)");
 			}
 			iprintf ("\x1b[%i;0H", 21);
 			printf (titleName);
@@ -179,26 +193,28 @@ void driveMenu (void) {
 			// Show cursor
 			printf ("\x1b[%d;0H*", dmCursorPosition + ENTRIES_START_ROW);
 
-			printf ("\x1b[2;1H");
-			if (isDSiMode()){
-				printf ("[sd:] SDCARD");
-				if (!sdMounted) {
-					printf ("\x1b[2;29H");
-					printf ("[x]");
-				}
-				printf ("\x1b[3;1H");
-			}
-			printf ("[fat:] GAMECART");
-			if (!flashcardMounted) {
-				iprintf ("\x1b[%i;29H", 2+isDSiMode());
-				printf ("[x]");
-			}
-			if (!isDSiMode() && isRegularDS) {
-				printf ("\x1b[3;1H");
-				printf ("GBA GAMECART");
-				if (gbaFixedValue != 0x96) {
-					printf ("\x1b[3;29H");
-					printf ("[x]");
+			for (int i = 0; i <= maxCursors; i++) {
+				iprintf ("\x1b[%d;1H", i + ENTRIES_START_ROW);
+				if (assignedOp[i] == 0) {
+					printf ("[sd:] SDCARD");
+					if (!sdMounted) {
+						iprintf ("\x1b[%d;29H", i + ENTRIES_START_ROW);
+						printf ("[x]");
+					}
+				} else if (assignedOp[i] == 1) {
+					printf ("[fat:] GAMECART");
+					if (!flashcardMounted) {
+						iprintf ("\x1b[%d;29H", i + ENTRIES_START_ROW);
+						printf ("[x]");
+					}
+				} else if (assignedOp[i] == 2) {
+					printf ("GBA GAMECART");
+					if (gbaFixedValue != 0x96) {
+						iprintf ("\x1b[%d;29H", i + ENTRIES_START_ROW);
+						printf ("[x]");
+					}
+				} else if (assignedOp[i] == 3) {
+					printf ("[nitro:] NDS GAME IMAGE");
 				}
 			}
 
@@ -233,53 +249,39 @@ void driveMenu (void) {
 		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN) && !(pressed & KEY_A) && !(held & KEY_R));
 	
 		if (pressed & KEY_UP) {
-			if (isDSiMode() || isRegularDS) {
-				dmCursorPosition -= 1;
-				dmTextPrinted = false;
-			}
+			dmCursorPosition -= 1;
+			dmTextPrinted = false;
 		}
 		if (pressed & KEY_DOWN) {
-			if (isDSiMode() || isRegularDS) {
-				dmCursorPosition += 1;
-				dmTextPrinted = false;
-			}
+			dmCursorPosition += 1;
+			dmTextPrinted = false;
 		}
 		
-		if (dmCursorPosition < 0) 	dmCursorPosition = 1;		// Wrap around to bottom of list
-		if (dmCursorPosition > 1)	dmCursorPosition = 0;		// Wrap around to top of list
+		if (dmCursorPosition < 0) 	dmCursorPosition = maxCursors;		// Wrap around to bottom of list
+		if (dmCursorPosition > maxCursors)	dmCursorPosition = 0;		// Wrap around to top of list
 
 		if (pressed & KEY_A) {
-			if (dmCursorPosition == 0) {
-				if (isDSiMode()) {
-					if (sdMounted) {
-						dmTextPrinted = false;
-						secondaryDrive = false;
-						chdir("sd:/");
-						screenMode = 1;
-						break;
-					}
-				} else {
-					if (flashcardMounted) {
-						dmTextPrinted = false;
-						secondaryDrive = true;
-						chdir("fat:/");
-						screenMode = 1;
-						break;
-					}
-				}
-			} else {
-				if (isDSiMode()) {
-					if (flashcardMounted) {
-						dmTextPrinted = false;
-						secondaryDrive = true;
-						chdir("fat:/");
-						screenMode = 1;
-						break;
-					}
-				} else if (isRegularDS && flashcardMounted && gbaFixedValue == 0x96) {
-					dmTextPrinted = false;
-					gbaCartDump();
-				}
+			if (assignedOp[dmCursorPosition] == 0 && isDSiMode() && sdMounted) {
+				dmTextPrinted = false;
+				secondaryDrive = false;
+				chdir("sd:/");
+				screenMode = 1;
+				break;
+			} else if (assignedOp[dmCursorPosition] == 1 && flashcardMounted) {
+				dmTextPrinted = false;
+				secondaryDrive = true;
+				chdir("fat:/");
+				screenMode = 1;
+				break;
+			} else if (assignedOp[dmCursorPosition] == 2 && isRegularDS && flashcardMounted && gbaFixedValue == 0x96) {
+				dmTextPrinted = false;
+				gbaCartDump();
+			} else if (assignedOp[dmCursorPosition] == 3 && nitroMounted) {
+				dmTextPrinted = false;
+				secondaryDrive = nitroSecondaryDrive;
+				chdir("nitro:/");
+				screenMode = 1;
+				break;
 			}
 		}
 

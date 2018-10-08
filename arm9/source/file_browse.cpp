@@ -35,6 +35,7 @@
 #include "fileOperations.h"
 #include "driveMenu.h"
 #include "driveOperations.h"
+#include "nitrofs.h"
 
 #define SCREEN_COLS 32
 #define ENTRIES_PER_SCREEN 22
@@ -180,6 +181,13 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 		assignedOp[maxCursors] = 0;
 		printf("   Boot file\n");
 	}
+	if((entry->name.substr(entry->name.find_last_of(".") + 1) == "nds")
+	|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "NDS"))
+	{
+		maxCursors++;
+		assignedOp[maxCursors] = 3;
+		printf("   Mount NitroFS\n");
+	}
 	if (sdMounted && (strcmp (path, "sd:/gm9i/out/") != 0)) {
 		maxCursors++;
 		assignedOp[maxCursors] = 1;
@@ -251,6 +259,12 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 				iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW+cursorScreenPos);
 				printf("Copying...           ");
 				fcopy(entry->name.c_str(), destPath);
+			} else if (assignedOp[optionOffset] == 3) {
+				nitroMounted = nitroFSInit(entry->name.c_str());
+				if (nitroMounted) {
+					chdir("nitro:/");
+					nitroSecondaryDrive = secondaryDrive;
+				}
 			}
 			return assignedOp[optionOffset];
 		}
@@ -260,7 +274,7 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 	}
 }
 
-bool fileBrowse_paste(void) {
+bool fileBrowse_paste(char path[PATH_MAX]) {
 	int pressed = 0;
 	int optionOffset = 0;
 	int maxCursors = -1;
@@ -272,7 +286,7 @@ bool fileBrowse_paste(void) {
 	iprintf ("\x1b[%d;0H", ENTRIES_START_ROW);
 	maxCursors++;
 	printf("   Copy path\n");
-	if (secondaryDrive == clipboardDrive) {
+	if (!clipboardInNitro && secondaryDrive == clipboardDrive) {
 		maxCursors++;
 		printf("   Move path\n");
 	}
@@ -301,8 +315,6 @@ bool fileBrowse_paste(void) {
 		if (optionOffset > maxCursors)		optionOffset = 0;		// Wrap around to top of list
 
 		if (pressed & KEY_A) {
-			char path[PATH_MAX];
-			getcwd(path, PATH_MAX);
 			char destPath[256];
 			snprintf(destPath, sizeof(destPath), "%s%s", path, clipboardFilename);
 			iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW);
@@ -390,7 +402,7 @@ string browseForFile (void) {
 	
 		iprintf ("\x1b[%d;0H*", fileOffset - screenOffset + ENTRIES_START_ROW);
 
-		if (isDSiMode() && !pressed && dmCursorPosition == 1 && REG_SCFG_MC == 0x11 && flashcardMounted) {
+		if (isDSiMode() && !pressed && secondaryDrive && REG_SCFG_MC == 0x11 && flashcardMounted) {
 			flashcardUnmount();
 			screenMode = 0;
 			return "null";
@@ -433,8 +445,12 @@ string browseForFile (void) {
 					if (getOp == 0) {
 						// Return the chosen file
 						return entry->name;
-					} else if (getOp == 1 || getOp == 2) {
+					} else if (getOp == 1 || getOp == 2 || nitroMounted) {
 						getDirectoryContents (dirContents);		// Refresh directory listing
+						if (nitroMounted) {
+							screenOffset = 0;
+							fileOffset = 0;
+						}
 					}
 				}
 			}
@@ -443,7 +459,7 @@ string browseForFile (void) {
 		if (pressed & KEY_B) {
 			char path[PATH_MAX];
 			getcwd(path, PATH_MAX);
-			if ((strcmp (path, "sd:/") == 0) || (strcmp (path, "fat:/") == 0)) {
+			if ((strcmp (path, "sd:/") == 0) || (strcmp (path, "fat:/") == 0) || (strcmp (path, "nitro:/") == 0)) {
 				screenMode = 0;
 				return "null";
 			}
@@ -487,8 +503,12 @@ string browseForFile (void) {
 
 		if (pressed & KEY_Y) {
 			if (clipboardOn) {
-				if (fileBrowse_paste()) {
-					getDirectoryContents (dirContents);
+				char path[PATH_MAX];
+				getcwd(path, PATH_MAX);
+				if (strncmp (path, "nitro:/", 7) != 0) {
+					if (fileBrowse_paste(path)) {
+						getDirectoryContents (dirContents);
+					}
 				}
 			} else if (strcmp(entry->name.c_str(), "..") != 0) {
 				char path[PATH_MAX];
@@ -497,6 +517,7 @@ string browseForFile (void) {
 				snprintf(clipboardFilename, sizeof(clipboardFilename), "%s", entry->name.c_str());
 				clipboardOn = true;
 				clipboardDrive = secondaryDrive;
+				clipboardInNitro = (strncmp (path, "nitro:/", 7) == 0);
 				clipboardUsed = true;
 			}
 		}
