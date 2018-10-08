@@ -121,7 +121,7 @@ void gbaCartDump(void) {
 void driveMenu (void) {
 	int pressed = 0;
 	int held = 0;
-	int assignedOp[3] = {0};
+	int assignedOp[3] = {-1};
 	int maxCursors = -1;
 
 	while (true) {
@@ -140,13 +140,18 @@ void driveMenu (void) {
 			gbaFixedValue = *(u8*)(0x080000B2);
 		}
 
+		for (int i = 0; i < 3; i++) {
+			assignedOp[i] = -1;
+		}
 		maxCursors = -1;
-		if (isDSiMode()){
+		if (isDSiMode() && sdMounted){
 			maxCursors++;
 			assignedOp[maxCursors] = 0;
 		}
-		maxCursors++;
-		assignedOp[maxCursors] = 1;
+		if (flashcardMounted) {
+			maxCursors++;
+			assignedOp[maxCursors] = 1;
+		}
 		if (!isDSiMode() && isRegularDS) {
 			maxCursors++;
 			assignedOp[maxCursors] = 2;
@@ -155,6 +160,9 @@ void driveMenu (void) {
 			maxCursors++;
 			assignedOp[maxCursors] = 3;
 		}
+
+		if (dmCursorPosition < 0) 	dmCursorPosition = maxCursors;		// Wrap around to bottom of list
+		if (dmCursorPosition > maxCursors)	dmCursorPosition = 0;		// Wrap around to top of list
 
 		if (!dmTextPrinted) {
 			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
@@ -194,20 +202,16 @@ void driveMenu (void) {
 			// Show cursor
 			printf ("\x1b[%d;0H*", dmCursorPosition + ENTRIES_START_ROW);
 
+			if (maxCursors == -1) {
+				printf ("\x1b[2;1H");
+				printf ("No drives found!");
+			} else
 			for (int i = 0; i <= maxCursors; i++) {
 				iprintf ("\x1b[%d;1H", i + ENTRIES_START_ROW);
 				if (assignedOp[i] == 0) {
 					printf ("[sd:] SDCARD");
-					if (!sdMounted) {
-						iprintf ("\x1b[%d;29H", i + ENTRIES_START_ROW);
-						printf ("[x]");
-					}
 				} else if (assignedOp[i] == 1) {
 					printf ("[fat:] GAMECART");
-					if (!flashcardMounted) {
-						iprintf ("\x1b[%d;29H", i + ENTRIES_START_ROW);
-						printf ("[x]");
-					}
 				} else if (assignedOp[i] == 2) {
 					printf ("GBA GAMECART");
 					if (gbaFixedValue != 0x96) {
@@ -216,6 +220,12 @@ void driveMenu (void) {
 					}
 				} else if (assignedOp[i] == 3) {
 					printf ("[nitro:] NDS GAME IMAGE");
+					if ((!sdMounted && !nitroSecondaryDrive)
+					|| (!flashcardMounted && nitroSecondaryDrive))
+					{
+						iprintf ("\x1b[%d;29H", i + ENTRIES_START_ROW);
+						printf ("[x]");
+					}
 				}
 			}
 
@@ -257,7 +267,7 @@ void driveMenu (void) {
 			dmCursorPosition += 1;
 			dmTextPrinted = false;
 		}
-		
+
 		if (dmCursorPosition < 0) 	dmCursorPosition = maxCursors;		// Wrap around to bottom of list
 		if (dmCursorPosition > maxCursors)	dmCursorPosition = 0;		// Wrap around to top of list
 
@@ -278,11 +288,15 @@ void driveMenu (void) {
 				dmTextPrinted = false;
 				gbaCartDump();
 			} else if (assignedOp[dmCursorPosition] == 3 && nitroMounted) {
-				dmTextPrinted = false;
-				secondaryDrive = nitroSecondaryDrive;
-				chdir("nitro:/");
-				screenMode = 1;
-				break;
+				if ((sdMounted && !nitroSecondaryDrive)
+				|| (flashcardMounted && nitroSecondaryDrive))
+				{
+					dmTextPrinted = false;
+					secondaryDrive = nitroSecondaryDrive;
+					chdir("nitro:/");
+					screenMode = 1;
+					break;
+				}
 			}
 		}
 
