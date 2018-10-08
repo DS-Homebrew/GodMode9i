@@ -259,11 +259,11 @@ void driveMenu (void) {
 			}
 		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN) && !(pressed & KEY_A) && !(held & KEY_R));
 	
-		if (pressed & KEY_UP) {
+		if ((pressed & KEY_UP) && maxCursors != -1) {
 			dmCursorPosition -= 1;
 			dmTextPrinted = false;
 		}
-		if (pressed & KEY_DOWN) {
+		if ((pressed & KEY_DOWN) && maxCursors != -1) {
 			dmCursorPosition += 1;
 			dmTextPrinted = false;
 		}
