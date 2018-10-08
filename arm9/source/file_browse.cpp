@@ -329,6 +329,7 @@ bool fileBrowse_paste(char path[PATH_MAX]) {
 					fcopy(clipboard, destPath);		// Copy file to destination, since renaming won't work
 					remove(clipboard);				// Delete source file after copying
 				}
+				clipboardUsed = false;		// Disable clipboard restore
 			}
 			clipboardOn = false;	// Clear clipboard after copying or moving
 			return true;
