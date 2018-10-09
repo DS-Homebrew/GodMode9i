@@ -17,6 +17,31 @@ bool nitroMounted = false;
 bool secondaryDrive = false;				// false == SD card, true == Flashcard
 bool nitroSecondaryDrive = false;			// false == SD card, true == Flashcard
 
+char sdLabel[12];
+char fatLabel[12];
+
+void fixLabel(bool fat) {
+	if (fat) {
+		for (int i = 0; i < 12; i++) {
+			if (((fatLabel[i] == ' ') && (fatLabel[i+1] == ' ') && (fatLabel[i+2] == ' '))
+			|| ((fatLabel[i] == ' ') && (fatLabel[i+1] == ' '))
+			|| (fatLabel[i] == ' ')) {
+				fatLabel[i] = '\0';
+				break;
+			}
+		}
+	} else {
+		for (int i = 0; i < 12; i++) {
+			if (((sdLabel[i] == ' ') && (sdLabel[i+1] == ' ') && (sdLabel[i+2] == ' '))
+			|| ((sdLabel[i] == ' ') && (sdLabel[i+1] == ' '))
+			|| (sdLabel[i] == ' ')) {
+				sdLabel[i] = '\0';
+				break;
+			}
+		}
+	}
+}
+
 bool sdFound(void) {
 	if (access("sd:/", F_OK) == 0) {
 		return true;
@@ -42,11 +67,18 @@ bool bothSDandFlashcard(void) {
 }
 
 TWL_CODE bool sdMount(void) {
-	return fatMountSimple("sd", get_io_dsisd());
+	fatMountSimple("sd", get_io_dsisd());
+	if (sdFound()) {
+		fatGetVolumeLabel("sd", sdLabel);
+		fixLabel(false);
+		return true;
+	}
+	return false;
 }
 
 TWL_CODE void sdUnmount(void) {
 	fatUnmount("sd");
+	sdLabel[0] = '\0';
 	sdMounted = false;
 }
 
@@ -145,10 +177,16 @@ TWL_CODE bool twl_flashcardMount(void) {
 		// Read a DLDI driver specific to the cart
 		if (!memcmp(gamename, "QMATETRIAL", 9) || !memcmp(gamename, "R4DSULTRA", 9)) {
 			io_dldi_data = dldiLoadFromBin(r4idsn_sd_dldi);
-			return fatMountSimple("fat", &io_dldi_data->ioInterface);
+			fatMountSimple("fat", &io_dldi_data->ioInterface);
 		} else if (!memcmp(gameid, "ACEK", 4) || !memcmp(gameid, "YCEP", 4) || !memcmp(gameid, "AHZH", 4)) {
 			io_dldi_data = dldiLoadFromBin(ak2_sd_dldi);
-			return fatMountSimple("fat", &io_dldi_data->ioInterface);
+			fatMountSimple("fat", &io_dldi_data->ioInterface);
+		}
+
+		if (flashcardFound()) {
+			fatGetVolumeLabel("fat", fatLabel);
+			fixLabel(true);
+			return true;
 		}
 	}
 	return false;
@@ -156,9 +194,17 @@ TWL_CODE bool twl_flashcardMount(void) {
 
 bool flashcardMount(void) {
 	if (flashcardFound()) {
+		fatGetVolumeLabel("fat", fatLabel);
+		fixLabel(true);
 		return true;
 	} else if (!isDSiMode()) {
-		return fatInitDefault();
+		fatInitDefault();
+		if (flashcardFound()) {
+			fatGetVolumeLabel("fat", fatLabel);
+			fixLabel(true);
+			return true;
+		}
+		return false;
 	} else {
 		return twl_flashcardMount();
 	}
@@ -166,5 +212,6 @@ bool flashcardMount(void) {
 
 void flashcardUnmount(void) {
 	fatUnmount("fat");
+	fatLabel[0] = '\0';
 	flashcardMounted = false;
 }

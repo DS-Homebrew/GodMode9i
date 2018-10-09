@@ -167,11 +167,11 @@ void driveMenu (void) {
 		if (!dmTextPrinted) {
 			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
 			if (assignedOp[dmCursorPosition] == 0) {
-				printf ("[sd:] SDCARD\n");
+				iprintf ("[sd:] SDCARD (%s)\n", sdLabel);
 				printf ("(SD FAT)");
 			} else if (assignedOp[dmCursorPosition] == 1) {
-				printf ("[fat:] GAMECART\n");
-				printf ("(Flashcart FAT)");
+				iprintf ("[fat:] FLASHCART (%s)\n", fatLabel);
+				printf ("(Slot-1 SD FAT)");
 			} else if (assignedOp[dmCursorPosition] == 2) {
 				printf ("GBA GAMECART\n");
 				printf ("(GBA Game)");
@@ -209,9 +209,9 @@ void driveMenu (void) {
 			for (int i = 0; i <= maxCursors; i++) {
 				iprintf ("\x1b[%d;1H", i + ENTRIES_START_ROW);
 				if (assignedOp[i] == 0) {
-					printf ("[sd:] SDCARD");
+					iprintf ("[sd:] SDCARD (%s)", sdLabel);
 				} else if (assignedOp[i] == 1) {
-					printf ("[fat:] GAMECART");
+					iprintf ("[fat:] FLASHCART (%s)", fatLabel);
 				} else if (assignedOp[i] == 2) {
 					printf ("GBA GAMECART");
 					if (gbaFixedValue != 0x96) {

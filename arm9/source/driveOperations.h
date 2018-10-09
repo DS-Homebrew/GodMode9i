@@ -10,6 +10,9 @@ extern bool nitroMounted;
 extern bool secondaryDrive;			// false == SD card, true == Flashcard
 extern bool nitroSecondaryDrive;		// false == SD card, true == Flashcard
 
+extern char sdLabel[12];
+extern char fatLabel[12];
+
 extern bool sdFound(void);
 extern bool flashcardFound(void);
 extern bool bothSDandFlashcard(void);
