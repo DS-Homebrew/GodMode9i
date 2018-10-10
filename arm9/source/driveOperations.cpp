@@ -183,7 +183,11 @@ TWL_CODE bool twl_flashcardMount(void) {
 			loadedDldi = dldiLoadFromBin(ttio_dldi);
 			loadedDldi->ioInterface.startup();
 			fatMountSimple("fat", &loadedDldi->ioInterface);
-        } else if (!memcmp(gamename, "D!S!XTREME", 12) && !memcmp(gameid, "AYIE", 4)) {
+ 		} else if (!memcmp(gamename, "PASS", 4) && !memcmp(gameid, "ASME", 4)) {
+			loadedDldi = dldiLoadFromBin(CycloEvo_dldi);
+			loadedDldi->ioInterface.startup();
+			fatMountSimple("fat", &loadedDldi->ioInterface);
+		} else if (!memcmp(gamename, "D!S!XTREME", 12) && !memcmp(gameid, "AYIE", 4)) {
 			loadedDldi = dldiLoadFromBin(dsx_dldi);
 			loadedDldi->ioInterface.startup();
 			fatMountSimple("fat", &loadedDldi->ioInterface); 
@@ -195,6 +199,10 @@ TWL_CODE bool twl_flashcardMount(void) {
 			loadedDldi = dldiLoadFromBin(ak2_sd_dldi);
 			loadedDldi->ioInterface.startup();
 			fatMountSimple("fat", &loadedDldi->ioInterface);
+		} else if (!memcmp(gameid, "ALXX", 4)) {
+			loadedDldi = dldiLoadFromBin(dstwo_dldi);
+			loadedDldi->ioInterface.startup();
+			fatMountSimple("fat", &io_dldi_data->ioInterface);
 		}
 
 		if (flashcardFound()) {
