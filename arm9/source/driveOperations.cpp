@@ -143,8 +143,6 @@ TWL_CODE void ShowGameInfo(const char gameid[], const char gamename[]) {
 
 TWL_CODE bool twl_flashcardMount(void) {
 	if (REG_SCFG_MC != 0x11) {
-		setCpuClock(false); //REG_SCFG_CLK = 0x80;	// Set NTR clock speed to avoid potential timing issues
-
 		sysSetCardOwner (BUS_OWNER_ARM9);
 
 		// Reset Slot-1 to allow reading title name and ID
@@ -184,16 +182,14 @@ TWL_CODE bool twl_flashcardMount(void) {
 			fatMountSimple("fat", &io_dldi_data->ioInterface);
 		} else if (!memcmp(gameid, "ASMA", 4)) {
 			io_dldi_data = dldiLoadFromBin(r4tf_dldi);
-			fatMountSimple("fat", &io_dldi_data->ioInterface);        
+			fatMountSimple("fat", &io_dldi_data->ioInterface);      
         } else if (!memcmp(gamename, "TOP TF/SD DS", 12) || !memcmp(gameid, "A76E", 4)) {
 			io_dldi_data = dldiLoadFromBin(ttio_dldi);
-			fatMountSimple("fat", &io_dldi_data->ioInterface);        
+			fatMountSimple("fat", &io_dldi_data->ioInterface);
         } else if (!memcmp(gamename, "D!S!XTREME", 12) && !memcmp(gameid, "AYIE", 4)) {
 			io_dldi_data = dldiLoadFromBin(dsx_dldi);
-			fatMountSimple("fat", &io_dldi_data->ioInterface);        
-        } 
-
-		setCpuClock(true);
+			fatMountSimple("fat", &io_dldi_data->ioInterface); 
+        }
 
 		if (flashcardFound()) {
 			fatGetVolumeLabel("fat", fatLabel);
