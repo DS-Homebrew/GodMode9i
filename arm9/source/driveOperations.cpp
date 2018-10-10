@@ -182,9 +182,12 @@ TWL_CODE bool twl_flashcardMount(void) {
 			io_dldi_data = dldiLoadFromBin(ak2_sd_dldi);
 			fatMountSimple("fat", &io_dldi_data->ioInterface);
 		} else if (!memcmp(gameid, "ASMA", 4)) {
-			io_dldi_data = dldiLoadFromBin(r4_sd_dldi);
+			io_dldi_data = dldiLoadFromBin(r4tf_dldi);
 			fatMountSimple("fat", &io_dldi_data->ioInterface);        
-        }  
+        } else if (!memcmp(gamename, "TOP TF/SD DS", 12) || !memcmp(gameid, "A76E", 4)) {
+			io_dldi_data = dldiLoadFromBin(ttio_dldi);
+			fatMountSimple("fat", &io_dldi_data->ioInterface);        
+        } 
 
 		if (flashcardFound()) {
 			fatGetVolumeLabel("fat", fatLabel);
