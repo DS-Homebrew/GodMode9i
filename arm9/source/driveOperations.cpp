@@ -84,38 +84,12 @@ TWL_CODE void sdUnmount(void) {
 }
 
 TWL_CODE DLDI_INTERFACE* dldiLoadFromBin (const u8 dldiAddr[]) {
-	DLDI_INTERFACE* device;
-	size_t dldiSize;
-
-	// Read in the DLDI header
-	if ((device = (DLDI_INTERFACE*)malloc (sizeof(DLDI_INTERFACE))) == NULL) {
-		return NULL;
-	}
-
-	memcpy(device, dldiAddr, sizeof(DLDI_INTERFACE));
-
 	// Check that it is a valid DLDI
-	if (!dldiIsValid (device)) {
-		free (device);
+	if (!dldiIsValid ((DLDI_INTERFACE*)dldiAddr)) {
 		return NULL;
 	}
 
-	// Calculate actual size of DLDI
-	// Although the file may only go to the dldiEnd, the BSS section can extend past that
-	if (device->dldiEnd > device->bssEnd) {
-		dldiSize = (char*)device->dldiEnd - (char*)device->dldiStart;
-	} else {
-		dldiSize = (char*)device->bssEnd - (char*)device->dldiStart;
-	}
-	dldiSize = (dldiSize + 0x03) & ~0x03; 		// Round up to nearest integer multiple
-
-	// Load entire DLDI
-	free (device);
-	if ((device = (DLDI_INTERFACE*)malloc (dldiSize)) == NULL) {
-		return NULL;
-	}
-	
-	memcpy(device, dldiAddr, dldiSize);
+	DLDI_INTERFACE* device = (DLDI_INTERFACE*)dldiAddr;
 
 	dldiFixDriverAddresses (device);
 
@@ -202,7 +176,7 @@ TWL_CODE bool twl_flashcardMount(void) {
 		} else if (!memcmp(gameid, "ALXX", 4)) {
 			loadedDldi = dldiLoadFromBin(dstwo_dldi);
 			loadedDldi->ioInterface.startup();
-			fatMountSimple("fat", &io_dldi_data->ioInterface);
+			fatMountSimple("fat", &loadedDldi->ioInterface);
 		}
 
 		if (flashcardFound()) {
