@@ -11,5 +11,7 @@ extern unsigned char r4tf_dldi[];
 //extern unsigned int r4tf_dldi_len;
 extern unsigned char ttio_dldi[];
 //extern unsigned int ttio_dldi_len;
+extern unsigned char dsx_dldi[];
+//extern unsigned int dsx_dldi_len;
 
 #endif //DLDIINCLUDE_H

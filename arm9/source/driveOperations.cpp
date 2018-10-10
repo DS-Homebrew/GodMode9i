@@ -188,6 +188,9 @@ TWL_CODE bool twl_flashcardMount(void) {
         } else if (!memcmp(gamename, "TOP TF/SD DS", 12) || !memcmp(gameid, "A76E", 4)) {
 			io_dldi_data = dldiLoadFromBin(ttio_dldi);
 			fatMountSimple("fat", &io_dldi_data->ioInterface);        
+        } else if (!memcmp(gamename, "D!S!XTREME", 12) && !memcmp(gameid, "AYIE", 4)) {
+			io_dldi_data = dldiLoadFromBin(dsx_dldi);
+			fatMountSimple("fat", &io_dldi_data->ioInterface);        
         } 
 
 		setCpuClock(true);
