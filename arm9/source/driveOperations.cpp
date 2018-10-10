@@ -181,7 +181,10 @@ TWL_CODE bool twl_flashcardMount(void) {
 		} else if (!memcmp(gameid, "ACEK", 4) || !memcmp(gameid, "YCEP", 4) || !memcmp(gameid, "AHZH", 4)) {
 			io_dldi_data = dldiLoadFromBin(ak2_sd_dldi);
 			fatMountSimple("fat", &io_dldi_data->ioInterface);
-		}
+		} else if (!memcmp(gameid, "ASMA", 4)) {
+			io_dldi_data = dldiLoadFromBin(r4_sd_dldi);
+			fatMountSimple("fat", &io_dldi_data->ioInterface);        
+        }  
 
 		if (flashcardFound()) {
 			fatGetVolumeLabel("fat", fatLabel);
