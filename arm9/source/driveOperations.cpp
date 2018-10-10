@@ -143,8 +143,11 @@ TWL_CODE void ShowGameInfo(const char gameid[], const char gamename[]) {
 
 TWL_CODE bool twl_flashcardMount(void) {
 	if (REG_SCFG_MC != 0x11) {
-		// Reset Slot-1 to allow reading title name and ID
+		setCpuClock(false); //REG_SCFG_CLK = 0x80;	// Set NTR clock speed to avoid potential timing issues
+
 		sysSetCardOwner (BUS_OWNER_ARM9);
+
+		// Reset Slot-1 to allow reading title name and ID
 		disableSlot1();
 		for(int i = 0; i < 25; i++) { swiWaitForVBlank(); }
 		enableSlot1();
@@ -161,7 +164,6 @@ TWL_CODE bool twl_flashcardMount(void) {
 		}
 		memcpy(&nds, (void*)0x02000000, sizeof(nds));*/
 		UpdateCardInfo(&nds, &gameid[0], &gamename[0]);
-		swiWaitForVBlank();
 
 		/*consoleClear();
 		iprintf("REG_SCFG_MC: %x\n", REG_SCFG_MC);
@@ -172,7 +174,6 @@ TWL_CODE bool twl_flashcardMount(void) {
 		}*/
 
 		sysSetCardOwner (BUS_OWNER_ARM7);	// 3DS fix
-		swiWaitForVBlank();
 
 		// Read a DLDI driver specific to the cart
 		if (!memcmp(gamename, "QMATETRIAL", 9) || !memcmp(gamename, "R4DSULTRA", 9)) {
@@ -181,7 +182,18 @@ TWL_CODE bool twl_flashcardMount(void) {
 		} else if (!memcmp(gameid, "ACEK", 4) || !memcmp(gameid, "YCEP", 4) || !memcmp(gameid, "AHZH", 4)) {
 			io_dldi_data = dldiLoadFromBin(ak2_sd_dldi);
 			fatMountSimple("fat", &io_dldi_data->ioInterface);
-		}
+		} else if (!memcmp(gameid, "ASMA", 4)) {
+			io_dldi_data = dldiLoadFromBin(r4tf_dldi);
+			fatMountSimple("fat", &io_dldi_data->ioInterface);        
+        } else if (!memcmp(gamename, "TOP TF/SD DS", 12) || !memcmp(gameid, "A76E", 4)) {
+			io_dldi_data = dldiLoadFromBin(ttio_dldi);
+			fatMountSimple("fat", &io_dldi_data->ioInterface);        
+        } else if (!memcmp(gamename, "D!S!XTREME", 12) && !memcmp(gameid, "AYIE", 4)) {
+			io_dldi_data = dldiLoadFromBin(dsx_dldi);
+			fatMountSimple("fat", &io_dldi_data->ioInterface);        
+        } 
+
+		setCpuClock(true);
 
 		if (flashcardFound()) {
 			fatGetVolumeLabel("fat", fatLabel);
