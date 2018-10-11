@@ -125,17 +125,6 @@ void driveMenu (void) {
 	int maxCursors = -1;
 
 	while (true) {
-		if (isDSiMode() && !flashcardMountSkipped && !pressed && !held) {
-			if (REG_SCFG_MC == 0x11) {
-				if (flashcardMounted) {
-					flashcardUnmount();
-				}
-			} else if (!flashcardMountRan) {
-				flashcardMounted = flashcardMount();	// Try to mount flashcard
-			}
-			flashcardMountRan = false;
-		}
-
 		if (!isDSiMode() && isRegularDS) {
 			gbaFixedValue = *(u8*)(0x080000B2);
 		}
@@ -167,11 +156,17 @@ void driveMenu (void) {
 		if (!dmTextPrinted) {
 			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
 			if (assignedOp[dmCursorPosition] == 0) {
-				iprintf ("[sd:] SDCARD (%s)\n", sdLabel);
-				printf ("(SD FAT)");
+				printf ("[sd:] SDCARD");
+				if (sdLabel[0] != '\0') {
+					iprintf (" (%s)", sdLabel);
+				}
+				printf ("\n(SD FAT)");
 			} else if (assignedOp[dmCursorPosition] == 1) {
-				iprintf ("[fat:] FLASHCART (%s)\n", fatLabel);
-				printf ("(Slot-1 SD FAT)");
+				printf ("[fat:] FLASHCART");
+				if (fatLabel[0] != '\0') {
+					iprintf (" (%s)", fatLabel);
+				}
+				printf ("\n(Slot-1 SD FAT)");
 			} else if (assignedOp[dmCursorPosition] == 2) {
 				printf ("GBA GAMECART\n");
 				printf ("(GBA Game)");
@@ -322,6 +317,17 @@ void driveMenu (void) {
 					flashcardMounted = flashcardMount();
 				}
 			}
+		}
+
+		if (isDSiMode() && !flashcardMountSkipped && !pressed && !held) {
+			if (REG_SCFG_MC == 0x11) {
+				if (flashcardMounted) {
+					flashcardUnmount();
+				}
+			} else if (!flashcardMountRan) {
+				flashcardMounted = flashcardMount();	// Try to mount flashcard
+			}
+			flashcardMountRan = false;
 		}
 	}
 }
