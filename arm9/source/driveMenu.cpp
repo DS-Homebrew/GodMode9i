@@ -168,12 +168,20 @@ void driveMenu (void) {
 				printf ("[nitro:] NDS GAME IMAGE\n");
 				printf ("(Game Virtual)");
 			}
-			iprintf ("\x1b[%i;0H", 21);
-			printf (titleName);
-			printf ("\x1b[22;0H");
 			if (isDSiMode()) {
-				printf (sdMounted ? "R+B - Unmount SD card" : "R+B - Remount SD card");
+				if (sdMounted) {
+					printf ("\x1b[21;0H");
+					printf (titleName);
+					printf ("\x1b[22;0H");
+					printf ("R+B - Unmount SD card");
+				} else {
+					printf ("\x1b[22;0H");
+					printf (titleName);
+				}
 			} else {
+				printf ("\x1b[21;0H");
+				printf (titleName);
+				printf ("\x1b[22;0H");
 				printf (flashcardMounted ? "R+B - Unmount Flashcard" : "R+B - Remount Flashcard");
 			}
 			printf ("\x1b[23;0H");
@@ -298,8 +306,6 @@ void driveMenu (void) {
 			if (isDSiMode()) {
 				if (sdMounted) {
 					sdUnmount();
-				} else {
-					sdMounted = sdMount();
 				}
 			} else {
 				if (flashcardMounted) {
