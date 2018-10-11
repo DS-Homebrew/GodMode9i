@@ -244,6 +244,7 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 				snprintf(destPath, sizeof(destPath), "sd:/gm9i/out/%s", entry->name.c_str());
 				iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW+cursorScreenPos);
 				printf("Copying...           ");
+				remove(destPath);
 				fcopy(entry->name.c_str(), destPath);
 			} else if (assignedOp[optionOffset] == 2) {
 				if (access("fat:/gm9i", F_OK) != 0) {
@@ -260,6 +261,7 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 				snprintf(destPath, sizeof(destPath), "fat:/gm9i/out/%s", entry->name.c_str());
 				iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW+cursorScreenPos);
 				printf("Copying...           ");
+				remove(destPath);
 				fcopy(entry->name.c_str(), destPath);
 			} else if (assignedOp[optionOffset] == 3) {
 				nitroMounted = nitroFSInit(entry->name.c_str());
@@ -322,6 +324,7 @@ bool fileBrowse_paste(char path[PATH_MAX]) {
 			iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW);
 			if (optionOffset == 0) {
 				printf("Copying...");
+				remove(destPath);
 				fcopy(clipboard, destPath);
 			} else {
 				printf("Moving...");
