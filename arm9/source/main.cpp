@@ -58,25 +58,6 @@ void stop (void) {
 
 char filePath[PATH_MAX];
 
-static bool screenSwapped = false;
-
-int buttonsPressed = 0;
-int buttonsHeld = 0;
-
-void vBlankHandler(void) {
-	scanKeys();
-	buttonsPressed = keysDownRepeat();
-	buttonsHeld = keysHeld();
-	if (buttonsPressed & KEY_L) {
-		if (screenSwapped) {
-			lcdMainOnTop();
-		} else {
-			lcdMainOnBottom();
-		}
-		screenSwapped = !screenSwapped;
-	}
-}
-
 //---------------------------------------------------------------------------------
 int main(int argc, char **argv) {
 //---------------------------------------------------------------------------------
@@ -90,6 +71,8 @@ int main(int argc, char **argv) {
 	int pathLen;
 	std::string filename;
 	
+	bool yHeld = false;
+
 	snprintf(titleName, sizeof(titleName), "GodMode9i v%i.%i.%i", 1, 2, 1);
 
 	// initialize video mode
@@ -124,10 +107,6 @@ int main(int argc, char **argv) {
 		printf ("Y Held - Disable cart access");
 	}
 
-	// Set up key press and screen swap IRQ
-	irqSet(IRQ_VBLANK, vBlankHandler);
-	irqEnable(IRQ_VBLANK);
-
 	// Display for 2 seconds
 	for (int i = 0; i < 60*2; i++) {
 		swiWaitForVBlank();
@@ -148,9 +127,13 @@ int main(int argc, char **argv) {
 	sysSetCartOwner (BUS_OWNER_ARM9);	// Allow arm9 to access GBA ROM
 
 	if (isDSiMode()) {
+		scanKeys();
+		if (keysHeld() & KEY_Y) {
+			yHeld = true;
+		}
 		sdMounted = sdMount();
 	}
-	if (!isDSiMode() || !(buttonsHeld & KEY_Y)) {
+	if (!isDSiMode() || !yHeld) {
 		flashcardMounted = flashcardMount();
 		flashcardMountSkipped = false;
 	}

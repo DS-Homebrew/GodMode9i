@@ -12,8 +12,6 @@ extern bool isRegularDS;
 
 extern bool applaunch;
 
-extern int buttonsPressed;
-extern int buttonsHeld;
 
 
 #endif //MAIN_H
