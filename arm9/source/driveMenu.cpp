@@ -209,9 +209,15 @@ void driveMenu (void) {
 			for (int i = 0; i <= maxCursors; i++) {
 				iprintf ("\x1b[%d;1H", i + ENTRIES_START_ROW);
 				if (assignedOp[i] == 0) {
-					iprintf ("[sd:] SDCARD (%s)", sdLabel);
+					printf ("[sd:] SDCARD");
+					if (sdLabel[0] != '\0') {
+						iprintf (" (%s)", sdLabel);
+					}
 				} else if (assignedOp[i] == 1) {
-					iprintf ("[fat:] FLASHCART (%s)", fatLabel);
+					printf ("[fat:] FLASHCART");
+					if (fatLabel[0] != '\0') {
+						iprintf (" (%s)", fatLabel);
+					}
 				} else if (assignedOp[i] == 2) {
 					printf ("GBA GAMECART");
 					if (gbaFixedValue != 0x96) {
