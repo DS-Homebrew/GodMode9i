@@ -496,6 +496,12 @@ string browseForFile (void) {
 						printf ("Deleting file, please wait...");
 					}
 					remove(entry->name.c_str());
+					char filePath[256];
+					snprintf(filePath, sizeof(filePath), "%s%s", path, entry->name.c_str());
+					if (strcmp(filePath, clipboard) == 0) {
+						clipboardUsed = false;	// Disable clipboard restore
+						clipboardOn = false;
+					}
 					getDirectoryContents (dirContents);
 					fileOffset--;
 					pressed = 0;
