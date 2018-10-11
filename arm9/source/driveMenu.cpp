@@ -45,8 +45,6 @@ static int dmCursorPosition = 0;
 static u8 gbaFixedValue = 0;
 
 void gbaCartDump(void) {
-	int pressed = 0;
-
 	printf ("\x1b[0;27H");
 	printf ("     ");	// Clear time
 	consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
@@ -56,12 +54,10 @@ void gbaCartDump(void) {
 	while (true) {
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
-			scanKeys();
-			pressed = keysDownRepeat();
 			swiWaitForVBlank();
-		} while (!(pressed & KEY_A) && !(pressed & KEY_B));
+		} while (!(buttonsPressed & KEY_A) && !(buttonsPressed & KEY_B));
 
-		if (pressed & KEY_A) {
+		if (buttonsPressed & KEY_A) {
 			consoleClear();
 			if (access("fat:/gm9i", F_OK) != 0) {
 				printf("Creating directory...");
@@ -112,15 +108,13 @@ void gbaCartDump(void) {
 			fclose(destinationFile);
 			break;
 		}
-		if (pressed & KEY_B) {
+		if (buttonsPressed & KEY_B) {
 			break;
 		}
 	}
 }
 
 void driveMenu (void) {
-	int pressed = 0;
-	int held = 0;
 	int assignedOp[3] = {-1};
 	int maxCursors = -1;
 
@@ -242,9 +236,6 @@ void driveMenu (void) {
 			// Print time
 			printf (RetTime().c_str());
 	
-			scanKeys();
-			pressed = keysDownRepeat();
-			held = keysHeld();
 			swiWaitForVBlank();
 
 			if (!isDSiMode() && isRegularDS) {
@@ -258,13 +249,13 @@ void driveMenu (void) {
 					break;
 				}
 			}
-		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN) && !(pressed & KEY_A) && !(held & KEY_R));
+		} while (!(buttonsPressed & KEY_UP) && !(buttonsPressed & KEY_DOWN) && !(buttonsPressed & KEY_A) && !(buttonsHeld & KEY_R));
 	
-		if ((pressed & KEY_UP) && maxCursors != -1) {
+		if ((buttonsPressed & KEY_UP) && maxCursors != -1) {
 			dmCursorPosition -= 1;
 			dmTextPrinted = false;
 		}
-		if ((pressed & KEY_DOWN) && maxCursors != -1) {
+		if ((buttonsPressed & KEY_DOWN) && maxCursors != -1) {
 			dmCursorPosition += 1;
 			dmTextPrinted = false;
 		}
@@ -272,7 +263,7 @@ void driveMenu (void) {
 		if (dmCursorPosition < 0) 	dmCursorPosition = maxCursors;		// Wrap around to bottom of list
 		if (dmCursorPosition > maxCursors)	dmCursorPosition = 0;		// Wrap around to top of list
 
-		if (pressed & KEY_A) {
+		if (buttonsPressed & KEY_A) {
 			if (assignedOp[dmCursorPosition] == 0 && isDSiMode() && sdMounted) {
 				dmTextPrinted = false;
 				secondaryDrive = false;
@@ -302,7 +293,7 @@ void driveMenu (void) {
 		}
 
 		// Unmount/Remount SD card
-		if ((held & KEY_R) && (pressed & KEY_B)) {
+		if ((buttonsHeld & KEY_R) && (buttonsPressed & KEY_B)) {
 			dmTextPrinted = false;
 			if (isDSiMode()) {
 				if (sdMounted) {
@@ -319,7 +310,7 @@ void driveMenu (void) {
 			}
 		}
 
-		if (isDSiMode() && !flashcardMountSkipped && !pressed && !held) {
+		if (isDSiMode() && !flashcardMountSkipped && !buttonsPressed && !buttonsHeld) {
 			if (REG_SCFG_MC == 0x11) {
 				if (flashcardMounted) {
 					flashcardUnmount();

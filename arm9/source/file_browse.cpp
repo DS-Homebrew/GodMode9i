@@ -156,7 +156,6 @@ void showDirectoryContents (const vector<DirEntry>& dirContents, int startRow) {
 }
 
 int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
-	int pressed = 0;
 	int assignedOp[3] = {0};
 	int optionOffset = 0;
 	int cursorScreenPos = 0;
@@ -212,19 +211,17 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
-			scanKeys();
-			pressed = keysDownRepeat();
 			swiWaitForVBlank();
-		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN)
-				&& !(pressed & KEY_A) && !(pressed & KEY_B));
+		} while (!(buttonsPressed & KEY_UP) && !(buttonsPressed & KEY_DOWN)
+				&& !(buttonsPressed & KEY_A) && !(buttonsPressed & KEY_B));
 
-		if (pressed & KEY_UP) 		optionOffset -= 1;
-		if (pressed & KEY_DOWN) 	optionOffset += 1;
+		if (buttonsPressed & KEY_UP) 		optionOffset -= 1;
+		if (buttonsPressed & KEY_DOWN) 	optionOffset += 1;
 		
 		if (optionOffset < 0) 				optionOffset = maxCursors;		// Wrap around to bottom of list
 		if (optionOffset > maxCursors)		optionOffset = 0;		// Wrap around to top of list
 
-		if (pressed & KEY_A) {
+		if (buttonsPressed & KEY_A) {
 			if (assignedOp[optionOffset] == 0) {
 				applaunch = true;
 				iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW+cursorScreenPos);
@@ -272,14 +269,13 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 			}
 			return assignedOp[optionOffset];
 		}
-		if (pressed & KEY_B) {
+		if (buttonsPressed & KEY_B) {
 			return -1;
 		}
 	}
 }
 
 bool fileBrowse_paste(char path[PATH_MAX]) {
-	int pressed = 0;
 	int optionOffset = 0;
 	int maxCursors = -1;
 
@@ -306,19 +302,17 @@ bool fileBrowse_paste(char path[PATH_MAX]) {
 
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
-			scanKeys();
-			pressed = keysDownRepeat();
 			swiWaitForVBlank();
-		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN)
-				&& !(pressed & KEY_A) && !(pressed & KEY_B));
+		} while (!(buttonsPressed & KEY_UP) && !(buttonsPressed & KEY_DOWN)
+				&& !(buttonsPressed & KEY_A) && !(buttonsPressed & KEY_B));
 
-		if (pressed & KEY_UP) 		optionOffset -= 1;
-		if (pressed & KEY_DOWN) 	optionOffset += 1;
+		if (buttonsPressed & KEY_UP) 		optionOffset -= 1;
+		if (buttonsPressed & KEY_DOWN) 	optionOffset += 1;
 		
 		if (optionOffset < 0) 				optionOffset = maxCursors;		// Wrap around to bottom of list
 		if (optionOffset > maxCursors)		optionOffset = 0;		// Wrap around to top of list
 
-		if (pressed & KEY_A) {
+		if (buttonsPressed & KEY_A) {
 			char destPath[256];
 			snprintf(destPath, sizeof(destPath), "%s%s", path, clipboardFilename);
 			iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW);
@@ -339,14 +333,13 @@ bool fileBrowse_paste(char path[PATH_MAX]) {
 			clipboardOn = false;	// Clear clipboard after copying or moving
 			return true;
 		}
-		if (pressed & KEY_B) {
+		if (buttonsPressed & KEY_B) {
 			return false;
 		}
 	}
 }
 
 string browseForFile (void) {
-	int pressed = 0;
 	int screenOffset = 0;
 	int fileOffset = 0;
 	off_t fileSize = 0;
@@ -400,29 +393,27 @@ string browseForFile (void) {
 			// Print time
 			printf (RetTime().c_str());
 	
-			scanKeys();
-			pressed = keysDownRepeat();
 			swiWaitForVBlank();
 
 			if (REG_SCFG_MC != stored_SCFG_MC) {
 				break;
 			}
-		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN) && !(pressed & KEY_LEFT) && !(pressed & KEY_RIGHT)
-				&& !(pressed & KEY_A) && !(pressed & KEY_B) && !(pressed & KEY_X) && !(pressed & KEY_Y)
-				&& !(pressed & KEY_SELECT));
+		} while (!(buttonsPressed & KEY_UP) && !(buttonsPressed & KEY_DOWN) && !(buttonsPressed & KEY_LEFT) && !(buttonsPressed & KEY_RIGHT)
+				&& !(buttonsPressed & KEY_A) && !(buttonsPressed & KEY_B) && !(buttonsPressed & KEY_X) && !(buttonsPressed & KEY_Y)
+				&& !(buttonsPressed & KEY_SELECT));
 	
 		iprintf ("\x1b[%d;0H*", fileOffset - screenOffset + ENTRIES_START_ROW);
 
-		if (isDSiMode() && !pressed && secondaryDrive && REG_SCFG_MC == 0x11 && flashcardMounted) {
+		if (isDSiMode() && !buttonsPressed && secondaryDrive && REG_SCFG_MC == 0x11 && flashcardMounted) {
 			flashcardUnmount();
 			screenMode = 0;
 			return "null";
 		}
 
-		if (pressed & KEY_UP) 		fileOffset -= 1;
-		if (pressed & KEY_DOWN) 	fileOffset += 1;
-		if (pressed & KEY_LEFT) 	fileOffset -= ENTRY_PAGE_LENGTH;
-		if (pressed & KEY_RIGHT)	fileOffset += ENTRY_PAGE_LENGTH;
+		if (buttonsPressed & KEY_UP) 		fileOffset -= 1;
+		if (buttonsPressed & KEY_DOWN) 	fileOffset += 1;
+		if (buttonsPressed & KEY_LEFT) 	fileOffset -= ENTRY_PAGE_LENGTH;
+		if (buttonsPressed & KEY_RIGHT)	fileOffset += ENTRY_PAGE_LENGTH;
 		
 		if (fileOffset < 0) 	fileOffset = dirContents.size() - 1;		// Wrap around to bottom of list
 		if (fileOffset > ((int)dirContents.size() - 1))		fileOffset = 0;		// Wrap around to top of list
@@ -439,7 +430,7 @@ string browseForFile (void) {
 
 		getcwd(path, PATH_MAX);
 
-		if (pressed & KEY_A) {
+		if (buttonsPressed & KEY_A) {
 			DirEntry* entry = &dirContents.at(fileOffset);
 			if (entry->isDirectory) {
 				iprintf("Entering directory\n");
@@ -465,7 +456,7 @@ string browseForFile (void) {
 			}
 		}
 
-		if (pressed & KEY_B) {
+		if (buttonsPressed & KEY_B) {
 			if ((strcmp (path, "sd:/") == 0) || (strcmp (path, "fat:/") == 0) || (strcmp (path, "nitro:/") == 0)) {
 				screenMode = 0;
 				return "null";
@@ -478,17 +469,15 @@ string browseForFile (void) {
 		}
 
 		// Delete file/folder
-		if ((pressed & KEY_X) && (strcmp (entry->name.c_str(), "..") != 0) && (strncmp (path, "nitro:/", 7) != 0)) {
+		if ((buttonsPressed & KEY_X) && (strcmp (entry->name.c_str(), "..") != 0) && (strncmp (path, "nitro:/", 7) != 0)) {
 			printf ("\x1b[0;27H");
 			printf ("     ");	// Clear time
 			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
 			iprintf("Delete \"%s\"?\n", entry->name.c_str());
 			printf ("(<A> yes, <B> no)");
 			while (true) {
-				scanKeys();
-				pressed = keysDownRepeat();
 				swiWaitForVBlank();
-				if (pressed & KEY_A) {
+				if (buttonsPressed & KEY_A) {
 					consoleClear();
 					if (entry->isDirectory) {
 						printf ("Deleting folder, please wait...");
@@ -504,17 +493,15 @@ string browseForFile (void) {
 					}
 					getDirectoryContents (dirContents);
 					fileOffset--;
-					pressed = 0;
 					break;
 				}
-				if (pressed & KEY_B) {
-					pressed = 0;
+				if (buttonsPressed & KEY_B) {
 					break;
 				}
 			}
 		}
 
-		if (pressed & KEY_Y) {
+		if (buttonsPressed & KEY_Y) {
 			if (clipboardOn) {
 				if (strncmp (path, "nitro:/", 7) != 0) {
 					if (fileBrowse_paste(path)) {
@@ -531,7 +518,7 @@ string browseForFile (void) {
 			}
 		}
 
-		if ((pressed & KEY_SELECT) && clipboardUsed) {
+		if ((buttonsPressed & KEY_SELECT) && clipboardUsed) {
 			clipboardOn = !clipboardOn;
 		}
 	}
