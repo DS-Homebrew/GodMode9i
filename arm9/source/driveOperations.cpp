@@ -89,6 +89,19 @@ TWL_CODE DLDI_INTERFACE* dldiLoadFromBin (const u8 dldiAddr[]) {
 	}
 
 	DLDI_INTERFACE* device = (DLDI_INTERFACE*)dldiAddr;
+	size_t dldiSize;
+
+	// Calculate actual size of DLDI
+	// Although the file may only go to the dldiEnd, the BSS section can extend past that
+	if (device->dldiEnd > device->bssEnd) {
+		dldiSize = (char*)device->dldiEnd - (char*)device->dldiStart;
+	} else {
+		dldiSize = (char*)device->bssEnd - (char*)device->dldiStart;
+	}
+	dldiSize = (dldiSize + 0x03) & ~0x03; 		// Round up to nearest integer multiple
+	
+	// Clear unused space
+	memset(device+dldiSize, 0, 0x4000-dldiSize);
 
 	dldiFixDriverAddresses (device);
 
@@ -149,7 +162,7 @@ TWL_CODE bool twl_flashcardMount(void) {
 
 		// Read a DLDI driver specific to the cart
 		if (!memcmp(gameid, "ASMA", 4)) {
-			io_dldi_data = dldiLoadFromBin(r4_sd_dldi);
+			io_dldi_data = dldiLoadFromBin(r4tf_dldi);
 			fatMountSimple("fat", &io_dldi_data->ioInterface);      
 		} else if (!memcmp(gamename, "TOP TF/SD DS", 12) || !memcmp(gameid, "A76E", 4)) {
 			io_dldi_data = dldiLoadFromBin(tt_sd_dldi);
