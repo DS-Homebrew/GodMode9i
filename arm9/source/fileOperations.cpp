@@ -1,8 +1,6 @@
 #include <nds.h>
 #include <stdio.h>
 
-#include "main.h"
-
 #define copyBufSize 0x8000
 
 u32 copyBuf[copyBufSize];
@@ -54,7 +52,8 @@ int fcopy(const char *sourcePath, const char *destinationPath)
 	int numr;
 	while (1)
 	{
-		if (buttonsHeld & KEY_B) {
+		scanKeys();
+		if (keysHeld() & KEY_B) {
 			// Cancel copying
 			fclose(sourceFile);
 			fclose(destinationFile);
