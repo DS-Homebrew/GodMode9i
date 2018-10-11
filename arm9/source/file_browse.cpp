@@ -94,8 +94,8 @@ void getDirectoryContents (vector<DirEntry>& dirContents) {
 			|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "NDS")
 			|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "argv")
 			|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "ARGV")
-			|| (isDSiMode() && sdMounted && dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "firm")
-			|| (isDSiMode() && sdMounted && dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "FIRM"))
+			|| (isDSiMode() && is3DS && sdMounted && dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "firm")
+			|| (isDSiMode() && is3DS && sdMounted && dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "FIRM"))
 			{
 				dirEntry.isApp = true;
 			} else {

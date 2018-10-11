@@ -9,9 +9,9 @@ extern char titleName[32];
 extern int screenMode;
 
 extern bool isRegularDS;
+extern bool is3DS;
 
 extern bool applaunch;
-
 
 
 #endif //MAIN_H

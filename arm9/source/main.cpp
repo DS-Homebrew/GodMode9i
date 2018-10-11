@@ -41,6 +41,7 @@ char titleName[32] = {" "};
 int screenMode = 0;
 
 bool isRegularDS = true;
+bool is3DS = true;
 
 bool applaunch = false;
 
@@ -132,6 +133,11 @@ int main(int argc, char **argv) {
 			yHeld = true;
 		}
 		sdMounted = sdMount();
+		if (access("sd:/Nintendo 3DS", F_OK) != 0) {
+			is3DS = false;
+		}
+	} else {
+		is3DS = false;
 	}
 	if (!isDSiMode() || !yHeld) {
 		flashcardMounted = flashcardMount();
