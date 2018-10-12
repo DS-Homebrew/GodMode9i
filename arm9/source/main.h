@@ -8,6 +8,7 @@ extern char titleName[32];
 
 extern int screenMode;
 
+extern bool arm7SCFGLocked;
 extern bool isRegularDS;
 extern bool is3DS;
 

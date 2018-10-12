@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 #include <stdio.h>
 
+#include "main.h"
 #include "dldi-include.h"
 
 static sNDSHeader nds;
@@ -200,7 +201,7 @@ bool flashcardMount(void) {
 		fatGetVolumeLabel("fat", fatLabel);
 		fixLabel(true);
 		return true;
-	} else if (!sdMountedDone) {
+	} else if ((!isDSiMode()) || (arm7SCFGLocked && !sdMountedDone)) {
 		fatInitDefault();
 		if (flashcardFound()) {
 			fatGetVolumeLabel("fat", fatLabel);

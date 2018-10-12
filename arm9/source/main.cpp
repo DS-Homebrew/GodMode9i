@@ -40,6 +40,7 @@ char titleName[32] = {" "};
 
 int screenMode = 0;
 
+bool arm7SCFGLocked = false;
 bool isRegularDS = true;
 bool is3DS = true;
 
@@ -114,6 +115,7 @@ int main(int argc, char **argv) {
 	}
 
 	fifoWaitValue32(FIFO_USER_06);
+	if (fifoGetValue32(FIFO_USER_03) == 0) arm7SCFGLocked = true;
 	u16 arm7_SNDEXCNT = fifoGetValue32(FIFO_USER_07);
 	if (arm7_SNDEXCNT != 0) isRegularDS = false;	// If sound frequency setting is found, then the console is not a DS Phat/Lite
 	fifoSendValue32(FIFO_USER_07, 0);
@@ -134,7 +136,7 @@ int main(int argc, char **argv) {
 		}
 		sdMounted = sdMount();
 	}
-	if (!sdMounted || (access("sd:/Nintendo 3DS", F_OK) != 0)) {
+	if (!isDSiMode() || !sdMounted || (access("sd:/Nintendo 3DS", F_OK) != 0)) {
 		is3DS = false;
 	}
 	if (!isDSiMode() || !yHeld) {
