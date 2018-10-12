@@ -4,6 +4,7 @@
 extern u8 stored_SCFG_MC;
 
 extern bool sdMounted;
+extern bool sdMountedDone;				// true if SD mount is successful once
 extern bool flashcardMounted;
 extern bool nitroMounted;
 

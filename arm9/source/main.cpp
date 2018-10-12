@@ -133,10 +133,8 @@ int main(int argc, char **argv) {
 			yHeld = true;
 		}
 		sdMounted = sdMount();
-		if (access("sd:/Nintendo 3DS", F_OK) != 0) {
-			is3DS = false;
-		}
-	} else {
+	}
+	if (!sdMounted || (access("sd:/Nintendo 3DS", F_OK) != 0)) {
 		is3DS = false;
 	}
 	if (!isDSiMode() || !yHeld) {

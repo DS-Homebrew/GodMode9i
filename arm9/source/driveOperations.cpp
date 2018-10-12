@@ -11,6 +11,7 @@ static sNDSHeader nds;
 u8 stored_SCFG_MC = 0;
 
 bool sdMounted = false;
+bool sdMountedDone = false;				// true if SD mount is successful once
 bool flashcardMounted = false;
 bool nitroMounted = false;
 
@@ -69,6 +70,7 @@ bool bothSDandFlashcard(void) {
 TWL_CODE bool sdMount(void) {
 	fatMountSimple("sd", get_io_dsisd());
 	if (sdFound()) {
+		sdMountedDone = true;
 		fatGetVolumeLabel("sd", sdLabel);
 		fixLabel(false);
 		return true;
@@ -198,7 +200,7 @@ bool flashcardMount(void) {
 		fatGetVolumeLabel("fat", fatLabel);
 		fixLabel(true);
 		return true;
-	} else if (!isDSiMode()) {
+	} else if (!sdMountedDone) {
 		fatInitDefault();
 		if (flashcardFound()) {
 			fatGetVolumeLabel("fat", fatLabel);
