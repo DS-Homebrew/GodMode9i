@@ -170,10 +170,10 @@ TWL_CODE bool twl_flashcardMount(void) {
 		} else if (!memcmp(gamename, "TOP TF/SD DS", 12) || !memcmp(gameid, "A76E", 4)) {
 			io_dldi_data = dldiLoadFromBin(tt_sd_dldi);
 			fatMountSimple("fat", &io_dldi_data->ioInterface);
- 		} else if (!memcmp(gamename, "PASS", 4) && !memcmp(gameid, "ASME", 4)) {
+ 		} else /*if (!memcmp(gamename, "PASS", 4) && !memcmp(gameid, "ASME", 4)) {
 			io_dldi_data = dldiLoadFromBin(CycloEvo_dldi);
 			fatMountSimple("fat", &io_dldi_data->ioInterface);
-		} else if (!memcmp(gamename, "D!S!XTREME", 12) && !memcmp(gameid, "AYIE", 4)) {
+		} else*/ if (!memcmp(gamename, "D!S!XTREME", 12) && !memcmp(gameid, "AYIE", 4)) {
 			io_dldi_data = dldiLoadFromBin(dsx_dldi);
 			fatMountSimple("fat", &io_dldi_data->ioInterface); 
         } else if (!memcmp(gamename, "QMATETRIAL", 9) || !memcmp(gamename, "R4DSULTRA", 9)) {
@@ -182,10 +182,10 @@ TWL_CODE bool twl_flashcardMount(void) {
 		} else if (!memcmp(gameid, "ACEK", 4) || !memcmp(gameid, "YCEP", 4) || !memcmp(gameid, "AHZH", 4)) {
 			io_dldi_data = dldiLoadFromBin(ak2_sd_dldi);
 			fatMountSimple("fat", &io_dldi_data->ioInterface);
-		} else if (!memcmp(gameid, "ALXX", 4)) {
+		} /*else if (!memcmp(gameid, "ALXX", 4)) {
 			io_dldi_data = dldiLoadFromBin(dstwo_dldi);
 			fatMountSimple("fat", &io_dldi_data->ioInterface);
-		}
+		}*/
 
 		if (flashcardFound()) {
 			fatGetVolumeLabel("fat", fatLabel);
