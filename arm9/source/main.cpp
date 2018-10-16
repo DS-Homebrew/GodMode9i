@@ -40,6 +40,8 @@ char titleName[32] = {" "};
 
 int screenMode = 0;
 
+bool appInited = false;
+
 bool arm7SCFGLocked = false;
 bool isRegularDS = true;
 bool is3DS = true;
@@ -149,6 +151,8 @@ int main(int argc, char **argv) {
 	vramSetBankG(VRAM_G_MAIN_BG);
 
 	keysSetRepeat(25,5);
+
+	appInited = true;
 
 	while(1) {
 

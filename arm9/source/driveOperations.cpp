@@ -11,6 +11,8 @@ static sNDSHeader nds;
 
 u8 stored_SCFG_MC = 0;
 
+static bool slot1Enabled = true;
+
 bool sdMounted = false;
 bool sdMountedDone = false;				// true if SD mount is successful once
 bool flashcardMounted = false;
@@ -137,10 +139,23 @@ TWL_CODE bool twl_flashcardMount(void) {
 		sysSetCardOwner (BUS_OWNER_ARM9);
 
 		// Reset Slot-1 to allow reading title name and ID
-		disableSlot1();
-		for(int i = 0; i < 25; i++) { swiWaitForVBlank(); }
-		enableSlot1();
-		for(int i = 0; i < 15; i++) { swiWaitForVBlank(); }
+		if (slot1Enabled) {
+			disableSlot1();
+			for(int i = 0; i < 25; i++) { swiWaitForVBlank(); }
+			slot1Enabled = false;
+		}
+		if (appInited) {
+			for(int i = 0; i < 35; i++) { swiWaitForVBlank(); }	// Make sure cart is inserted correctly
+		}
+		if (REG_SCFG_MC == 0x11) {
+			sysSetCardOwner (BUS_OWNER_ARM7);
+			return false;
+		}
+		if (!slot1Enabled) {
+			enableSlot1();
+			for(int i = 0; i < 15; i++) { swiWaitForVBlank(); }
+			slot1Enabled = true;
+		}
 
 		nds.gameCode[0] = 0;
 		nds.gameTitle[0] = 0;
