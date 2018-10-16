@@ -50,8 +50,10 @@ void gbaCartDump(void) {
 	int pressed = 0;
 
 	printf ("\x1b[0;27H");
-	printf ("     ");	// Clear time
+	printf ("\x1B[42m");		// Print green color
+	printf ("_____");	// Clear time
 	consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+	printf ("\x1B[47m");		// Print foreground white color
 	printf("Dump GBA cart ROM to\n");
 	printf("\"fat:/gm9i/out\"?\n");
 	printf("(<A> yes, <B> no)");

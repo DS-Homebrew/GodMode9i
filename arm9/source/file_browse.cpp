@@ -185,8 +185,10 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 	int maxCursors = -1;
 
 	printf ("\x1b[0;27H");
-	printf ("     ");	// Clear time
+	printf ("\x1B[42m");		// Print green color
+	printf ("_____");	// Clear time
 	consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+	printf ("\x1B[47m");		// Print foreground white color
 	char fullPath[256];
 	snprintf(fullPath, sizeof(fullPath), "%s%s", path, entry->name.c_str());
 	printf(fullPath);
@@ -306,8 +308,10 @@ bool fileBrowse_paste(char path[PATH_MAX]) {
 	int maxCursors = -1;
 
 	printf ("\x1b[0;27H");
-	printf ("     ");	// Clear time
+	printf ("\x1B[42m");		// Print green color
+	printf ("_____");	// Clear time
 	consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+	printf ("\x1B[47m");		// Print foreground white color
 	printf("Paste file here?\n\n");
 	iprintf ("\x1b[%d;0H", OPTIONS_ENTRIES_START_ROW);
 	maxCursors++;
@@ -507,8 +511,10 @@ string browseForFile (void) {
 		// Delete file/folder
 		if ((pressed & KEY_X) && (strcmp (entry->name.c_str(), "..") != 0) && (strncmp (path, "nitro:/", 7) != 0)) {
 			printf ("\x1b[0;27H");
-			printf ("     ");	// Clear time
+			printf ("\x1B[42m");		// Print green color
+			printf ("_____");	// Clear time
 			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+			printf ("\x1B[47m");		// Print foreground white color
 			iprintf("Delete \"%s\"?\n", entry->name.c_str());
 			printf ("(<A> yes, <B> no)");
 			while (true) {
