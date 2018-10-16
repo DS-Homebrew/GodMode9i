@@ -193,7 +193,17 @@ int main(int argc, char **argv) {
 			} else {
 				argarray.push_back(strdup(filename.c_str()));
 			}
-
+			if ((strcasecmp (filename.c_str() + filename.size() - 4, ".dsi") == 0)
+			|| (strcasecmp (filename.c_str() + filename.size() - 4, ".DSI") == 0)) {
+				char *name = argarray.at(0);
+				strcpy (filePath + pathLen, name);
+				free(argarray.at(0));
+				argarray.at(0) = filePath;
+				consoleClear();
+				iprintf ("Running %s with %d parameters\n", argarray[0], argarray.size());
+				int err = runNdsFile (argarray[0], argarray.size(), (const char **)&argarray[0]);
+				iprintf ("\x1b[31mStart failed. Error %i\n", err);
+			}
 			if ((strcasecmp (filename.c_str() + filename.size() - 4, ".nds") == 0)
 			|| (strcasecmp (filename.c_str() + filename.size() - 4, ".NDS") == 0)) {
 				char *name = argarray.at(0);
