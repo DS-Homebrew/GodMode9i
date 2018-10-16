@@ -49,6 +49,7 @@ static char path[PATH_MAX];
 
 struct DirEntry {
 	string name;
+	off_t size;
 	bool isDirectory;
 	bool isApp;
 } ;
@@ -101,6 +102,9 @@ void getDirectoryContents (vector<DirEntry>& dirContents) {
 			} else if (strcmp(pent->d_name, "..") != 0) {
 				dirEntry.name = pent->d_name;
 				dirEntry.isDirectory = (st.st_mode & S_IFDIR) ? true : false;
+				if (!dirEntry.isDirectory) {
+					dirEntry.size = getFileSize(dirEntry.name.c_str());
+				}
 				if((dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "nds")
 				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "NDS")
 				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "argv")
@@ -367,7 +371,6 @@ string browseForFile (void) {
 	int pressed = 0;
 	int screenOffset = 0;
 	int fileOffset = 0;
-	off_t fileSize = 0;
 	vector<DirEntry> dirContents;
 	
 	getDirectoryContents (dirContents);
@@ -382,8 +385,7 @@ string browseForFile (void) {
 			if (entry->isDirectory) {
 				printf ("(dir)");
 			} else {
-				fileSize = getFileSize(entry->name.c_str());
-				printf ("%i Bytes", (int)fileSize);
+				printf ("%i Bytes", (int)entry->size);
 			}
 		}
 		if (clipboardOn) {
