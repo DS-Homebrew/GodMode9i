@@ -37,6 +37,8 @@
 
 using namespace std;
 
+//static bool ramDumped = false;
+
 bool flashcardMountSkipped = true;
 static bool flashcardMountRan = true;
 static bool dmTextPrinted = false;
@@ -155,6 +157,14 @@ void driveMenu (void) {
 
 		if (!dmTextPrinted) {
 			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+			/*if (!ramDumped) {
+				printf ("Dumping RAM...");
+				FILE* destinationFile = fopen("sd:/ramdump.bin", "wb");
+				fwrite((void*)0x02000000, 1, 0x400000, destinationFile);
+				fclose(destinationFile);
+				consoleClear();
+				ramDumped = true;
+			}*/
 			printf ("\x1B[40m");		// Print foreground black color
 			if (assignedOp[dmCursorPosition] == 0) {
 				printf ("[sd:] SDCARD");
@@ -177,11 +187,11 @@ void driveMenu (void) {
 			}
 			printf ("\x1B[47m");		// Print foreground white color
 			if (isDSiMode() && sdMountedDone) {
-				if (sdMounted) {
+				if (isRegularDS || sdMounted) {
 					printf ("\x1b[21;0H");
 					printf (titleName);
 					printf ("\x1b[22;0H");
-					printf ("R+B - Unmount SD card");
+					printf (sdMounted ? "R+B - Unmount SD card" : "R+B - Remount SD card");
 				} else {
 					printf ("\x1b[22;0H");
 					printf (titleName);
@@ -207,7 +217,6 @@ void driveMenu (void) {
 			printf ("\x1b[1;0H");
 
 			if (maxCursors == -1) {
-				printf ("\x1b[2;0H");
 				printf ("No drives found!");
 			} else
 			for (int i = 0; i <= maxCursors; i++) {
@@ -325,6 +334,8 @@ void driveMenu (void) {
 			if (isDSiMode() && sdMountedDone) {
 				if (sdMounted) {
 					sdUnmount();
+				} else if (isRegularDS) {
+					sdMounted = sdMount();
 				}
 			} else {
 				if (flashcardMounted) {
