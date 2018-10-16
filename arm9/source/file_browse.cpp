@@ -72,6 +72,7 @@ bool dirEntryPredicate (const DirEntry& lhs, const DirEntry& rhs) {
 }
 
 void getDirectoryContents (vector<DirEntry>& dirContents) {
+	bool twoDotsMade = false;
 	struct stat st;
 
 	dirContents.clear();
@@ -87,24 +88,34 @@ void getDirectoryContents (vector<DirEntry>& dirContents) {
 
 			struct dirent* pent = readdir(pdir);
 			if(pent == NULL) break;
-				
+
 			stat(pent->d_name, &st);
-			dirEntry.name = pent->d_name;
-			dirEntry.isDirectory = (st.st_mode & S_IFDIR) ? true : false;
-			if((dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "nds")
-			|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "NDS")
-			|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "argv")
-			|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "ARGV")
-			|| (isDSiMode() && is3DS && sdMounted && dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "firm")
-			|| (isDSiMode() && is3DS && sdMounted && dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "FIRM"))
-			{
-				dirEntry.isApp = true;
-			} else {
-				dirEntry.isApp = false;
-			}
-	
-			if (dirEntry.name.compare(".") != 0 && (dirEntry.isDirectory || nameEndsWith(dirEntry.name))) {
-				dirContents.push_back (dirEntry);
+			if (!twoDotsMade) {
+				if (strcmp(pent->d_name, "..") != 0) {
+					dirEntry.name = "..";
+					dirEntry.isDirectory = true;
+					dirEntry.isApp = false;
+					dirContents.push_back (dirEntry);	// List ".."
+				}
+				twoDotsMade = true;
+			} else if (strcmp(pent->d_name, "..") != 0) {
+				dirEntry.name = pent->d_name;
+				dirEntry.isDirectory = (st.st_mode & S_IFDIR) ? true : false;
+				if((dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "nds")
+				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "NDS")
+				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "argv")
+				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "ARGV")
+				|| (isDSiMode() && is3DS && sdMounted && dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "firm")
+				|| (isDSiMode() && is3DS && sdMounted && dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "FIRM"))
+				{
+					dirEntry.isApp = true;
+				} else {
+					dirEntry.isApp = false;
+				}
+
+				if (dirEntry.name.compare(".") != 0 && (dirEntry.isDirectory || nameEndsWith(dirEntry.name))) {
+					dirContents.push_back (dirEntry);
+				}
 			}
 
 		}
