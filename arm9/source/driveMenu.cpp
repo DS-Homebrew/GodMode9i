@@ -32,7 +32,7 @@
 
 #define SCREEN_COLS 32
 #define ENTRIES_PER_SCREEN 22
-#define ENTRIES_START_ROW 2
+#define ENTRIES_START_ROW 1
 #define ENTRY_PAGE_LENGTH 10
 
 using namespace std;
@@ -155,6 +155,7 @@ void driveMenu (void) {
 
 		if (!dmTextPrinted) {
 			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+			printf ("\x1B[40m");		// Print foreground black color
 			if (assignedOp[dmCursorPosition] == 0) {
 				printf ("[sd:] SDCARD");
 				if (sdLabel[0] != '\0') {
@@ -174,6 +175,7 @@ void driveMenu (void) {
 				printf ("[nitro:] NDS GAME IMAGE\n");
 				printf ("(Game Virtual)");
 			}
+			printf ("\x1B[47m");		// Print foreground white color
 			if (isDSiMode() && sdMountedDone) {
 				if (sdMounted) {
 					printf ("\x1b[21;0H");
@@ -195,22 +197,24 @@ void driveMenu (void) {
 
 			consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
 
+			printf ("\x1B[42m");		// Print green color
 			printf ("[root]");
+			printf ("\x1B[47m");		// Print foreground white color
 
 			// Move to 2nd row
 			printf ("\x1b[1;0H");
-			// Print line of dashes
-			printf ("--------------------------------");
-
-			// Show cursor
-			printf ("\x1b[%d;0H*", dmCursorPosition + ENTRIES_START_ROW);
 
 			if (maxCursors == -1) {
-				printf ("\x1b[2;1H");
+				printf ("\x1b[2;0H");
 				printf ("No drives found!");
 			} else
 			for (int i = 0; i <= maxCursors; i++) {
-				iprintf ("\x1b[%d;1H", i + ENTRIES_START_ROW);
+				iprintf ("\x1b[%d;0H", i + ENTRIES_START_ROW);
+				if (dmCursorPosition == i) {
+					printf ("\x1B[47m");		// Print foreground white color
+				} else {
+					printf ("\x1B[40m");		// Print foreground black color
+				}
 				if (assignedOp[i] == 0) {
 					printf ("[sd:] SDCARD");
 					if (sdLabel[0] != '\0') {
@@ -243,6 +247,8 @@ void driveMenu (void) {
 
 		stored_SCFG_MC = REG_SCFG_MC;
 
+		printf ("\x1B[42m");		// Print green color for time text
+
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
 			// Move to right side of screen
@@ -268,6 +274,8 @@ void driveMenu (void) {
 			}
 		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN) && !(pressed & KEY_A) && !(held & KEY_R));
 	
+		printf ("\x1B[47m");		// Print foreground white color
+
 		if ((pressed & KEY_UP) && maxCursors != -1) {
 			dmCursorPosition -= 1;
 			dmTextPrinted = false;

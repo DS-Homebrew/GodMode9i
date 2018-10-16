@@ -39,10 +39,13 @@
 
 #define SCREEN_COLS 32
 #define ENTRIES_PER_SCREEN 22
-#define ENTRIES_START_ROW 2
+#define ENTRIES_START_ROW 1
+#define OPTIONS_ENTRIES_START_ROW 2
 #define ENTRY_PAGE_LENGTH 10
 
 using namespace std;
+
+static int fileOffset = 0;
 
 static char path[PATH_MAX];
 
@@ -115,15 +118,13 @@ void getDirectoryContents (vector<DirEntry>& dirContents) {
 }
 
 void showDirectoryContents (const vector<DirEntry>& dirContents, int startRow) {
-	char path[PATH_MAX];
-	
-	
 	getcwd(path, PATH_MAX);
 	
 	// Clear the screen
 	iprintf ("\x1b[2J");
 	
 	// Print the path
+	printf ("\x1B[42m");		// Print green color
 	if (strlen(path) < SCREEN_COLS) {
 		iprintf ("%s", path);
 	} else {
@@ -132,27 +133,33 @@ void showDirectoryContents (const vector<DirEntry>& dirContents, int startRow) {
 	
 	// Move to 2nd row
 	iprintf ("\x1b[1;0H");
-	// Print line of dashes
-	iprintf ("--------------------------------");
 	
 	// Print directory listing
 	for (int i = 0; i < ((int)dirContents.size() - startRow) && i < ENTRIES_PER_SCREEN; i++) {
 		const DirEntry* entry = &dirContents.at(i + startRow);
 		char entryName[SCREEN_COLS + 1];
-		
+
 		// Set row
 		iprintf ("\x1b[%d;0H", i + ENTRIES_START_ROW);
-		
-		if (entry->isDirectory) {
-			strncpy (entryName, entry->name.c_str(), SCREEN_COLS);
-			entryName[SCREEN_COLS - 3] = '\0';
-			iprintf (" [%s]", entryName);
+		if (fileOffset == i) {
+			printf ("\x1B[47m");		// Print foreground white color
 		} else {
-			strncpy (entryName, entry->name.c_str(), SCREEN_COLS);
-			entryName[SCREEN_COLS - 1] = '\0';
-			iprintf (" %s", entryName);
+			printf ("\x1B[40m");		// Print foreground black color
+		}
+
+		strncpy (entryName, entry->name.c_str(), SCREEN_COLS);
+		entryName[SCREEN_COLS] = '\0';
+		printf (entryName);
+		if (strcmp(entry->name.c_str(), "..") == 0) {
+			printf ("\x1b[%d;28H", i + ENTRIES_START_ROW);
+			printf ("(..)");
+		} else if (entry->isDirectory) {
+			printf ("\x1b[%d;27H", i + ENTRIES_START_ROW);
+			printf ("(dir)");
 		}
 	}
+
+	printf ("\x1B[47m");		// Print foreground white color
 }
 
 int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
@@ -177,7 +184,7 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 			break;
 		}
 	}
-	iprintf ("\x1b[%d;0H", cursorScreenPos + ENTRIES_START_ROW);
+	iprintf ("\x1b[%d;0H", cursorScreenPos + OPTIONS_ENTRIES_START_ROW);
 	if (entry->isApp) {
 		maxCursors++;
 		assignedOp[maxCursors] = 0;
@@ -204,11 +211,11 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 	printf("(<A> select, <B> cancel)");
 	while (true) {
 		// Clear old cursors
-		for (int i = ENTRIES_START_ROW+cursorScreenPos; i < (maxCursors+1) + ENTRIES_START_ROW+cursorScreenPos; i++) {
+		for (int i = OPTIONS_ENTRIES_START_ROW+cursorScreenPos; i < (maxCursors+1) + OPTIONS_ENTRIES_START_ROW+cursorScreenPos; i++) {
 			iprintf ("\x1b[%d;0H  ", i);
 		}
 		// Show cursor
-		iprintf ("\x1b[%d;0H->", optionOffset + ENTRIES_START_ROW+cursorScreenPos);
+		iprintf ("\x1b[%d;0H->", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
 
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
@@ -227,39 +234,39 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 		if (pressed & KEY_A) {
 			if (assignedOp[optionOffset] == 0) {
 				applaunch = true;
-				iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW+cursorScreenPos);
+				iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
 				printf("Now loading...");
 			} else if (assignedOp[optionOffset] == 1) {
 				if (access("sd:/gm9i", F_OK) != 0) {
-					iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW+cursorScreenPos);
+					iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
 					printf("Creating directory...");
 					mkdir("sd:/gm9i", 0777);
 				}
 				if (access("sd:/gm9i/out", F_OK) != 0) {
-					iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW+cursorScreenPos);
+					iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
 					printf("Creating directory...");
 					mkdir("sd:/gm9i/out", 0777);
 				}
 				char destPath[256];
 				snprintf(destPath, sizeof(destPath), "sd:/gm9i/out/%s", entry->name.c_str());
-				iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW+cursorScreenPos);
+				iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
 				printf("Copying...           ");
 				remove(destPath);
 				fcopy(entry->name.c_str(), destPath);
 			} else if (assignedOp[optionOffset] == 2) {
 				if (access("fat:/gm9i", F_OK) != 0) {
-					iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW+cursorScreenPos);
+					iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
 					printf("Creating directory...");
 					mkdir("fat:/gm9i", 0777);
 				}
 				if (access("fat:/gm9i/out", F_OK) != 0) {
-					iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW+cursorScreenPos);
+					iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
 					printf("Creating directory...");
 					mkdir("fat:/gm9i/out", 0777);
 				}
 				char destPath[256];
 				snprintf(destPath, sizeof(destPath), "fat:/gm9i/out/%s", entry->name.c_str());
-				iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW+cursorScreenPos);
+				iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
 				printf("Copying...           ");
 				remove(destPath);
 				fcopy(entry->name.c_str(), destPath);
@@ -287,7 +294,7 @@ bool fileBrowse_paste(char path[PATH_MAX]) {
 	printf ("     ");	// Clear time
 	consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
 	printf("Paste file here?\n\n");
-	iprintf ("\x1b[%d;0H", ENTRIES_START_ROW);
+	iprintf ("\x1b[%d;0H", OPTIONS_ENTRIES_START_ROW);
 	maxCursors++;
 	printf("   Copy path\n");
 	if (!clipboardInNitro) {
@@ -298,11 +305,11 @@ bool fileBrowse_paste(char path[PATH_MAX]) {
 	printf("(<A> select, <B> cancel)");
 	while (true) {
 		// Clear old cursors
-		for (int i = ENTRIES_START_ROW; i < (maxCursors+1) + ENTRIES_START_ROW; i++) {
+		for (int i = OPTIONS_ENTRIES_START_ROW; i < (maxCursors+1) + OPTIONS_ENTRIES_START_ROW; i++) {
 			iprintf ("\x1b[%d;0H  ", i);
 		}
 		// Show cursor
-		iprintf ("\x1b[%d;0H->", optionOffset + ENTRIES_START_ROW);
+		iprintf ("\x1b[%d;0H->", optionOffset + OPTIONS_ENTRIES_START_ROW);
 
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
@@ -321,7 +328,7 @@ bool fileBrowse_paste(char path[PATH_MAX]) {
 		if (pressed & KEY_A) {
 			char destPath[256];
 			snprintf(destPath, sizeof(destPath), "%s%s", path, clipboardFilename);
-			iprintf ("\x1b[%d;3H", optionOffset + ENTRIES_START_ROW);
+			iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW);
 			if (optionOffset == 0) {
 				printf("Copying...");
 				remove(destPath);
@@ -348,7 +355,7 @@ bool fileBrowse_paste(char path[PATH_MAX]) {
 string browseForFile (void) {
 	int pressed = 0;
 	int screenOffset = 0;
-	int fileOffset = 0;
+	fileOffset = 0;
 	off_t fileSize = 0;
 	vector<DirEntry> dirContents;
 	
@@ -356,20 +363,26 @@ string browseForFile (void) {
 
 	while (true) {
 		consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+		printf ("\x1B[40m");		// Print foreground black color
 		DirEntry* entry = &dirContents.at(fileOffset);
 		printf (entry->name.c_str());
 		printf ("\n");
-		if (entry->isDirectory) {
-			printf ("(dir)");
-		} else {
-			fileSize = getFileSize(entry->name.c_str());
-			printf ("%i Bytes", (int)fileSize);
+		if (strcmp(entry->name.c_str(), "..") != 0) {
+			if (entry->isDirectory) {
+				printf ("(dir)");
+			} else {
+				fileSize = getFileSize(entry->name.c_str());
+				printf ("%i Bytes", (int)fileSize);
+			}
 		}
 		if (clipboardOn) {
 			printf ("\x1b[10;0H");
+			printf ("\x1B[47m");		// Print foreground white color
 			printf ("[CLIPBOARD]\n");
+			printf ("\x1B[40m");		// Print foreground black color
 			printf (clipboardFilename);
 		}
+		printf ("\x1B[47m");		// Print foreground white color
 		printf ("\x1b[19;0H");
 		printf (titleName);
 		printf ("\x1b[20;0H");
@@ -384,14 +397,9 @@ string browseForFile (void) {
 		consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
 		showDirectoryContents (dirContents, screenOffset);
 
-		// Clear old cursors
-		/*for (int i = ENTRIES_START_ROW; i < ENTRIES_PER_SCREEN + ENTRIES_START_ROW; i++) {
-			iprintf ("\x1b[%d;0H ", i);
-		}*/
-		// Show cursor
-		iprintf ("\x1b[%d;0H*", fileOffset - screenOffset + ENTRIES_START_ROW);
-
 		stored_SCFG_MC = REG_SCFG_MC;
+
+		printf ("\x1B[42m");		// Print green color for time text
 
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
@@ -411,7 +419,8 @@ string browseForFile (void) {
 				&& !(pressed & KEY_A) && !(pressed & KEY_B) && !(pressed & KEY_X) && !(pressed & KEY_Y)
 				&& !(pressed & KEY_SELECT));
 	
-		iprintf ("\x1b[%d;0H*", fileOffset - screenOffset + ENTRIES_START_ROW);
+		printf ("\x1B[47m");		// Print foreground white color
+		iprintf ("\x1b[%d;0H", fileOffset - screenOffset + ENTRIES_START_ROW);
 
 		if (isDSiMode() && !pressed && secondaryDrive && REG_SCFG_MC == 0x11 && flashcardMounted) {
 			flashcardUnmount();
