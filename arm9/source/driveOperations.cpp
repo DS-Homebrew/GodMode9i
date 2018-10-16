@@ -118,11 +118,12 @@ TWL_CODE DLDI_INTERFACE* dldiLoadFromBin (const u8 dldiAddr[]) {
 	return device;
 }
 
-TWL_CODE bool UpdateCardInfo(sNDSHeader* nds, char* gameid, char* gamename) {
-	cardReadHeader((uint8*)nds);
-	memcpy(gameid, nds->gameCode, 4);
+TWL_CODE bool UpdateCardInfo(char* gameid, char* gamename) {
+	cardReadHeader((uint8*)0x02000000);
+	memcpy(&nds, (void*)0x02000000, sizeof(sNDSHeader));
+	memcpy(gameid, &nds.gameCode, 4);
 	gameid[4] = 0x00;
-	memcpy(gamename, nds->gameTitle, 12);
+	memcpy(gamename, &nds.gameTitle, 12);
 	gamename[12] = 0x00;
 	return true;
 }
@@ -151,7 +152,7 @@ TWL_CODE bool twl_flashcardMount(void) {
 			swiWaitForVBlank();
 		}
 		memcpy(&nds, (void*)0x02000000, sizeof(nds));*/
-		UpdateCardInfo(&nds, &gameid[0], &gamename[0]);
+		UpdateCardInfo(&gameid[0], &gamename[0]);
 
 		/*consoleClear();
 		iprintf("REG_SCFG_MC: %x\n", REG_SCFG_MC);
@@ -162,6 +163,10 @@ TWL_CODE bool twl_flashcardMount(void) {
 		}*/
 
 		sysSetCardOwner (BUS_OWNER_ARM7);	// 3DS fix
+
+		if (gameid[0] >= 0x00 && gameid[0] < 0x20) {
+			return false;
+		}
 
 		// Read a DLDI driver specific to the cart
 		if (!memcmp(gameid, "ASMA", 4)) {
