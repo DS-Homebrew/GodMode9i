@@ -38,14 +38,12 @@
 #include "nitrofs.h"
 
 #define SCREEN_COLS 32
-#define ENTRIES_PER_SCREEN 22
+#define ENTRIES_PER_SCREEN 23
 #define ENTRIES_START_ROW 1
 #define OPTIONS_ENTRIES_START_ROW 2
 #define ENTRY_PAGE_LENGTH 10
 
 using namespace std;
-
-static int fileOffset = 0;
 
 static char path[PATH_MAX];
 
@@ -117,7 +115,7 @@ void getDirectoryContents (vector<DirEntry>& dirContents) {
 	sort(dirContents.begin(), dirContents.end(), dirEntryPredicate);
 }
 
-void showDirectoryContents (const vector<DirEntry>& dirContents, int startRow) {
+void showDirectoryContents (const vector<DirEntry>& dirContents, int fileOffset, int startRow) {
 	getcwd(path, PATH_MAX);
 	
 	// Clear the screen
@@ -143,7 +141,7 @@ void showDirectoryContents (const vector<DirEntry>& dirContents, int startRow) {
 
 		// Set row
 		iprintf ("\x1b[%d;0H", i + ENTRIES_START_ROW);
-		if (fileOffset == i) {
+		if ((fileOffset - startRow) == i) {
 			printf ("\x1B[47m");		// Print foreground white color
 		} else {
 			printf ("\x1B[40m");		// Print foreground black color
@@ -357,7 +355,7 @@ bool fileBrowse_paste(char path[PATH_MAX]) {
 string browseForFile (void) {
 	int pressed = 0;
 	int screenOffset = 0;
-	fileOffset = 0;
+	int fileOffset = 0;
 	off_t fileSize = 0;
 	vector<DirEntry> dirContents;
 	
@@ -397,7 +395,7 @@ string browseForFile (void) {
 		printf ((!isDSiMode() && isRegularDS) ? POWERTEXT_DS : POWERTEXT);
 
 		consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
-		showDirectoryContents (dirContents, screenOffset);
+		showDirectoryContents (dirContents, fileOffset, screenOffset);
 
 		stored_SCFG_MC = REG_SCFG_MC;
 
@@ -441,11 +439,11 @@ string browseForFile (void) {
 		// Scroll screen if needed
 		if (fileOffset < screenOffset) 	{
 			screenOffset = fileOffset;
-			showDirectoryContents (dirContents, screenOffset);
+			showDirectoryContents (dirContents, fileOffset, screenOffset);
 		}
 		if (fileOffset > screenOffset + ENTRIES_PER_SCREEN - 1) {
 			screenOffset = fileOffset - ENTRIES_PER_SCREEN + 1;
-			showDirectoryContents (dirContents, screenOffset);
+			showDirectoryContents (dirContents, fileOffset, screenOffset);
 		}
 
 		getcwd(path, PATH_MAX);
