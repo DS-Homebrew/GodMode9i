@@ -450,7 +450,13 @@ string browseForFile (void) {
 
 		if (pressed & KEY_A) {
 			DirEntry* entry = &dirContents.at(fileOffset);
-			if (entry->isDirectory) {
+			if (((strcmp (entry->name.c_str(), "..") == 0) && (strcmp (path, "sd:/") == 0))
+			|| ((strcmp (entry->name.c_str(), "..") == 0) && (strcmp (path, "fat:/") == 0))
+			|| ((strcmp (entry->name.c_str(), "..") == 0) && (strcmp (path, "nitro:/") == 0)))
+			{
+				screenMode = 0;
+				return "null";
+			} else if (entry->isDirectory) {
 				iprintf("Entering directory\n");
 				// Enter selected directory
 				chdir (entry->name.c_str());
