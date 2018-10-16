@@ -217,11 +217,7 @@ TWL_CODE bool twl_flashcardMount(void) {
 }
 
 bool flashcardMount(void) {
-	if (flashcardFound()) {
-		fatGetVolumeLabel("fat", fatLabel);
-		fixLabel(true);
-		return true;
-	} else if ((!isDSiMode()) || (arm7SCFGLocked && !sdMountedDone)) {
+	if ((!isDSiMode()) || (arm7SCFGLocked && !sdMountedDone)) {
 		fatInitDefault();
 		if (flashcardFound()) {
 			fatGetVolumeLabel("fat", fatLabel);
