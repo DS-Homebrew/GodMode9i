@@ -198,6 +198,8 @@ void driveMenu (void) {
 			consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
 
 			printf ("\x1B[42m");		// Print green color
+			printf ("________________________________");
+			printf ("\x1b[0;0H");
 			printf ("[root]");
 			printf ("\x1B[47m");		// Print foreground white color
 

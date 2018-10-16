@@ -125,6 +125,8 @@ void showDirectoryContents (const vector<DirEntry>& dirContents, int startRow) {
 	
 	// Print the path
 	printf ("\x1B[42m");		// Print green color
+	printf ("________________________________");
+	printf ("\x1b[0;0H");
 	if (strlen(path) < SCREEN_COLS) {
 		iprintf ("%s", path);
 	} else {
