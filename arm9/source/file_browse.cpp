@@ -461,8 +461,7 @@ string browseForFile (void) {
 
 		if (pressed & KEY_A) {
 			DirEntry* entry = &dirContents.at(fileOffset);
-			if (((strcmp (entry->name.c_str(), "..") == 0) && (strcmp (path, "sd:/") == 0))
-			|| ((strcmp (entry->name.c_str(), "..") == 0) && (strcmp (path, "fat:/") == 0))
+			if (((strcmp (entry->name.c_str(), "..") == 0) && (strcmp (path, (secondaryDrive ? "fat:/" : "sd:/")) == 0))
 			|| ((strcmp (entry->name.c_str(), "..") == 0) && (strcmp (path, "nitro:/") == 0)))
 			{
 				screenMode = 0;
