@@ -42,6 +42,7 @@
 #define ENTRIES_START_ROW 1
 #define OPTIONS_ENTRIES_START_ROW 2
 #define ENTRY_PAGE_LENGTH 10
+bool bigJump = false;
 
 using namespace std;
 
@@ -447,13 +448,16 @@ string browseForFile (void) {
 			return "null";
 		}
 
-		if (pressed & KEY_UP) 		fileOffset -= 1;
-		if (pressed & KEY_DOWN) 	fileOffset += 1;
-		if (pressed & KEY_LEFT) 	fileOffset -= ENTRY_PAGE_LENGTH;
-		if (pressed & KEY_RIGHT)	fileOffset += ENTRY_PAGE_LENGTH;
+		if (pressed & KEY_UP) {		fileOffset -= 1; bigJump = false;  }
+		if (pressed & KEY_DOWN) {	fileOffset += 1; bigJump = false; }
+		if (pressed & KEY_LEFT) {	fileOffset -= ENTRY_PAGE_LENGTH; bigJump = true; }
+		if (pressed & KEY_RIGHT) {	fileOffset += ENTRY_PAGE_LENGTH; bigJump = true; }
 		
-		if (fileOffset < 0) 	fileOffset = dirContents.size() - 1;		// Wrap around to bottom of list
-		if (fileOffset > ((int)dirContents.size() - 1))		fileOffset = 0;		// Wrap around to top of list
+		if (fileOffset < 0 & bigJump == false)	fileOffset = dirContents.size() - 1;	// Wrap around to bottom of list (UP press)
+		else if (fileOffset < 0 & bigJump == true)	fileOffset = 0;		// Move to bottom of list (RIGHT press)
+		if (fileOffset > ((int)dirContents.size() - 1) & bigJump == false)	fileOffset = 0;		// Wrap around to top of list (DOWN press)
+		else if (fileOffset > ((int)dirContents.size() - 1) & bigJump == true)	fileOffset = dirContents.size() - 1;	// Move to top of list (LEFT press)
+
 
 		// Scroll screen if needed
 		if (fileOffset < screenOffset) 	{
