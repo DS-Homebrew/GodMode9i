@@ -80,7 +80,7 @@ CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
 BMPFILES	:=	$(foreach dir,$(GRAPHICS),$(notdir $(wildcard $(dir)/*.bmp)))
 PNGFILES	:=	$(foreach dir,$(GRAPHICS),$(notdir $(wildcard $(dir)/*.png)))
 SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
-BINFILES	:=	load.bin bootstub.bin exceptionstub.bin
+BINFILES	:=	load.bin bootstub.bin
  
 #---------------------------------------------------------------------------------
 # use CXX for linking C++ projects, CC for standard C
@@ -117,9 +117,9 @@ endif
  
 export GAME_TITLE := $(TARGET)
 
-.PHONY: bootloader bootstub exceptionstub clean arm7/$(TARGET).elf arm9/$(TARGET).elf
+.PHONY: bootloader bootstub clean arm7/$(TARGET).elf arm9/$(TARGET).elf
 
-all:	bootloader bootstub exceptionstub $(TARGET).nds
+all:	bootloader bootstub $(TARGET).nds
 	
 dist:	all
 	@rm	-fr	hbmenu
@@ -160,7 +160,6 @@ clean:
 	@rm -fr $(TARGET).arm9.elf
 	@$(MAKE) -C bootloader clean
 	@$(MAKE) -C bootstub clean
-	@$(MAKE) -C nds-exception-stub clean
 	@$(MAKE) -C arm9 clean
 	@$(MAKE) -C arm7 clean
 
@@ -170,9 +169,6 @@ data:
 bootloader: data
 	@$(MAKE) -C bootloader LOADBIN=$(CURDIR)/data/load.bin
 	
-exceptionstub: data
-	@$(MAKE) -C nds-exception-stub STUBBIN=$(CURDIR)/data/exceptionstub.bin
-
 bootstub: data
 	@$(MAKE) -C bootstub
 
