@@ -3,6 +3,8 @@
 
 #define POWERTEXT_DS "POWER - Poweroff"
 #define POWERTEXT "POWER - Reboot/[+held] Poweroff"
+#define POWERTEXT_3DS "POWER - Sleep Mode screen"
+#define HOMETEXT "HOME - HOME Menu prompt"
 
 extern char titleName[32];
 

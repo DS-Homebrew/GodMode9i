@@ -397,8 +397,30 @@ string browseForFile (void) {
 
 	while (true) {
 		consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
-		printf ("\x1B[40m");		// Print foreground black color
+
+		printf ("\x1B[47m");		// Print foreground white color
+		printf ("\x1b[23;0H");
+		printf (titleName);
+		printf ("\n");
+		printf ("X - DELETE file");
+		printf ("\n");
+		printf (clipboardOn ? "Y - PASTE file" : "Y - COPY file");
+		printf ("\n");
+		printf (clipboardOn ? "SELECT - Clear Clipboard" : "SELECT - Restore Clipboard");
+		printf ("\n");
+		if (!isDSiMode() && isRegularDS) {
+			printf (POWERTEXT_DS);
+		} else if (is3DS) {
+			printf (POWERTEXT_3DS);
+			printf ("\n");
+			printf (HOMETEXT);
+		} else {
+			printf (POWERTEXT);
+		}
+
 		DirEntry* entry = &dirContents.at(fileOffset);
+		printf ("\x1B[40m");		// Print foreground black color
+		printf ("\x1b[0;0H");
 		printf (entry->name.c_str());
 		printf ("\n");
 		if (strcmp(entry->name.c_str(), "..") != 0) {
@@ -415,17 +437,6 @@ string browseForFile (void) {
 			printf ("\x1B[40m");		// Print foreground black color
 			printf (clipboardFilename);
 		}
-		printf ("\x1B[47m");		// Print foreground white color
-		printf ("\x1b[19;0H");
-		printf (titleName);
-		printf ("\x1b[20;0H");
-		printf ("X - DELETE file");
-		printf ("\x1b[21;0H");
-		printf (clipboardOn ? "Y - PASTE file" : "Y - COPY file");
-		printf ("\x1b[22;0H");
-		printf (clipboardOn ? "SELECT - Clear Clipboard" : "SELECT - Restore Clipboard");
-		printf ("\x1b[23;0H");
-		printf ((!isDSiMode() && isRegularDS) ? POWERTEXT_DS : POWERTEXT);
 
 		consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
 		showDirectoryContents (dirContents, fileOffset, screenOffset);

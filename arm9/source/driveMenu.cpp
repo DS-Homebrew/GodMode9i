@@ -167,7 +167,31 @@ void driveMenu (void) {
 				consoleClear();
 				ramDumped = true;
 			}*/
+			printf ("\x1B[47m");		// Print foreground white color
+			printf ("\x1b[23;0H");
+			printf (titleName);
+			if (isDSiMode() && sdMountedDone) {
+				if (isRegularDS || sdMounted) {
+					printf ("\n");
+					printf (sdMounted ? "R+B - Unmount SD card" : "R+B - Remount SD card");
+				}
+			} else {
+				printf ("\n");
+				printf (flashcardMounted ? "R+B - Unmount Flashcard" : "R+B - Remount Flashcard");
+			}
+			printf ("\n");
+			if (!isDSiMode() && isRegularDS) {
+				printf (POWERTEXT_DS);
+			} else if (is3DS) {
+				printf (POWERTEXT_3DS);
+				printf ("\n");
+				printf (HOMETEXT);
+			} else {
+				printf (POWERTEXT);
+			}
+
 			printf ("\x1B[40m");		// Print foreground black color
+			printf ("\x1b[0;0H");
 			if (assignedOp[dmCursorPosition] == 0) {
 				printf ("[sd:] SDCARD");
 				if (sdLabel[0] != '\0') {
@@ -187,25 +211,6 @@ void driveMenu (void) {
 				printf ("[nitro:] NDS GAME IMAGE\n");
 				printf ("(Game Virtual)");
 			}
-			printf ("\x1B[47m");		// Print foreground white color
-			if (isDSiMode() && sdMountedDone) {
-				if (isRegularDS || sdMounted) {
-					printf ("\x1b[21;0H");
-					printf (titleName);
-					printf ("\x1b[22;0H");
-					printf (sdMounted ? "R+B - Unmount SD card" : "R+B - Remount SD card");
-				} else {
-					printf ("\x1b[22;0H");
-					printf (titleName);
-				}
-			} else {
-				printf ("\x1b[21;0H");
-				printf (titleName);
-				printf ("\x1b[22;0H");
-				printf (flashcardMounted ? "R+B - Unmount Flashcard" : "R+B - Remount Flashcard");
-			}
-			printf ("\x1b[23;0H");
-			printf ((!isDSiMode() && isRegularDS) ? POWERTEXT_DS : POWERTEXT);
 
 			consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
 
