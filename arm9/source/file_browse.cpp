@@ -374,6 +374,19 @@ bool fileBrowse_paste(char path[PATH_MAX]) {
 	}
 }
 
+void recRemove(DirEntry* entry, std::vector<DirEntry> dirContents) {
+	DirEntry* startEntry = entry;
+	chdir (entry->name.c_str());
+	getDirectoryContents(dirContents);
+	for (int i = 1; i < ((int)dirContents.size()); i++) {
+		entry = &dirContents.at(i);
+		if (entry->isDirectory)	recRemove(entry, dirContents);
+		remove(entry->name.c_str());
+	}
+	chdir ("..");
+	remove(startEntry->name.c_str());
+}
+
 string browseForFile (void) {
 	int pressed = 0;
 	int screenOffset = 0;
@@ -453,10 +466,10 @@ string browseForFile (void) {
 		if (pressed & KEY_LEFT) {	fileOffset -= ENTRY_PAGE_LENGTH; bigJump = true; }
 		if (pressed & KEY_RIGHT) {	fileOffset += ENTRY_PAGE_LENGTH; bigJump = true; }
 		
-		if (fileOffset < 0 & bigJump == false)	fileOffset = dirContents.size() - 1;	// Wrap around to bottom of list (UP press)
-		else if (fileOffset < 0 & bigJump == true)	fileOffset = 0;		// Move to bottom of list (RIGHT press)
-		if (fileOffset > ((int)dirContents.size() - 1) & bigJump == false)	fileOffset = 0;		// Wrap around to top of list (DOWN press)
-		else if (fileOffset > ((int)dirContents.size() - 1) & bigJump == true)	fileOffset = dirContents.size() - 1;	// Move to top of list (LEFT press)
+		if ((fileOffset < 0) & (bigJump == false))	fileOffset = dirContents.size() - 1;	// Wrap around to bottom of list (UP press)
+		else if ((fileOffset < 0) & (bigJump == true))	fileOffset = 0;		// Move to bottom of list (RIGHT press)
+		if ((fileOffset > ((int)dirContents.size() - 1)) & (bigJump == false))	fileOffset = 0;		// Wrap around to top of list (DOWN press)
+		else if ((fileOffset > ((int)dirContents.size() - 1)) & (bigJump == true))	fileOffset = dirContents.size() - 1;	// Move to top of list (LEFT press)
 
 
 		// Scroll screen if needed
@@ -531,10 +544,11 @@ string browseForFile (void) {
 					consoleClear();
 					if (entry->isDirectory) {
 						printf ("Deleting folder, please wait...");
+						recRemove(entry, dirContents);
 					} else {
 						printf ("Deleting file, please wait...");
+						remove(entry->name.c_str());
 					}
-					remove(entry->name.c_str());
 					char filePath[256];
 					snprintf(filePath, sizeof(filePath), "%s%s", path, entry->name.c_str());
 					if (strcmp(filePath, clipboard) == 0) {
