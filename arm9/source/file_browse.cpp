@@ -585,7 +585,7 @@ string browseForFile (void) {
 						getDirectoryContents (dirContents);
 					}
 				}
-			} else if (strcmp(entry->name.c_str(), "..") != 0) {
+			} else if ((strcmp(entry->name.c_str(), "..") != 0) && !entry->isDirectory) {
 				snprintf(clipboard, sizeof(clipboard), "%s%s", path, entry->name.c_str());
 				snprintf(clipboardFilename, sizeof(clipboardFilename), "%s", entry->name.c_str());
 				clipboardOn = true;
