@@ -49,13 +49,6 @@ using namespace std;
 
 static char path[PATH_MAX];
 
-struct DirEntry {
-	string name;
-	off_t size;
-	bool isDirectory;
-	bool isApp;
-} ;
-
 bool nameEndsWith (const string& name) {
 
 	if (name.size() == 0) return false;
@@ -594,7 +587,7 @@ string browseForFile (void) {
 						getDirectoryContents (dirContents);
 					}
 				}
-			} else if ((strcmp(entry->name.c_str(), "..") != 0) && !entry->isDirectory) {
+			} else if (strcmp(entry->name.c_str(), "..") != 0) {
 				snprintf(clipboard, sizeof(clipboard), "%s%s", path, entry->name.c_str());
 				snprintf(clipboardFilename, sizeof(clipboardFilename), "%s", entry->name.c_str());
 				clipboardOn = true;
