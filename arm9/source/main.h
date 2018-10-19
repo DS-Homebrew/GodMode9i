@@ -1,10 +1,11 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-#define POWERTEXT_DS "POWER - Poweroff"
-#define POWERTEXT "POWER - Reboot/[+held] Poweroff"
-#define POWERTEXT_3DS "POWER - Sleep Mode screen"
-#define HOMETEXT "HOME - HOME Menu prompt"
+#define POWERTEXT_DS	"POWER - Poweroff"
+#define POWERTEXT		"POWER - Reboot/[+held] Poweroff"
+#define POWERTEXT_3DS	"POWER - Sleep Mode screen"
+#define HOMETEXT 		"HOME - HOME Menu prompt"
+#define SCREENSHOTTEXT 	"R+L - Make a screenshot"
 
 extern char titleName[32];
 

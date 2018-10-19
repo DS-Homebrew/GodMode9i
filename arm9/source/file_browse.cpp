@@ -32,6 +32,7 @@
 
 #include "main.h"
 #include "date.h"
+#include "screenshot.h"
 #include "fileOperations.h"
 #include "driveMenu.h"
 #include "driveOperations.h"
@@ -389,6 +390,7 @@ void recRemove(DirEntry* entry, std::vector<DirEntry> dirContents) {
 
 string browseForFile (void) {
 	int pressed = 0;
+	int held = 0;
 	int screenOffset = 0;
 	int fileOffset = 0;
 	vector<DirEntry> dirContents;
@@ -405,6 +407,8 @@ string browseForFile (void) {
 		printf ("X - DELETE file");
 		printf ("\n");
 		printf (clipboardOn ? "Y - PASTE file" : "Y - COPY file");
+		printf ("\n");
+		printf (SCREENSHOTTEXT);
 		printf ("\n");
 		printf (clipboardOn ? "SELECT - Clear Clipboard" : "SELECT - Restore Clipboard");
 		printf ("\n");
@@ -454,9 +458,14 @@ string browseForFile (void) {
 	
 			scanKeys();
 			pressed = keysDownRepeat();
+			held = keysHeld();
 			swiWaitForVBlank();
 
 			if (REG_SCFG_MC != stored_SCFG_MC) {
+				break;
+			}
+
+			if ((held & KEY_R) && (pressed & KEY_L)) {
 				break;
 			}
 		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN) && !(pressed & KEY_LEFT) && !(pressed & KEY_RIGHT)
@@ -597,6 +606,16 @@ string browseForFile (void) {
 
 		if ((pressed & KEY_SELECT) && clipboardUsed) {
 			clipboardOn = !clipboardOn;
+		}
+
+		// Make a screenshot
+		if ((held & KEY_R) && (pressed & KEY_L)) {
+			char snapPath[32];
+			snprintf(snapPath, sizeof(snapPath), "%s:/gm9i/out/snap_%s.bmp", (sdMounted ? "sd" : "fat"), RetTimeForFilename().c_str());
+			screenshotbmp(snapPath);
+			if (strcmp (path, (sdMounted ? "sd:/gm9i/out/" : "fat:/gm9i/out/")) == 0) {
+				getDirectoryContents (dirContents);
+			}
 		}
 	}
 }

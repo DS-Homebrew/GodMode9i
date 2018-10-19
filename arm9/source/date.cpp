@@ -60,8 +60,24 @@ string RetTime()
 	time(&Raw);
 	const struct tm *Time = localtime(&Raw);
 
-	char Tmp[24];
+	char Tmp[8];
 	strftime(Tmp, sizeof(Tmp), "%k:%M", Time);
+
+	return string(Tmp);
+}
+
+/**
+ * Get the current time formatted for filenames.
+ * @return std::string containing the time.
+ */
+string RetTimeForFilename()
+{
+	time_t Raw;
+	time(&Raw);
+	const struct tm *Time = localtime(&Raw);
+
+	char Tmp[8];
+	strftime(Tmp, sizeof(Tmp), "%k%M%S", Time);
 
 	return string(Tmp);
 }

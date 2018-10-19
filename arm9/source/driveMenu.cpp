@@ -28,6 +28,7 @@
 
 #include "main.h"
 #include "date.h"
+#include "screenshot.h"
 #include "driveOperations.h"
 
 #define SCREEN_COLS 32
@@ -178,6 +179,10 @@ void driveMenu (void) {
 			} else {
 				printf ("\n");
 				printf (flashcardMounted ? "R+B - Unmount Flashcard" : "R+B - Remount Flashcard");
+			}
+			if (sdMounted || flashcardMounted) {
+				printf ("\n");
+				printf (SCREENSHOTTEXT);
 			}
 			printf ("\n");
 			if (!isDSiMode() && isRegularDS) {
@@ -350,6 +355,15 @@ void driveMenu (void) {
 				} else {
 					flashcardMounted = flashcardMount();
 				}
+			}
+		}
+
+		// Make a screenshot
+		if ((held & KEY_R) && (pressed & KEY_L)) {
+			if (sdMounted || flashcardMounted) {
+				char snapPath[32];
+				snprintf(snapPath, sizeof(snapPath), "%s:/gm9i/out/snap_%s.bmp", (sdMounted ? "sd" : "fat"), RetTimeForFilename().c_str());
+				screenshotbmp(snapPath);
 			}
 		}
 

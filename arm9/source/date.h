@@ -33,6 +33,12 @@ size_t GetDate(DateFormat format, char *buf, size_t size);
 std::string RetTime();
 
 /**
+ * Get the current time formatted for filenames.
+ * @return std::string containing the time.
+ */
+std::string RetTimeForFilename();
+
+/**
  * Draw the date using the specified format.
  * @param format Date format.
  */
