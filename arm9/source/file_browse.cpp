@@ -618,6 +618,9 @@ string browseForFile (void) {
 			}
 			if (access((sdMounted ? "sd:/gm9i/out" : "fat:/gm9i/out"), F_OK) != 0) {
 				mkdir((sdMounted ? "sd:/gm9i/out" : "fat:/gm9i/out"), 0777);
+				if (strcmp (path, (sdMounted ? "sd:/gm9i/" : "fat:/gm9i/")) == 0) {
+					getDirectoryContents (dirContents);
+				}
 			}
 			char snapPath[32];
 			snprintf(snapPath, sizeof(snapPath), "%s:/gm9i/out/snap_%s.bmp", (sdMounted ? "sd" : "fat"), RetTimeForFilename().c_str());
