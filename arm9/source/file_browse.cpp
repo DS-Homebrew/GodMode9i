@@ -435,7 +435,7 @@ string browseForFile (void) {
 			}
 		}
 		if (clipboardOn) {
-			printf ("\x1b[10;0H");
+			printf ("\x1b[9;0H");
 			printf ("\x1B[47m");		// Print foreground white color
 			printf ("[CLIPBOARD]\n");
 			printf ("\x1B[40m");		// Print foreground black color
@@ -610,6 +610,15 @@ string browseForFile (void) {
 
 		// Make a screenshot
 		if ((held & KEY_R) && (pressed & KEY_L)) {
+			if (access((sdMounted ? "sd:/gm9i" : "fat:/gm9i"), F_OK) != 0) {
+				mkdir((sdMounted ? "sd:/gm9i" : "fat:/gm9i"), 0777);
+				if (strcmp (path, (sdMounted ? "sd:/" : "fat:/")) == 0) {
+					getDirectoryContents (dirContents);
+				}
+			}
+			if (access((sdMounted ? "sd:/gm9i/out" : "fat:/gm9i/out"), F_OK) != 0) {
+				mkdir((sdMounted ? "sd:/gm9i/out" : "fat:/gm9i/out"), 0777);
+			}
 			char snapPath[32];
 			snprintf(snapPath, sizeof(snapPath), "%s:/gm9i/out/snap_%s.bmp", (sdMounted ? "sd" : "fat"), RetTimeForFilename().c_str());
 			screenshotbmp(snapPath);

@@ -361,6 +361,12 @@ void driveMenu (void) {
 		// Make a screenshot
 		if ((held & KEY_R) && (pressed & KEY_L)) {
 			if (sdMounted || flashcardMounted) {
+				if (access((sdMounted ? "sd:/gm9i" : "fat:/gm9i"), F_OK) != 0) {
+					mkdir((sdMounted ? "sd:/gm9i" : "fat:/gm9i"), 0777);
+				}
+				if (access((sdMounted ? "sd:/gm9i/out" : "fat:/gm9i/out"), F_OK) != 0) {
+					mkdir((sdMounted ? "sd:/gm9i/out" : "fat:/gm9i/out"), 0777);
+				}
 				char snapPath[32];
 				snprintf(snapPath, sizeof(snapPath), "%s:/gm9i/out/snap_%s.bmp", (sdMounted ? "sd" : "fat"), RetTimeForFilename().c_str());
 				screenshotbmp(snapPath);

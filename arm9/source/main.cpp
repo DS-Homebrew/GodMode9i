@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
 	consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
 
 	// Display GM9i logo
-	bg3 = bgInit(3, BgType_Bmp16,    BgSize_B16_256x256, 1, 0);
+	bg3 = bgInit(3, BgType_Bmp16, BgSize_B16_256x256, 1, 0);
 	bgSetScroll(bg3, 0, 0);
 	decompress(gm9i_logoBitmap, bgGetGfxPtr(bg3), LZ77Vram);
 
