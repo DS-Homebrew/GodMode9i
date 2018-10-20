@@ -14,6 +14,7 @@ u32 copyBuf[copyBufSize];
 
 char clipboard[256];
 char clipboardFilename[256];
+bool clipboardFolder = false;
 bool clipboardOn = false;
 bool clipboardUsed = false;
 bool clipboardDrive = false;	// false == SD card, true == Flashcard
@@ -103,7 +104,7 @@ int fcopy(const char *sourcePath, const char *destinationPath)
 			}
 			printf ("\x1b[16;0H");
 			printf ("Progress:\n");
-			printf ("%i/%i Bytes", (int)offset, (int)fsize);
+			printf ("%i/%i Bytes                       ", (int)offset, (int)fsize);
 
 			// Copy file to destination path
 			numr = fread(copyBuf, 2, copyBufSize, sourceFile);
@@ -115,7 +116,7 @@ int fcopy(const char *sourcePath, const char *destinationPath)
 				fclose(destinationFile);
 
 				printf ("\x1b[17;0H");
-				printf ("%i/%i Bytes", (int)fsize, (int)fsize);
+				printf ("%i/%i Bytes                       ", (int)fsize, (int)fsize);
 				for (int i = 0; i < 30; i++) swiWaitForVBlank();
 
 				return 1;

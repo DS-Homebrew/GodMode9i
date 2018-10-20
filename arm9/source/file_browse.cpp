@@ -309,7 +309,8 @@ bool fileBrowse_paste(char path[PATH_MAX]) {
 	printf ("_____");	// Clear time
 	consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
 	printf ("\x1B[47m");		// Print foreground white color
-	printf("Paste file here?\n\n");
+	printf(clipboardFolder ? "Paste folder here?" : "Paste file here?");
+	printf("\n\n");
 	iprintf ("\x1b[%d;0H", OPTIONS_ENTRIES_START_ROW);
 	maxCursors++;
 	printf("   Copy path\n");
@@ -593,6 +594,7 @@ string browseForFile (void) {
 			} else if (strcmp(entry->name.c_str(), "..") != 0) {
 				snprintf(clipboard, sizeof(clipboard), "%s%s", path, entry->name.c_str());
 				snprintf(clipboardFilename, sizeof(clipboardFilename), "%s", entry->name.c_str());
+				clipboardFolder = entry->isDirectory;
 				clipboardOn = true;
 				clipboardDrive = secondaryDrive;
 				clipboardInNitro = (strncmp (path, "nitro:/", 7) == 0);
