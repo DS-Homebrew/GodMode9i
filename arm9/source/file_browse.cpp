@@ -627,6 +627,7 @@ string browseForFile (void) {
 			snprintf(snapPath, sizeof(snapPath), "%s:/gm9i/out/snap_%s_top.bmp", (sdMounted ? "sd" : "fat"), fileTimeText);
 			screenshotbmp(snapPath);
 			// Seamlessly swap top and bottom screens
+			lcdMainOnBottom();
 			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
 			fileBrowse_drawBottomScreen(entry, fileOffset);
 			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
@@ -634,7 +635,6 @@ string browseForFile (void) {
 			printf("\x1B[42m");		// Print green color for time text
 			printf("\x1b[0;27H");
 			printf(timeText);
-			lcdMainOnBottom();
 			// Take bottom screenshot
 			snprintf(snapPath, sizeof(snapPath), "%s:/gm9i/out/snap_%s_bot.bmp", (sdMounted ? "sd" : "fat"), fileTimeText);
 			screenshotbmp(snapPath);
