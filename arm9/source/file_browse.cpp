@@ -381,6 +381,49 @@ void recRemove(DirEntry* entry, std::vector<DirEntry> dirContents) {
 	remove(startEntry->name.c_str());
 }
 
+void fileBrowse_drawBottomScreen(DirEntry* entry, int fileOffset) {
+	printf ("\x1B[47m");		// Print foreground white color
+	printf ("\x1b[23;0H");
+	printf (titleName);
+	printf ("\n");
+	printf ("X - DELETE file");
+	printf ("\n");
+	printf (clipboardOn ? "Y - PASTE file" : "Y - COPY file");
+	printf ("\n");
+	printf (SCREENSHOTTEXT);
+	printf ("\n");
+	printf (clipboardOn ? "SELECT - Clear Clipboard" : "SELECT - Restore Clipboard");
+	printf ("\n");
+	if (!isDSiMode() && isRegularDS) {
+		printf (POWERTEXT_DS);
+	} else if (is3DS) {
+		printf (POWERTEXT_3DS);
+		printf ("\n");
+		printf (HOMETEXT);
+	} else {
+		printf (POWERTEXT);
+	}
+
+	printf ("\x1B[40m");		// Print foreground black color
+	printf ("\x1b[0;0H");
+	printf (entry->name.c_str());
+	printf ("\n");
+	if (strcmp(entry->name.c_str(), "..") != 0) {
+		if (entry->isDirectory) {
+			printf ("(dir)");
+		} else {
+			printf ("%i Bytes", (int)entry->size);
+		}
+	}
+	if (clipboardOn) {
+		printf ("\x1b[9;0H");
+		printf ("\x1B[47m");		// Print foreground white color
+		printf ("[CLIPBOARD]\n");
+		printf ("\x1B[40m");		// Print foreground black color
+		printf (clipboardFilename);
+	}
+}
+
 string browseForFile (void) {
 	int pressed = 0;
 	int held = 0;
@@ -391,50 +434,10 @@ string browseForFile (void) {
 	getDirectoryContents (dirContents);
 
 	while (true) {
-		consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
-
-		printf ("\x1B[47m");		// Print foreground white color
-		printf ("\x1b[23;0H");
-		printf (titleName);
-		printf ("\n");
-		printf ("X - DELETE file");
-		printf ("\n");
-		printf (clipboardOn ? "Y - PASTE file" : "Y - COPY file");
-		printf ("\n");
-		printf (SCREENSHOTTEXT);
-		printf ("\n");
-		printf (clipboardOn ? "SELECT - Clear Clipboard" : "SELECT - Restore Clipboard");
-		printf ("\n");
-		if (!isDSiMode() && isRegularDS) {
-			printf (POWERTEXT_DS);
-		} else if (is3DS) {
-			printf (POWERTEXT_3DS);
-			printf ("\n");
-			printf (HOMETEXT);
-		} else {
-			printf (POWERTEXT);
-		}
-
 		DirEntry* entry = &dirContents.at(fileOffset);
-		printf ("\x1B[40m");		// Print foreground black color
-		printf ("\x1b[0;0H");
-		printf (entry->name.c_str());
-		printf ("\n");
-		if (strcmp(entry->name.c_str(), "..") != 0) {
-			if (entry->isDirectory) {
-				printf ("(dir)");
-			} else {
-				printf ("%i Bytes", (int)entry->size);
-			}
-		}
-		if (clipboardOn) {
-			printf ("\x1b[9;0H");
-			printf ("\x1B[47m");		// Print foreground white color
-			printf ("[CLIPBOARD]\n");
-			printf ("\x1B[40m");		// Print foreground black color
-			printf (clipboardFilename);
-		}
 
+		consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+		fileBrowse_drawBottomScreen(entry, fileOffset);
 		consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
 		showDirectoryContents (dirContents, fileOffset, screenOffset);
 
@@ -615,12 +618,30 @@ string browseForFile (void) {
 					getDirectoryContents (dirContents);
 				}
 			}
-			char snapPath[32];
-			snprintf(snapPath, sizeof(snapPath), "%s:/gm9i/out/snap_%s.bmp", (sdMounted ? "sd" : "fat"), RetTimeForFilename().c_str());
+			char timeText[8];
+			snprintf(timeText, sizeof(timeText), "%s", RetTime().c_str());
+			char fileTimeText[8];
+			snprintf(fileTimeText, sizeof(fileTimeText), "%s", RetTimeForFilename().c_str());
+			char snapPath[40];
+			// Take top screenshot
+			snprintf(snapPath, sizeof(snapPath), "%s:/gm9i/out/snap_%s_top.bmp", (sdMounted ? "sd" : "fat"), fileTimeText);
+			screenshotbmp(snapPath);
+			// Seamlessly swap top and bottom screens
+			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
+			fileBrowse_drawBottomScreen(entry, fileOffset);
+			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+			showDirectoryContents (dirContents, fileOffset, screenOffset);
+			printf("\x1B[42m");		// Print green color for time text
+			printf("\x1b[0;27H");
+			printf(timeText);
+			lcdMainOnBottom();
+			// Take bottom screenshot
+			snprintf(snapPath, sizeof(snapPath), "%s:/gm9i/out/snap_%s_bot.bmp", (sdMounted ? "sd" : "fat"), fileTimeText);
 			screenshotbmp(snapPath);
 			if (strcmp (path, (sdMounted ? "sd:/gm9i/out/" : "fat:/gm9i/out/")) == 0) {
 				getDirectoryContents (dirContents);
 			}
+			lcdMainOnTop();
 		}
 	}
 }

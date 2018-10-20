@@ -44,6 +44,8 @@ bool flashcardMountSkipped = true;
 static bool flashcardMountRan = true;
 static bool dmTextPrinted = false;
 static int dmCursorPosition = 0;
+static int dmAssignedOp[3] = {-1};
+static int dmMaxCursors = -1;
 
 static u8 gbaFixedValue = 0;
 
@@ -123,11 +125,116 @@ void gbaCartDump(void) {
 	}
 }
 
+void dm_drawTopScreen(void) {
+	/*if (!ramDumped) {
+		printf ("Dumping RAM...");
+		FILE* destinationFile = fopen("sd:/ramdump.bin", "wb");
+		fwrite((void*)0x02000000, 1, 0x400000, destinationFile);
+		fclose(destinationFile);
+		consoleClear();
+		ramDumped = true;
+	}*/
+	printf ("\x1B[42m");		// Print green color
+	printf ("________________________________");
+	printf ("\x1b[0;0H");
+	printf ("[root]");
+	printf ("\x1B[47m");		// Print foreground white color
+
+	// Move to 2nd row
+	printf ("\x1b[1;0H");
+
+	if (dmMaxCursors == -1) {
+		printf ("No drives found!");
+	} else
+	for (int i = 0; i <= dmMaxCursors; i++) {
+		iprintf ("\x1b[%d;0H", i + ENTRIES_START_ROW);
+		if (dmCursorPosition == i) {
+			printf ("\x1B[47m");		// Print foreground white color
+		} else {
+			printf ("\x1B[40m");		// Print foreground black color
+		}
+		if (dmAssignedOp[i] == 0) {
+			printf ("[sd:] SDCARD");
+			if (sdLabel[0] != '\0') {
+				iprintf (" (%s)", sdLabel);
+			}
+		} else if (dmAssignedOp[i] == 1) {
+			printf ("[fat:] FLASHCART");
+			if (fatLabel[0] != '\0') {
+				iprintf (" (%s)", fatLabel);
+			}
+		} else if (dmAssignedOp[i] == 2) {
+			printf ("GBA GAMECART");
+			if (gbaFixedValue != 0x96) {
+				iprintf ("\x1b[%d;29H", i + ENTRIES_START_ROW);
+				printf ("[x]");
+			}
+		} else if (dmAssignedOp[i] == 3) {
+			printf ("[nitro:] NDS GAME IMAGE");
+			if ((!sdMounted && !nitroSecondaryDrive)
+			|| (!flashcardMounted && nitroSecondaryDrive))
+			{
+				iprintf ("\x1b[%d;29H", i + ENTRIES_START_ROW);
+				printf ("[x]");
+			}
+		}
+	}
+}
+
+void dm_drawBottomScreen(void) {
+	printf ("\x1B[47m");		// Print foreground white color
+	printf ("\x1b[23;0H");
+	printf (titleName);
+	if (isDSiMode() && sdMountedDone) {
+		if (isRegularDS || sdMounted) {
+			printf ("\n");
+			printf (sdMounted ? "R+B - Unmount SD card" : "R+B - Remount SD card");
+		}
+	} else {
+		printf ("\n");
+		printf (flashcardMounted ? "R+B - Unmount Flashcard" : "R+B - Remount Flashcard");
+	}
+	if (sdMounted || flashcardMounted) {
+		printf ("\n");
+		printf (SCREENSHOTTEXT);
+	}
+	printf ("\n");
+	if (!isDSiMode() && isRegularDS) {
+		printf (POWERTEXT_DS);
+	} else if (is3DS) {
+		printf (POWERTEXT_3DS);
+		printf ("\n");
+		printf (HOMETEXT);
+	} else {
+		printf (POWERTEXT);
+	}
+
+	printf ("\x1B[40m");		// Print foreground black color
+	printf ("\x1b[0;0H");
+	if (dmAssignedOp[dmCursorPosition] == 0) {
+		printf ("[sd:] SDCARD");
+		if (sdLabel[0] != '\0') {
+			iprintf (" (%s)", sdLabel);
+		}
+		printf ("\n(SD FAT)");
+	} else if (dmAssignedOp[dmCursorPosition] == 1) {
+		printf ("[fat:] FLASHCART");
+		if (fatLabel[0] != '\0') {
+			iprintf (" (%s)", fatLabel);
+		}
+		printf ("\n(Slot-1 SD FAT)");
+	} else if (dmAssignedOp[dmCursorPosition] == 2) {
+		printf ("GBA GAMECART\n");
+		printf ("(GBA Game)");
+	} else if (dmAssignedOp[dmCursorPosition] == 3) {
+		printf ("[nitro:] NDS GAME IMAGE\n");
+		printf ("(Game Virtual)");
+	}
+}
+
 void driveMenu (void) {
 	int pressed = 0;
 	int held = 0;
-	int assignedOp[3] = {-1};
-	int maxCursors = -1;
 
 	while (true) {
 		if (!isDSiMode() && isRegularDS) {
@@ -135,135 +242,34 @@ void driveMenu (void) {
 		}
 
 		for (int i = 0; i < 3; i++) {
-			assignedOp[i] = -1;
+			dmAssignedOp[i] = -1;
 		}
-		maxCursors = -1;
+		dmMaxCursors = -1;
 		if (isDSiMode() && sdMounted){
-			maxCursors++;
-			assignedOp[maxCursors] = 0;
+			dmMaxCursors++;
+			dmAssignedOp[dmMaxCursors] = 0;
 		}
 		if (flashcardMounted) {
-			maxCursors++;
-			assignedOp[maxCursors] = 1;
+			dmMaxCursors++;
+			dmAssignedOp[dmMaxCursors] = 1;
 		}
 		if (!isDSiMode() && isRegularDS) {
-			maxCursors++;
-			assignedOp[maxCursors] = 2;
+			dmMaxCursors++;
+			dmAssignedOp[dmMaxCursors] = 2;
 		}
 		if (nitroMounted) {
-			maxCursors++;
-			assignedOp[maxCursors] = 3;
+			dmMaxCursors++;
+			dmAssignedOp[dmMaxCursors] = 3;
 		}
 
-		if (dmCursorPosition < 0) 	dmCursorPosition = maxCursors;		// Wrap around to bottom of list
-		if (dmCursorPosition > maxCursors)	dmCursorPosition = 0;		// Wrap around to top of list
+		if (dmCursorPosition < 0) 	dmCursorPosition = dmMaxCursors;		// Wrap around to bottom of list
+		if (dmCursorPosition > dmMaxCursors)	dmCursorPosition = 0;		// Wrap around to top of list
 
 		if (!dmTextPrinted) {
 			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
-			/*if (!ramDumped) {
-				printf ("Dumping RAM...");
-				FILE* destinationFile = fopen("sd:/ramdump.bin", "wb");
-				fwrite((void*)0x02000000, 1, 0x400000, destinationFile);
-				fclose(destinationFile);
-				consoleClear();
-				ramDumped = true;
-			}*/
-			printf ("\x1B[47m");		// Print foreground white color
-			printf ("\x1b[23;0H");
-			printf (titleName);
-			if (isDSiMode() && sdMountedDone) {
-				if (isRegularDS || sdMounted) {
-					printf ("\n");
-					printf (sdMounted ? "R+B - Unmount SD card" : "R+B - Remount SD card");
-				}
-			} else {
-				printf ("\n");
-				printf (flashcardMounted ? "R+B - Unmount Flashcard" : "R+B - Remount Flashcard");
-			}
-			if (sdMounted || flashcardMounted) {
-				printf ("\n");
-				printf (SCREENSHOTTEXT);
-			}
-			printf ("\n");
-			if (!isDSiMode() && isRegularDS) {
-				printf (POWERTEXT_DS);
-			} else if (is3DS) {
-				printf (POWERTEXT_3DS);
-				printf ("\n");
-				printf (HOMETEXT);
-			} else {
-				printf (POWERTEXT);
-			}
-
-			printf ("\x1B[40m");		// Print foreground black color
-			printf ("\x1b[0;0H");
-			if (assignedOp[dmCursorPosition] == 0) {
-				printf ("[sd:] SDCARD");
-				if (sdLabel[0] != '\0') {
-					iprintf (" (%s)", sdLabel);
-				}
-				printf ("\n(SD FAT)");
-			} else if (assignedOp[dmCursorPosition] == 1) {
-				printf ("[fat:] FLASHCART");
-				if (fatLabel[0] != '\0') {
-					iprintf (" (%s)", fatLabel);
-				}
-				printf ("\n(Slot-1 SD FAT)");
-			} else if (assignedOp[dmCursorPosition] == 2) {
-				printf ("GBA GAMECART\n");
-				printf ("(GBA Game)");
-			} else if (assignedOp[dmCursorPosition] == 3) {
-				printf ("[nitro:] NDS GAME IMAGE\n");
-				printf ("(Game Virtual)");
-			}
-
+			dm_drawBottomScreen();
 			consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
-
-			printf ("\x1B[42m");		// Print green color
-			printf ("________________________________");
-			printf ("\x1b[0;0H");
-			printf ("[root]");
-			printf ("\x1B[47m");		// Print foreground white color
-
-			// Move to 2nd row
-			printf ("\x1b[1;0H");
-
-			if (maxCursors == -1) {
-				printf ("No drives found!");
-			} else
-			for (int i = 0; i <= maxCursors; i++) {
-				iprintf ("\x1b[%d;0H", i + ENTRIES_START_ROW);
-				if (dmCursorPosition == i) {
-					printf ("\x1B[47m");		// Print foreground white color
-				} else {
-					printf ("\x1B[40m");		// Print foreground black color
-				}
-				if (assignedOp[i] == 0) {
-					printf ("[sd:] SDCARD");
-					if (sdLabel[0] != '\0') {
-						iprintf (" (%s)", sdLabel);
-					}
-				} else if (assignedOp[i] == 1) {
-					printf ("[fat:] FLASHCART");
-					if (fatLabel[0] != '\0') {
-						iprintf (" (%s)", fatLabel);
-					}
-				} else if (assignedOp[i] == 2) {
-					printf ("GBA GAMECART");
-					if (gbaFixedValue != 0x96) {
-						iprintf ("\x1b[%d;29H", i + ENTRIES_START_ROW);
-						printf ("[x]");
-					}
-				} else if (assignedOp[i] == 3) {
-					printf ("[nitro:] NDS GAME IMAGE");
-					if ((!sdMounted && !nitroSecondaryDrive)
-					|| (!flashcardMounted && nitroSecondaryDrive))
-					{
-						iprintf ("\x1b[%d;29H", i + ENTRIES_START_ROW);
-						printf ("[x]");
-					}
-				}
-			}
+			dm_drawTopScreen();
 
 			dmTextPrinted = true;
 		}
@@ -299,35 +305,35 @@ void driveMenu (void) {
 	
 		printf ("\x1B[47m");		// Print foreground white color
 
-		if ((pressed & KEY_UP) && maxCursors != -1) {
+		if ((pressed & KEY_UP) && dmMaxCursors != -1) {
 			dmCursorPosition -= 1;
 			dmTextPrinted = false;
 		}
-		if ((pressed & KEY_DOWN) && maxCursors != -1) {
+		if ((pressed & KEY_DOWN) && dmMaxCursors != -1) {
 			dmCursorPosition += 1;
 			dmTextPrinted = false;
 		}
 
-		if (dmCursorPosition < 0) 	dmCursorPosition = maxCursors;		// Wrap around to bottom of list
-		if (dmCursorPosition > maxCursors)	dmCursorPosition = 0;		// Wrap around to top of list
+		if (dmCursorPosition < 0) 	dmCursorPosition = dmMaxCursors;		// Wrap around to bottom of list
+		if (dmCursorPosition > dmMaxCursors)	dmCursorPosition = 0;		// Wrap around to top of list
 
 		if (pressed & KEY_A) {
-			if (assignedOp[dmCursorPosition] == 0 && isDSiMode() && sdMounted) {
+			if (dmAssignedOp[dmCursorPosition] == 0 && isDSiMode() && sdMounted) {
 				dmTextPrinted = false;
 				secondaryDrive = false;
 				chdir("sd:/");
 				screenMode = 1;
 				break;
-			} else if (assignedOp[dmCursorPosition] == 1 && flashcardMounted) {
+			} else if (dmAssignedOp[dmCursorPosition] == 1 && flashcardMounted) {
 				dmTextPrinted = false;
 				secondaryDrive = true;
 				chdir("fat:/");
 				screenMode = 1;
 				break;
-			} else if (assignedOp[dmCursorPosition] == 2 && isRegularDS && flashcardMounted && gbaFixedValue == 0x96) {
+			} else if (dmAssignedOp[dmCursorPosition] == 2 && isRegularDS && flashcardMounted && gbaFixedValue == 0x96) {
 				dmTextPrinted = false;
 				gbaCartDump();
-			} else if (assignedOp[dmCursorPosition] == 3 && nitroMounted) {
+			} else if (dmAssignedOp[dmCursorPosition] == 3 && nitroMounted) {
 				if ((sdMounted && !nitroSecondaryDrive)
 				|| (flashcardMounted && nitroSecondaryDrive))
 				{
@@ -367,9 +373,28 @@ void driveMenu (void) {
 				if (access((sdMounted ? "sd:/gm9i/out" : "fat:/gm9i/out"), F_OK) != 0) {
 					mkdir((sdMounted ? "sd:/gm9i/out" : "fat:/gm9i/out"), 0777);
 				}
-				char snapPath[32];
-				snprintf(snapPath, sizeof(snapPath), "%s:/gm9i/out/snap_%s.bmp", (sdMounted ? "sd" : "fat"), RetTimeForFilename().c_str());
+				char timeText[8];
+				snprintf(timeText, sizeof(timeText), "%s", RetTime().c_str());
+				char fileTimeText[8];
+				snprintf(fileTimeText, sizeof(fileTimeText), "%s", RetTimeForFilename().c_str());
+				char snapPath[40];
+				// Take top screenshot
+				snprintf(snapPath, sizeof(snapPath), "%s:/gm9i/out/snap_%s_top.bmp", (sdMounted ? "sd" : "fat"), fileTimeText);
 				screenshotbmp(snapPath);
+				// Seamlessly swap top and bottom screens
+				consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
+				dm_drawBottomScreen();
+				consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+				dm_drawTopScreen();
+				printf("\x1B[42m");		// Print green color for time text
+				printf("\x1b[0;27H");
+				printf(timeText);
+				lcdMainOnBottom();
+				// Take bottom screenshot
+				snprintf(snapPath, sizeof(snapPath), "%s:/gm9i/out/snap_%s_bot.bmp", (sdMounted ? "sd" : "fat"), fileTimeText);
+				screenshotbmp(snapPath);
+				lcdMainOnTop();
+				dmTextPrinted = false;
 			}
 		}
 
