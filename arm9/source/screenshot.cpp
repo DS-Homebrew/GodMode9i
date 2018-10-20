@@ -98,7 +98,7 @@ void screenshotbmp(const char* filename) {
 	{
 		for(int x=0;x<256;x++)
 		{
-			u16 color=VRAM_D[256*192-y*256+x];
+			u16 color=VRAM_D[256*191-y*256+x];
 
 			u8 b=(color&31)<<3;
 			u8 g=((color>>5)&31)<<3;

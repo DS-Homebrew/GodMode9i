@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
 	
 	bool yHeld = false;
 
-	snprintf(titleName, sizeof(titleName), "GodMode9i v%i.%i.%i", 1, 3, 1);
+	snprintf(titleName, sizeof(titleName), "GodMode9i v%i.%i.%i", 1, 3, 2);
 
 	// initialize video mode
 	videoSetMode(MODE_4_2D);
