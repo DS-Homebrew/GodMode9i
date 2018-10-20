@@ -47,6 +47,9 @@ int fcopy(const char *sourcePath, const char *destinationPath)
 	DIR *isDir = opendir (sourcePath);
 	
 	if (isDir != NULL) {
+		closedir(isDir);
+
+		// Source path is a directory
 		chdir(sourcePath);
 		vector<DirEntry> dirContents;
 		getDirectoryContents(dirContents);
@@ -63,6 +66,9 @@ int fcopy(const char *sourcePath, const char *destinationPath)
 		chdir ("..");
 		return 1;
 	} else {
+		closedir(isDir);
+
+		// Source path is a file
 	    FILE* sourceFile = fopen(sourcePath, "rb");
 	    off_t fsize = 0;
 	    if (sourceFile) {
@@ -119,5 +125,4 @@ int fcopy(const char *sourcePath, const char *destinationPath)
 
 		return -1;
 	}
-	closedir(isDir);
 }
