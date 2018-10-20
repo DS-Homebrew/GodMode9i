@@ -116,7 +116,7 @@ int fcopy(const char *sourcePath, const char *destinationPath)
 
 				printf ("\x1b[17;0H");
 				printf ("%i/%i Bytes", (int)fsize, (int)fsize);
-				for (int i = 0; i < 60; i++) swiWaitForVBlank();
+				for (int i = 0; i < 30; i++) swiWaitForVBlank();
 
 				return 1;
 				break;
