@@ -396,7 +396,10 @@ void fileBrowse_drawBottomScreen(DirEntry* entry, int fileOffset) {
 	printf ("X - DELETE/[+R] RENAME file");
 	printf ("\n");
 	printf (clipboardOn ? "Y - PASTE file" : "Y - COPY file");
-	printf ("\n");
+	printf ("/[+R] CREATE entry");
+	if (!clipboardOn) {
+		printf ("\n");
+	}
 	printf (SCREENSHOTTEXT);
 	printf ("\n");
 	printf (clipboardOn ? "SELECT - Clear Clipboard" : "SELECT - Restore Clipboard");
@@ -613,6 +616,28 @@ string browseForFile (void) {
 			}
 		}
 
+		// Create new folder
+		if ((held & KEY_R) && (pressed & KEY_Y)) {
+			pressed = 0;
+			consoleDemoInit();
+			Keyboard *kbd = keyboardDemoInit(); 
+			char newName[256];
+			kbd->OnKeyPressed = OnKeyPressed;
+
+			keyboardShow();
+			printf("Name for new folder: \n");
+			iscanf("%s", newName);
+			keyboardHide();
+			consoleClear();
+
+			if (newName[0] != '\0') {
+				if (mkdir(newName, 0777) == 0) {
+					getDirectoryContents (dirContents);
+				}
+			}
+		}
+
+		// Copy file/folder
 		if (pressed & KEY_Y) {
 			if (clipboardOn) {
 				char destPath[256];
