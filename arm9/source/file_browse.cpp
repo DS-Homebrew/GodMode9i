@@ -229,9 +229,6 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 		assignedOp[maxCursors] = 2;
 		printf("   Copy to fat:/gm9i/out\n");
 	}
-	maxCursors++;
-	assignedOp[maxCursors] = 4;
-	printf("   Rename file\n");
 	printf("\n");
 	printf("(<A> select, <B> cancel)");
 	while (true) {
@@ -301,20 +298,6 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					chdir("nitro:/");
 					nitroSecondaryDrive = secondaryDrive;
 				}
-			}
-			else if (assignedOp[optionOffset] == 4) {
-				consoleDemoInit();
-				Keyboard *kbd = keyboardDemoInit(); 
-				char newName[256];
-				kbd->OnKeyPressed = OnKeyPressed;
-
-				keyboardShow();
-				printf("Rename to: ");
-				iscanf("%s", newName);
-				keyboardHide();
-				consoleClear();
-
-				rename(entry->name.c_str(), newName);
 			}
 			return assignedOp[optionOffset];
 		}
@@ -410,7 +393,7 @@ void fileBrowse_drawBottomScreen(DirEntry* entry, int fileOffset) {
 	printf ("\x1b[23;0H");
 	printf (titleName);
 	printf ("\n");
-	printf ("X - DELETE file");
+	printf ("X - DELETE/[+R] RENAME file");
 	printf ("\n");
 	printf (clipboardOn ? "Y - PASTE file" : "Y - COPY file");
 	printf ("\n");
@@ -547,7 +530,7 @@ string browseForFile (void) {
 				if (getOp == 0) {
 					// Return the chosen file
 					return entry->name;
-				} else if (getOp == 1 || getOp == 2 || (getOp == 3 && nitroMounted) || getOp == 4) {
+				} else if (getOp == 1 || getOp == 2 || (getOp == 3 && nitroMounted)) {
 					getDirectoryContents (dirContents);		// Refresh directory listing
 					if (getOp == 3 && nitroMounted) {
 						screenOffset = 0;
@@ -567,6 +550,27 @@ string browseForFile (void) {
 			getDirectoryContents (dirContents);
 			screenOffset = 0;
 			fileOffset = 0;
+		}
+
+		// Rename file/folder
+		if ((held & KEY_R) && (pressed & KEY_X)) {
+			pressed = 0;
+			consoleDemoInit();
+			Keyboard *kbd = keyboardDemoInit(); 
+			char newName[256];
+			kbd->OnKeyPressed = OnKeyPressed;
+
+			keyboardShow();
+			printf("Rename to: \n");
+			iscanf("%s", newName);
+			keyboardHide();
+			consoleClear();
+
+			if (newName[0] != '\0') {
+				if (rename(entry->name.c_str(), newName) == 0) {
+					getDirectoryContents (dirContents);
+				}
+			}
 		}
 
 		// Delete file/folder
