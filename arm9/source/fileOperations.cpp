@@ -20,6 +20,21 @@ bool clipboardUsed = false;
 bool clipboardDrive = false;	// false == SD card, true == Flashcard
 bool clipboardInNitro = false;
 
+void printBytes(int bytes)
+{
+	if (abs(bytes) < 1024)
+		iprintf("%d B", bytes);
+
+	else if (abs(bytes) < 1024 * 1024)
+		printf("%.1f KB", (float)bytes / 1024);
+
+	else if (abs(bytes) < 1024 * 1024 * 1024)
+		printf("%.1f MB", (float)bytes / 1024 / 1024);
+
+	else
+		printf("%.1f GB", (float)bytes / 1024 / 1024 / 1024);
+}
+
 off_t getFileSize(const char *fileName)
 {
     FILE* fp = fopen(fileName, "rb");

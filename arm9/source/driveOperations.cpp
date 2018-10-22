@@ -2,6 +2,7 @@
 #include <nds/arm9/dldi.h>
 #include <fat.h>
 #include <sys/stat.h>
+#include <sys/statvfs.h>
 #include <stdio.h>
 
 #include "main.h"
@@ -23,6 +24,9 @@ bool nitroSecondaryDrive = false;			// false == SD card, true == Flashcard
 
 char sdLabel[12];
 char fatLabel[12];
+
+int sdSize = 0;
+int fatSize = 0;
 
 void fixLabel(bool fat) {
 	if (fat) {
@@ -76,6 +80,10 @@ TWL_CODE bool sdMount(void) {
 		sdMountedDone = true;
 		fatGetVolumeLabel("sd", sdLabel);
 		fixLabel(false);
+		struct statvfs st;
+		if (statvfs("sd:/", &st) == 0) {
+			sdSize = st.f_bsize * st.f_blocks;
+		}
 		return true;
 	}
 	return false;
@@ -84,6 +92,7 @@ TWL_CODE bool sdMount(void) {
 TWL_CODE void sdUnmount(void) {
 	fatUnmount("sd");
 	sdLabel[0] = '\0';
+	sdSize = 0;
 	sdMounted = false;
 }
 
@@ -210,6 +219,10 @@ TWL_CODE bool twl_flashcardMount(void) {
 		if (flashcardFound()) {
 			fatGetVolumeLabel("fat", fatLabel);
 			fixLabel(true);
+			struct statvfs st;
+			if (statvfs("fat:/", &st) == 0) {
+				fatSize = st.f_bsize * st.f_blocks;
+			}
 			return true;
 		}
 	}
@@ -222,6 +235,10 @@ bool flashcardMount(void) {
 		if (flashcardFound()) {
 			fatGetVolumeLabel("fat", fatLabel);
 			fixLabel(true);
+			struct statvfs st;
+			if (statvfs("fat:/", &st) == 0) {
+				fatSize = st.f_bsize * st.f_blocks;
+			}
 			return true;
 		}
 		return false;
@@ -233,5 +250,6 @@ bool flashcardMount(void) {
 void flashcardUnmount(void) {
 	fatUnmount("fat");
 	fatLabel[0] = '\0';
+	fatSize = 0;
 	flashcardMounted = false;
 }

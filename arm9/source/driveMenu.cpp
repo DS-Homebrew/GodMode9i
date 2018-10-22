@@ -30,6 +30,7 @@
 #include "date.h"
 #include "screenshot.h"
 #include "driveOperations.h"
+#include "fileOperations.h"
 
 #define SCREEN_COLS 32
 #define ENTRIES_PER_SCREEN 22
@@ -216,13 +217,17 @@ void dm_drawBottomScreen(void) {
 		if (sdLabel[0] != '\0') {
 			iprintf (" (%s)", sdLabel);
 		}
-		printf ("\n(SD FAT)");
+		printf ("\n(SD FAT, ");
+		printBytes(sdSize);
+		printf(")");
 	} else if (dmAssignedOp[dmCursorPosition] == 1) {
 		printf ("[fat:] FLASHCART");
 		if (fatLabel[0] != '\0') {
 			iprintf (" (%s)", fatLabel);
 		}
-		printf ("\n(Slot-1 SD FAT)");
+		printf ("\n(Slot-1 SD FAT, ", fatSize);
+		printBytes(fatSize);
+		printf(")");
 	} else if (dmAssignedOp[dmCursorPosition] == 2) {
 		printf ("GBA GAMECART\n");
 		printf ("(GBA Game)");
