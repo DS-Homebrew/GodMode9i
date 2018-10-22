@@ -73,7 +73,6 @@ bool dirEntryPredicate (const DirEntry& lhs, const DirEntry& rhs) {
 }
 
 void getDirectoryContents (vector<DirEntry>& dirContents) {
-	bool twoDotsMade = false;
 	struct stat st;
 
 	dirContents.clear();
@@ -91,15 +90,7 @@ void getDirectoryContents (vector<DirEntry>& dirContents) {
 			if(pent == NULL) break;
 
 			stat(pent->d_name, &st);
-			if (!twoDotsMade) {
-				if (strcmp(pent->d_name, "..") != 0) {
-					dirEntry.name = "..";
-					dirEntry.isDirectory = true;
-					dirEntry.isApp = false;
-					dirContents.push_back (dirEntry);	// List ".."
-				}
-				twoDotsMade = true;
-			} else if (strcmp(pent->d_name, "..") != 0) {
+			if (strcmp(pent->d_name, "..") != 0) {
 				dirEntry.name = pent->d_name;
 				dirEntry.isDirectory = (st.st_mode & S_IFDIR) ? true : false;
 				if (!dirEntry.isDirectory) {
@@ -130,6 +121,12 @@ void getDirectoryContents (vector<DirEntry>& dirContents) {
 	}	
 	
 	sort(dirContents.begin(), dirContents.end(), dirEntryPredicate);
+
+	DirEntry dirEntry;
+	dirEntry.name = "..";	// ".." entry
+	dirEntry.isDirectory = true;
+	dirEntry.isApp = false;
+	dirContents.insert (dirContents.begin(), dirEntry);	// Add ".." to top of list
 }
 
 void showDirectoryContents (const vector<DirEntry>& dirContents, int fileOffset, int startRow) {
