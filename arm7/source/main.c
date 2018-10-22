@@ -80,7 +80,7 @@ int main() {
 	// Start the RTC tracking IRQ
 	initClockIRQ();
 
-	//touchInit();
+	touchInit();
 
 	fifoInit();
 	

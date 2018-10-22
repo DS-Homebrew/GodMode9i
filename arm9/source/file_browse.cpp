@@ -56,6 +56,11 @@ bool nameEndsWith (const string& name) {
 	return true;
 }
 
+void OnKeyPressed(int key) {
+	if(key > 0)
+		iprintf("%c", key);
+}
+
 bool dirEntryPredicate (const DirEntry& lhs, const DirEntry& rhs) {
 
 	if (!lhs.isDirectory && rhs.isDirectory) {
@@ -224,6 +229,9 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 		assignedOp[maxCursors] = 2;
 		printf("   Copy to fat:/gm9i/out\n");
 	}
+	maxCursors++;
+	assignedOp[maxCursors] = 4;
+	printf("   Rename file\n");
 	printf("\n");
 	printf("(<A> select, <B> cancel)");
 	while (true) {
@@ -293,6 +301,20 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					chdir("nitro:/");
 					nitroSecondaryDrive = secondaryDrive;
 				}
+			}
+			else if (assignedOp[optionOffset] == 4) {
+				consoleDemoInit();
+				Keyboard *kbd = keyboardDemoInit(); 
+				char newName[256];
+				kbd->OnKeyPressed = OnKeyPressed;
+
+				keyboardShow();
+				printf("Rename to: ");
+				iscanf("%s", newName);
+				keyboardHide();
+				consoleClear();
+
+				rename(entry->name.c_str(), newName);
 			}
 			return assignedOp[optionOffset];
 		}
@@ -525,7 +547,7 @@ string browseForFile (void) {
 				if (getOp == 0) {
 					// Return the chosen file
 					return entry->name;
-				} else if (getOp == 1 || getOp == 2 || (getOp == 3 && nitroMounted)) {
+				} else if (getOp == 1 || getOp == 2 || (getOp == 3 && nitroMounted) || getOp == 4) {
 					getDirectoryContents (dirContents);		// Refresh directory listing
 					if (getOp == 3 && nitroMounted) {
 						screenOffset = 0;
