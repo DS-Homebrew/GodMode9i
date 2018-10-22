@@ -302,7 +302,7 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 	}
 }
 
-bool fileBrowse_paste(char path[PATH_MAX]) {
+bool fileBrowse_paste(char destPath[256]) {
 	int pressed = 0;
 	int optionOffset = 0;
 	int maxCursors = -1;
@@ -346,8 +346,6 @@ bool fileBrowse_paste(char path[PATH_MAX]) {
 		if (optionOffset > maxCursors)		optionOffset = 0;		// Wrap around to top of list
 
 		if (pressed & KEY_A) {
-			char destPath[256];
-			snprintf(destPath, sizeof(destPath), "%s%s", path, clipboardFilename);
 			iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW);
 			if (optionOffset == 0) {
 				printf("Copying...");
@@ -591,8 +589,10 @@ string browseForFile (void) {
 
 		if (pressed & KEY_Y) {
 			if (clipboardOn) {
-				if (strncmp (path, "nitro:/", 7) != 0) {
-					if (fileBrowse_paste(path)) {
+				char destPath[256];
+				snprintf(destPath, sizeof(destPath), "%s%s", path, clipboardFilename);
+				if (strncmp (path, "nitro:/", 7) != 0 && string(clipboard) != string(destPath)) {
+					if (fileBrowse_paste(destPath)) {
 						getDirectoryContents (dirContents);
 					}
 				}
