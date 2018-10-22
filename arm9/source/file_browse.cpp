@@ -38,7 +38,7 @@
 #include "driveOperations.h"
 #include "nitrofs.h"
 
-#define SCREEN_COLS 23
+#define SCREEN_COLS 22
 #define ENTRIES_PER_SCREEN 23
 #define ENTRIES_START_ROW 1
 #define OPTIONS_ENTRIES_START_ROW 2
@@ -169,7 +169,7 @@ void showDirectoryContents (const vector<DirEntry>& dirContents, int fileOffset,
 			printf ("\x1b[%d;27H", i + ENTRIES_START_ROW);
 			printf ("(dir)");
 		} else {
-			printf ("\x1b[%d;24H", i + ENTRIES_START_ROW);
+			printf ("\x1b[%d;23H", i + ENTRIES_START_ROW);
 			printBytes((int)entry->size);
 		}
 	}
@@ -415,6 +415,8 @@ void fileBrowse_drawBottomScreen(DirEntry* entry, int fileOffset) {
 	if (strcmp(entry->name.c_str(), "..") != 0) {
 		if (entry->isDirectory) {
 			printf ("(dir)");
+		} else if (entry->size == 1) {
+			printf ("%i Byte", (int)entry->size);
 		} else {
 			printf ("%i Bytes", (int)entry->size);
 		}

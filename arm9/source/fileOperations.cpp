@@ -22,8 +22,11 @@ bool clipboardInNitro = false;
 
 void printBytes(int bytes)
 {
-	if (abs(bytes) < 1024)
-		iprintf("%d B", bytes);
+	if (abs(bytes) == 1)
+		iprintf("%d Byte", bytes);
+
+	else if (abs(bytes) < 1024)
+		iprintf("%d Bytes", bytes);
 
 	else if (abs(bytes) < 1024 * 1024)
 		printf("%.1f KB", (float)bytes / 1024);
