@@ -80,10 +80,10 @@ TWL_CODE bool sdMount(void) {
 		sdMountedDone = true;
 		fatGetVolumeLabel("sd", sdLabel);
 		fixLabel(false);
-		struct statvfs st;
+		/*struct statvfs st;
 		if (statvfs("sd:/", &st) == 0) {
 			sdSize = st.f_bsize * st.f_blocks;
-		}
+		}*/
 		return true;
 	}
 	return false;
@@ -219,10 +219,10 @@ TWL_CODE bool twl_flashcardMount(void) {
 		if (flashcardFound()) {
 			fatGetVolumeLabel("fat", fatLabel);
 			fixLabel(true);
-			struct statvfs st;
+			/*struct statvfs st;
 			if (statvfs("fat:/", &st) == 0) {
 				fatSize = st.f_bsize * st.f_blocks;
-			}
+			}*/
 			return true;
 		}
 	}
@@ -235,10 +235,10 @@ bool flashcardMount(void) {
 		if (flashcardFound()) {
 			fatGetVolumeLabel("fat", fatLabel);
 			fixLabel(true);
-			struct statvfs st;
+			/*struct statvfs st;
 			if (statvfs("fat:/", &st) == 0) {
 				fatSize = st.f_bsize * st.f_blocks;
-			}
+			}*/
 			return true;
 		}
 		return false;
