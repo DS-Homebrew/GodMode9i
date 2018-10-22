@@ -38,7 +38,7 @@
 #include "driveOperations.h"
 #include "nitrofs.h"
 
-#define SCREEN_COLS 32
+#define SCREEN_COLS 23
 #define ENTRIES_PER_SCREEN 23
 #define ENTRIES_START_ROW 1
 #define OPTIONS_ENTRIES_START_ROW 2
@@ -168,6 +168,9 @@ void showDirectoryContents (const vector<DirEntry>& dirContents, int fileOffset,
 		} else if (entry->isDirectory) {
 			printf ("\x1b[%d;27H", i + ENTRIES_START_ROW);
 			printf ("(dir)");
+		} else {
+			printf ("\x1b[%d;24H", i + ENTRIES_START_ROW);
+			printBytes((int)entry->size);
 		}
 	}
 
@@ -449,9 +452,9 @@ string browseForFile (void) {
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
 			// Move to right side of screen
-			printf ("\x1b[0;27H");
+			printf ("\x1b[0;26H");
 			// Print time
-			printf (RetTime().c_str());
+			printf ("_%s" ,RetTime().c_str());
 	
 			scanKeys();
 			pressed = keysDownRepeat();
@@ -635,8 +638,8 @@ string browseForFile (void) {
 			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
 			showDirectoryContents (dirContents, fileOffset, screenOffset);
 			printf("\x1B[42m");		// Print green color for time text
-			printf("\x1b[0;27H");
-			printf(timeText);
+			printf ("\x1b[0;26H");
+			printf ("_%s" ,timeText);
 			// Take bottom screenshot
 			snprintf(snapPath, sizeof(snapPath), "%s:/gm9i/out/snap_%s_bot.bmp", (sdMounted ? "sd" : "fat"), fileTimeText);
 			screenshotbmp(snapPath);
