@@ -225,7 +225,7 @@ void dm_drawBottomScreen(void) {
 		if (fatLabel[0] != '\0') {
 			iprintf (" (%s)", fatLabel);
 		}
-		printf ("\n(Slot-1 SD FAT, ", fatSize);
+		printf ("\n(Slot-1 SD FAT, ");
 		printBytes(fatSize);
 		printf(")");
 	} else if (dmAssignedOp[dmCursorPosition] == 2) {
