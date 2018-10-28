@@ -562,7 +562,8 @@ string browseForFile (void) {
 
 			keyboardShow();
 			printf("Rename to: \n");
-			iscanf("%s", newName);
+			fgets(newName, 256, stdin);
+			newName[strlen(newName)-1] = 0;
 			keyboardHide();
 			consoleClear();
 
@@ -623,7 +624,8 @@ string browseForFile (void) {
 
 			keyboardShow();
 			printf("Name for new folder: \n");
-			iscanf("%s", newName);
+			fgets(newName, 256, stdin);
+			newName[strlen(newName)-1] = 0;
 			keyboardHide();
 			consoleClear();
 
