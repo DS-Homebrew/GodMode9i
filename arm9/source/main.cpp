@@ -136,6 +136,9 @@ int main(int argc, char **argv) {
 		if (keysHeld() & KEY_Y) {
 			yHeld = true;
 		}
+		// Not working, even in compiled twlnf
+		//get_ids();
+		//nandMounted = nandMount();
 		sdMounted = sdMount();
 	}
 	if (!isDSiMode() || !sdMounted || (access("sd:/Nintendo 3DS", F_OK) != 0)) {

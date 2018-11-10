@@ -3,6 +3,7 @@
 
 extern u8 stored_SCFG_MC;
 
+extern bool nandMounted;
 extern bool sdMounted;
 extern bool sdMountedDone;				// true if SD mount is successful once
 extern bool flashcardMounted;
@@ -20,6 +21,8 @@ extern int fatSize;
 extern bool sdFound(void);
 extern bool flashcardFound(void);
 extern bool bothSDandFlashcard(void);
+extern int get_ids(void);
+extern bool nandMount(void);
 extern bool sdMount(void);
 extern void sdUnmount(void);
 extern bool flashcardMount(void);

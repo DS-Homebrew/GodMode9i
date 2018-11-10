@@ -10,5 +10,6 @@ GodMode9i is a full access file browser for the Nintendo DS and DSi consoles, si
 ## Credits
 * d0k3: Original GM9 app and name, though he is not involved with the development of GM9i.
 * devkitPro: devkitARM, libnds, original nds-hb-menu code, and screenshot code.
+* Jimmy-Z: NAND read code used in twlnf
 * THEGUY: GM9i logo used up to v1.3.0
 * zacchi4k: GM9i logo used in v1.3.1 and later
