@@ -99,16 +99,13 @@ int get_ids() {
 	while (!fifoCheckValue32(FIFO_USER_01)) swiIntrWait(1, IRQ_FIFO_NOT_EMPTY);
 	int ret = fifoGetValue32(FIFO_USER_01);
 	if (ret) {
-		//iprintf("sdmmc_nand_init() returned %d\n", ret);
 		return -3;
 	}
 
 	nand_size = nand_GetSize();
 	if (nand_size == 0) {
-		//printf("can't access eMMC\n");
 		return -3;
 	}
-	//iprintf("eMMC: %u sectors\n", nand_size);
 
 	fifoSendValue32(FIFO_USER_01, 4);
 	while (fifoCheckDatamsgLength(FIFO_USER_01) < 16) swiIntrWait(1, IRQ_FIFO_NOT_EMPTY);
