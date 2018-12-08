@@ -6,9 +6,6 @@
 #include <stdio.h>
 
 #include "main.h"
-#include "crypto.h"
-#include "sector0.h"
-#include "nandio.h"
 #include "dldi-include.h"
 
 static sNDSHeader nds;
@@ -17,9 +14,6 @@ u8 stored_SCFG_MC = 0;
 
 static bool slot1Enabled = true;
 
-int nand_is3DS;
-bool (*read_raw_sectors)(sec_t, sec_t, void*) = 0;
-bool nandMounted = false;
 bool sdMounted = false;
 bool sdMountedDone = false;				// true if SD mount is successful once
 bool flashcardMounted = false;
@@ -33,16 +27,6 @@ char fatLabel[12];
 
 int sdSize = 0;
 int fatSize = 0;
-
-static u32 sector_buf32[SECTOR_SIZE/sizeof(u32)];
-static u8 *sector_buf = (u8*)sector_buf32;
-
-static ssize_t nand_size;
-
-static u32 emmc_cid32[4];
-static u8 *emmc_cid = (u8*)emmc_cid32;
-static u32 console_id32[2];
-static u8 *console_id = (u8*)console_id32;
 
 void fixLabel(bool fat) {
 	if (fat) {
@@ -90,61 +74,6 @@ bool bothSDandFlashcard(void) {
 	}
 }
 
-int get_ids() {
-	if (!isDSiMode()) {
-		return -2;
-	}
-
-	fifoSendValue32(FIFO_USER_01, 1);
-	while (!fifoCheckValue32(FIFO_USER_01)) swiIntrWait(1, IRQ_FIFO_NOT_EMPTY);
-	int ret = fifoGetValue32(FIFO_USER_01);
-	if (ret) {
-		return -3;
-	}
-
-	nand_size = nand_GetSize();
-	if (nand_size == 0) {
-		return -3;
-	}
-
-	fifoSendValue32(FIFO_USER_01, 4);
-	while (fifoCheckDatamsgLength(FIFO_USER_01) < 16) swiIntrWait(1, IRQ_FIFO_NOT_EMPTY);
-	fifoGetDatamsg(FIFO_USER_01, 16, (u8*)emmc_cid);
-
-	fifoSendValue32(FIFO_USER_01, 5);
-	while (fifoCheckDatamsgLength(FIFO_USER_01) < 8) swiIntrWait(1, IRQ_FIFO_NOT_EMPTY);
-	fifoGetDatamsg(FIFO_USER_01, 8, console_id);
-
-	return 0;
-}
-
-TWL_CODE int test_sector0(int *p_is3DS) {
-	int is3DS = parse_ncsd(sector_buf, 0) == 0;
-	// iprintf("sector 0 is %s\n", is3DS ? "3DS" : "DSi");
-	dsi_crypt_init(console_id, emmc_cid, is3DS);
-	dsi_nand_crypt(sector_buf, sector_buf, 0, SECTOR_SIZE / AES_BLOCK_SIZE);
-	if (p_is3DS) {
-		*p_is3DS = is3DS;
-	}
-	return parse_mbr(sector_buf, is3DS, 0);
-}
-
-TWL_CODE bool nandMount(void) {
-	nand_ReadSectors(0, 1, sector_buf);
-
-	test_sector0(&nand_is3DS);
-	mbr_t *mbr = (mbr_t*)sector_buf;
-	int mnt_ret;
-
-	nandio_set_fat_sig_fix(nand_is3DS ? 0 : mbr->partitions[0].offset);
-	mnt_ret = fatMount("nand", &io_dsi_nand, mbr->partitions[0].offset, 4, 64);
-	if (mnt_ret == 0) {
-		return false;
-	}
-	read_raw_sectors = nand_ReadSectors;
-	return true;
-}
-
 TWL_CODE bool sdMount(void) {
 	fatMountSimple("sd", get_io_dsisd());
 	if (sdFound()) {
@@ -165,12 +94,6 @@ TWL_CODE void sdUnmount(void) {
 	sdLabel[0] = '\0';
 	sdSize = 0;
 	sdMounted = false;
-}
-
-TWL_CODE void nandUnmount(void) {
-	fatUnmount("nand");
-	nand_size = 0;
-	nandMounted = false;
 }
 
 TWL_CODE DLDI_INTERFACE* dldiLoadFromBin (const u8 dldiAddr[]) {

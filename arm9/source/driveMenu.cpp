@@ -161,9 +161,7 @@ void dm_drawTopScreen(void) {
 		} else {
 			printf ("\x1B[40m");		// Print foreground black color
 		}
-		if (dmAssignedOp[i] == 10) {
-			printf ("[nand:] TWLNAND");
-		} else if (dmAssignedOp[i] == 0) {
+		if (dmAssignedOp[i] == 0) {
 			printf ("[sd:] SDCARD");
 			if (sdLabel[0] != '\0') {
 				iprintf (" (%s)", sdLabel);
@@ -221,10 +219,7 @@ void dm_drawBottomScreen(void) {
 
 	printf ("\x1B[40m");		// Print foreground black color
 	printf ("\x1b[0;0H");
-	if (dmAssignedOp[dmCursorPosition] == 10) {
-		printf ("[nand:] TWLNAND");
-		printf ("\n(SysNAND FAT)");
-	} else if (dmAssignedOp[dmCursorPosition] == 0) {
+	if (dmAssignedOp[dmCursorPosition] == 0) {
 		printf ("[sd:] SDCARD");
 		if (sdLabel[0] != '\0') {
 			iprintf (" (%s)", sdLabel);
@@ -264,10 +259,6 @@ void driveMenu (void) {
 			dmAssignedOp[i] = -1;
 		}
 		dmMaxCursors = -1;
-		if (isDSiMode() && nandMounted){
-			dmMaxCursors++;
-			dmAssignedOp[dmMaxCursors] = 10;
-		}
 		if (isDSiMode() && sdMounted){
 			dmMaxCursors++;
 			dmAssignedOp[dmMaxCursors] = 0;
@@ -341,13 +332,7 @@ void driveMenu (void) {
 		if (dmCursorPosition > dmMaxCursors)	dmCursorPosition = 0;		// Wrap around to top of list
 
 		if (pressed & KEY_A) {
-			if (dmAssignedOp[dmCursorPosition] == 10 && isDSiMode() && nandMounted) {
-				dmTextPrinted = false;
-				secondaryDrive = false;
-				chdir("nand:/");
-				screenMode = 1;
-				break;
-			} else if (dmAssignedOp[dmCursorPosition] == 0 && isDSiMode() && sdMounted) {
+			if (dmAssignedOp[dmCursorPosition] == 0 && isDSiMode() && sdMounted) {
 				dmTextPrinted = false;
 				secondaryDrive = false;
 				chdir("sd:/");
