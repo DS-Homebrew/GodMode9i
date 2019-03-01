@@ -28,7 +28,6 @@
 
 ---------------------------------------------------------------------------------*/
 #include <nds.h>
-#include <maxmod7.h>
 
 unsigned int * SCFG_EXT=(unsigned int*)0x4004008;
 
