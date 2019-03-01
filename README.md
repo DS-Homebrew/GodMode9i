@@ -1,5 +1,5 @@
 # ![GodMode9i](https://github.com/RocketRobz/GodMode9i/blob/master/resources/logo2_small.png)
-_A full access file browser for the DS and DSi consoles_ :godmode:
+_A full access file browser for the DS and DSi consoles_ :godmode: ![travis](https://travis-ci.org/RocketRobz/GodMode9i.svg?branch=master)
 
 GodMode9i is a full access file browser for the Nintendo DS and DSi consoles, similar to d0k3's GodMode9 for Nintendo 3DS, giving you access to your SD card, and the flashcard's microSD card (check below for supported flashcards in DSi mode). You can copy, delete, rename files and create folders.
 
