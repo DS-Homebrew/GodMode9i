@@ -100,7 +100,9 @@ void gbaCartDump(void) {
 			}
 			u8 gbaHeaderSoftwareVersion = *(u8*)(0x080000BC);
 			char destPath[256];
+			char destSavPath[256];
 			snprintf(destPath, sizeof(destPath), "fat:/gm9i/out/%s_%s%s_%x.gba", gbaHeaderGameTitle, gbaHeaderGameCode, gbaHeaderMakerCode, gbaHeaderSoftwareVersion);
+			snprintf(destSavPath, sizeof(destSavPath), "fat:/gm9i/out/%s_%s%s_%x.sav", gbaHeaderGameTitle, gbaHeaderGameCode, gbaHeaderMakerCode, gbaHeaderSoftwareVersion);
 			consoleClear();
 			printf("Dumping...\n");
 			printf("Do not remove the GBA cart.\n");
@@ -117,6 +119,11 @@ void gbaCartDump(void) {
 			remove(destPath);
 			FILE* destinationFile = fopen(destPath, "wb");
 			fwrite((void*)0x08000000, 1, romSize, destinationFile);
+			fclose(destinationFile);
+			// Save file
+			remove(destSavPath);
+			destinationFile = fopen(destSavPath, "wb");
+			fwrite((void*)0x0A000000, 1, 0x10000, destinationFile);
 			fclose(destinationFile);
 			break;
 		}
