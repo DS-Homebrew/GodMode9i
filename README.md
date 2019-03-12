@@ -1,5 +1,5 @@
 # ![GodMode9i](https://github.com/RocketRobz/GodMode9i/blob/master/resources/logo2_small.png)
-_A full access file browser for the DS and DSi consoles_ :godmode:
+_A full access file browser for the DS and DSi consoles_ :godmode: ![img](https://travis-ci.org/RocketRobz/GodMode9i.svg?branch=master)
 
 ## Features
 
