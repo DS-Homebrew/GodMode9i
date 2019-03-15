@@ -16,7 +16,6 @@ cache:
 
 before_install:
   - curl -L https://github.com/devkitPro/pacman/releases/download/devkitpro-pacman-1.0.1/devkitpro-pacman.deb -o pacman.deb
-  - sudo apt-get install -y p7zip-full
 
 install:
   - sudo dpkg -i pacman.deb
@@ -29,9 +28,6 @@ script:
   - export COMMIT_TAG="$(git log --format=%h -1)"
   - export COMMIT_MESSAGE="$(git log --pretty=format:"%an - %s" -1)"
   - make
-  - mkdir GodMode9i/
-  - cp GodMode9i.nds GodMode9i/
-  - 7z a GodMode9i.7z GodMode9i/
   
 addons:
   apt:
@@ -44,35 +40,11 @@ addons:
     - lftp
 
 after_success:
-  - curl -o send.sh https://raw.githubusercontent.com/DS-Homebrew/travis-ci-discord-webhook/master/send.sh
+  - curl -o send.sh https://raw.githubusercontent.com/DS-Homebrew/Discord-Webhooks/master/send-travis.sh
   - chmod +x send.sh
   - ./send.sh success $WEBHOOK_URL
 
 after_failure:
-  - curl -o send.sh https://raw.githubusercontent.com/DS-Homebrew/travis-ci-discord-webhook/master/send.sh
+  - curl -o send.sh https://raw.githubusercontent.com/DS-Homebrew/Discord-Webhooks/master/send-travis.sh
   - chmod +x send.sh
   - ./send.sh failure $WEBHOOK_URL
-
-before_deploy:
-  - git config --local user.name "TWLBot"
-  - git clone https://$GITHUB_TOKEN@github.com/TWLBot/Builds.git
-  - cd Builds/extras
-  - cp ../../GodMode9i.7z GodMode9i.7z
-  - git stage .
-  - git commit -m "GodMode9i | $COMMIT_TAG"
-  - git push origin master
-  - export CURRENT_DATE=$(date +'%Y%m%d-%H%M%S')
-  - git tag v$CURRENT_DATE
-
-deploy:
-  provider: releases
-  overwrite: true
-  api_key: $GITHUB_TOKEN
-  file: GodMode9i.7z
-  skip_cleanup: true
-  repo: TWLBot/Builds
-  prerelease: true
-  name: GodMode9i | $COMMIT_TAG
-  body: $COMMIT_MESSAGE
-  on:
-    all_branches: true
