@@ -17,7 +17,6 @@ variables:
   CURRENT_DATE: $[format('{0:yyyyMMdd\-HHmmss}', pipeline.startTime)]
   REPOSITORY_NAME: $(Build.Repository.Name)
   COMMIT_TAG: $(git log --format=%h -1)
-  BUILD_SOURCEVERSION: $(git log --format=%h -1)
 
 steps:
 - script: |
