@@ -49,8 +49,6 @@ steps:
   displayName: 'Pack 7z'
 
 - script: |
-    condition: not(startsWith(variables['Build.SourceBranch'], 'refs/pull'))
-
     export COMMIT_TAG="$(git log --format=%h -1)"
     git config --global user.email "flamekat54@aol.com"
     git config --global user.name "TWLBot"
