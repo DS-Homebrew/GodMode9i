@@ -48,7 +48,7 @@ steps:
      cp GodMode9i.7z $(Build.ArtifactStagingDirectory)/GodMode9i.7z
   displayName: 'Pack 7z'
 
-- script: |    
+- script: |
     export COMMIT_TAG="$(git log --format=%h -1)"
     git config --global user.email "flamekat54@aol.com"
     git config --global user.name "TWLBot"
