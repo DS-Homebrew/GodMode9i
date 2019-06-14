@@ -208,7 +208,7 @@ TWL_CODE bool twl_flashcardMount(void) {
         } else if (!memcmp(gamename, "QMATETRIAL", 9) || !memcmp(gamename, "R4DSULTRA", 9)) {
 			io_dldi_data = dldiLoadFromBin(r4idsn_sd_dldi);
 			fatMountSimple("fat", &io_dldi_data->ioInterface);
-		} else if (!memcmp(gameid, "ACEK", 4) || !memcmp(gameid, "YCEP", 4) || !memcmp(gameid, "AHZH", 4)) {
+		} else if (!memcmp(gameid, "ACEK", 4) || !memcmp(gameid, "YCEP", 4) || !memcmp(gameid, "AHZH", 4) || !memcmp(gameid, "CHPJ", 4)) {
 			io_dldi_data = dldiLoadFromBin(ak2_sd_dldi);
 			fatMountSimple("fat", &io_dldi_data->ioInterface);
 		} /*else if (!memcmp(gameid, "ALXX", 4)) {
