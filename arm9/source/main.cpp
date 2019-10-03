@@ -62,6 +62,14 @@ void stop (void) {
 
 char filePath[PATH_MAX];
 
+bool extention(const std::string& filename, const char* ext) {
+	if(strcasecmp(filename.c_str() + filename.size() - strlen(ext), ext)) {
+		return false;
+	} else {
+		return true;
+	}
+}
+
 //---------------------------------------------------------------------------------
 int main(int argc, char **argv) {
 //---------------------------------------------------------------------------------
@@ -193,8 +201,8 @@ int main(int argc, char **argv) {
 			} else {
 				argarray.push_back(strdup(filename.c_str()));
 			}
-			if ((strcasecmp (filename.c_str() + filename.size() - 4, ".dsi") == 0)
-			|| (strcasecmp (filename.c_str() + filename.size() - 4, ".DSI") == 0)) {
+
+			if (extention(filename, ".dsi") || extention(filename, ".nds")) {
 				char *name = argarray.at(0);
 				strcpy (filePath + pathLen, name);
 				free(argarray.at(0));
@@ -204,20 +212,8 @@ int main(int argc, char **argv) {
 				int err = runNdsFile (argarray[0], argarray.size(), (const char **)&argarray[0]);
 				iprintf ("\x1b[31mStart failed. Error %i\n", err);
 			}
-			if ((strcasecmp (filename.c_str() + filename.size() - 4, ".nds") == 0)
-			|| (strcasecmp (filename.c_str() + filename.size() - 4, ".NDS") == 0)) {
-				char *name = argarray.at(0);
-				strcpy (filePath + pathLen, name);
-				free(argarray.at(0));
-				argarray.at(0) = filePath;
-				consoleClear();
-				iprintf ("Running %s with %d parameters\n", argarray[0], argarray.size());
-				int err = runNdsFile (argarray[0], argarray.size(), (const char **)&argarray[0]);
-				iprintf ("Start failed. Error %i\n", err);
-			}
 
-			if ((strcasecmp (filename.c_str() + filename.size() - 5, ".firm") == 0)
-			|| (strcasecmp (filename.c_str() + filename.size() - 5, ".FIRM") == 0)) {
+			if (extention(filename, ".firm")) {
 				char *name = argarray.at(0);
 				strcpy (filePath + pathLen, name);
 				free(argarray.at(0));
