@@ -52,8 +52,6 @@ static int dmMaxCursors = -1;
 
 static u8 gbaFixedValue = 0;
 
-static tNDSHeader* ndsCardHeader = (tNDSHeader*)0x02000000;
-
 void ndsCardDump(void) {
 	int pressed = 0;
 
@@ -98,8 +96,8 @@ void ndsCardDump(void) {
 			}
 			consoleClear();
 			// Read header
-			u32 cardID = 0;
-			if (cardInit (ndsCardHeader, &cardID) == 0) {
+			tNDSHeader* ndsCardHeader = (tNDSHeader*)malloc(0x1000);
+			if (cardInit (ndsCardHeader) == 0) {
 				printf("Dumping...\n");
 				printf("Do not remove the NDS card.\n");
 			} else {
@@ -107,6 +105,8 @@ void ndsCardDump(void) {
 				for (int i = 0; i < 60*2; i++) {
 					swiWaitForVBlank();
 				}
+				free(ndsCardHeader);
+				return;
 			}
 			char gameTitle[13] = {0};
 			tonccpy(gameTitle, ndsCardHeader->gameTitle, 12);
@@ -171,6 +171,7 @@ void ndsCardDump(void) {
 				fwrite(romBuffer, 1, 0x200, destinationFile);
 			}
 			fclose(destinationFile);
+			free(ndsCardHeader);
 			break;
 		}
 		if (pressed & KEY_B) {

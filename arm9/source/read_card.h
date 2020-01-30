@@ -33,7 +33,7 @@
 extern "C" {
 #endif
 
-int cardInit (tNDSHeader* ndsHeader, u32* chipID);
+int cardInit (tNDSHeader* ndsHeader);
 
 void cardRead (u32 src, u32* dest, size_t size);
 

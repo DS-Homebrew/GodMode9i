@@ -49,7 +49,7 @@ typedef union
 } GameCode;
 
 static u32 portFlags = 0;
-static u32 headerData[CARD_NDS_HEADER_SIZE/sizeof(u32)] = {0};
+static u32 headerData[0x1000/sizeof(u32)] = {0};
 static u32 secureAreaData[CARD_SECURE_AREA_SIZE/sizeof(u32)] = {0};
 
 static const u8 cardSeedBytes[] = {0xE8, 0x4D, 0x5A, 0xB1, 0x17, 0x8F, 0x99, 0xD5};
@@ -148,7 +148,7 @@ static void cardDelay (u16 readTimeout) {
 }
 
 
-int cardInit (tNDSHeader* ndsHeader, u32* chipID)
+int cardInit (tNDSHeader* ndsHeader)
 {
 	u32 portFlagsKey1, portFlagsSecRead;
 	bool normalChip;	// As defined by GBAtek, normal chip secure area is accessed in blocks of 0x200, other chip in blocks of 0x1000
@@ -163,17 +163,32 @@ int cardInit (tNDSHeader* ndsHeader, u32* chipID)
 		CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(1) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
 		NULL, 0);
 
+	u32 iCardId=cardReadID(CARD_CLK_SLOW);	
+	u32 iCheapCard=iCardId&0x80000000;
+
 	// Read the header
-	cardParamCommand (CARD_CMD_HEADER_READ, 0,
-		CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(1) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
-		(uint32*)ndsHeader, sizeof(tNDSHeader));
+    if(iCheapCard)
+    {
+      //this is magic of wood goblins
+      for(size_t ii=0;ii<8;++ii) {
+		cardParamCommand (CARD_CMD_HEADER_READ, ii*0x200,
+			CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(1) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
+			(u32*)(void*)(ndsHeader+ii*0x200), 0x200);
+	  }
+	}
+	else
+	{
+		cardParamCommand (CARD_CMD_HEADER_READ, 0,
+			CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(4) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
+			(u32*)(void*)ndsHeader, 0x1000);
+	}
 
 	// Check header CRC
 	if (ndsHeader->headerCRC16 != swiCRC16(0xFFFF, (void*)ndsHeader, 0x15E)) {
 		return ERR_HEAD_CRC;
 	}
 
-	tonccpy(headerData, ndsHeader, CARD_NDS_HEADER_SIZE);
+	tonccpy(headerData, ndsHeader, 0x1000);
 
 	/*
 	// Check logo CRC
@@ -192,13 +207,8 @@ int cardInit (tNDSHeader* ndsHeader, u32* chipID)
 	portFlagsKey1 = CARD_ACTIVATE | CARD_nRESET | (ndsHeader->cardControl13 & (CARD_WR|CARD_CLK_SLOW)) |
 		((ndsHeader->cardControlBF & (CARD_CLK_SLOW|CARD_DELAY1(0x1FFF))) + ((ndsHeader->cardControlBF & CARD_DELAY2(0x3F)) >> 16));
 
-	// 1st Get ROM Chip ID
-	cardParamCommand (CARD_CMD_HEADER_CHIPID, 0,
-		(ndsHeader->cardControl13 & (CARD_WR|CARD_nRESET|CARD_CLK_SLOW)) | CARD_ACTIVATE | CARD_BLK_SIZE(7),
-		chipID, sizeof(u32));
-
 	// Adjust card transfer method depending on the most significant bit of the chip ID
-	normalChip = ((*chipID) & 0x80000000) != 0;		// ROM chip ID MSB
+	normalChip = (iCardId & 0x80000000) != 0;		// ROM chip ID MSB
 	if (!normalChip) {
 		portFlagsKey1 |= CARD_SEC_LARGE;
 	}
@@ -295,7 +305,7 @@ void cardRead (u32 src, u32* dest, size_t size)
 {
 	size_t readSize;
 
-	if (src >= 0 && src < 0x200) {
+	if (src >= 0 && src < 0x1000) {
 		// Read header
 		readSize = size < CARD_DATA_BLOCK_SIZE ? size : CARD_DATA_BLOCK_SIZE;
 		tonccpy (dest, (u8*)headerData + src, readSize);
