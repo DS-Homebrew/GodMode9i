@@ -113,7 +113,7 @@ void ndsCardDump(void) {
 			char gameCode[7] = {0};
 			tonccpy(gameCode, ndsCardHeader->gameCode, 6);
 			bool trimRom = (pressed & KEY_Y);
-			u32 romBuffer[0x200/sizeof(u32)];
+			char romBuffer[0x200];
 			char destPath[256];
 			sprintf(destPath, "%s:/gm9i/out/%s_%s_%x%s.nds", (sdMounted ? "sd" : "fat"), gameTitle, gameCode, ndsCardHeader->romversion, (trimRom ? "_trim" : ""));
 			//char destSavPath[256];
@@ -167,7 +167,10 @@ void ndsCardDump(void) {
 			remove(destPath);
 			FILE* destinationFile = fopen(destPath, "wb");
 			for (u32 src = 0; src < romSize; src += 0x200) {
-				cardRead (src, romBuffer, 0x200);
+				printf ("\x1b[8;0H");
+				printf ("Progress:\n");
+				printf ("%i/%i Bytes                       ", (int)src, (int)romSize);
+				cardRead (src, romBuffer);
 				fwrite(romBuffer, 1, 0x200, destinationFile);
 			}
 			fclose(destinationFile);

@@ -59,14 +59,14 @@ static u32 getRandomNumber(void) {
 				// guaranteed to be random.
 }
 
-static void decryptSecureArea (u32 gameCode, u32* secureArea)
+static void decryptSecureArea (u32 gameCode, u32* secureArea, int iCardDevice)
 {
 	int i;
 
-	init_keycode (gameCode, 2, 8);
+	init_keycode (gameCode, 2, 8, iCardDevice);
 	crypt_64bit_down (secureArea);
 
-	init_keycode (gameCode, 3, 8);
+	init_keycode (gameCode, 3, 8, iCardDevice);
 
 	for (i = 0; i < 0x200; i+= 2) {
 		crypt_64bit_down (secureArea + i);
@@ -83,7 +83,7 @@ static struct {
 } key1data;
 
 
-static void initKey1Encryption (u8* cmdData) {
+static void initKey1Encryption (u8* cmdData, int iCardDevice) {
 	key1data.iii = getRandomNumber() & 0x00000fff;
 	key1data.jjj = getRandomNumber() & 0x00000fff;
 	key1data.kkkkk = getRandomNumber() & 0x000fffff;
@@ -91,7 +91,11 @@ static void initKey1Encryption (u8* cmdData) {
 	key1data.mmm = getRandomNumber() & 0x00000fff;
 	key1data.nnn = getRandomNumber() & 0x00000fff;
 
-	cmdData[7] = CARD_CMD_ACTIVATE_BF;
+    if(iCardDevice) //DSi
+      cmdData[7]=0x3D;	// CARD_CMD_ACTIVATE_BF2
+    else
+      cmdData[7]=CARD_CMD_ACTIVATE_BF;
+
 	cmdData[6] = (u8) (key1data.iii >> 4);
 	cmdData[5] = (u8) ((key1data.iii << 4) | (key1data.jjj >> 8));
 	cmdData[4] = (u8) key1data.jjj;
@@ -158,10 +162,14 @@ int cardInit (tNDSHeader* ndsHeader)
 	u8 cmdData[8] __attribute__ ((aligned));
 	GameCode* gameCode;
 
-	// Dummy command sent after card reset
-	cardParamCommand (CARD_CMD_DUMMY, 0,
-		CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(1) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
-		NULL, 0);
+	if (isDSiMode()) { 
+		cardReset();
+	} else {
+		// Dummy command sent after card reset
+		cardParamCommand (CARD_CMD_DUMMY, 0,
+			CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(1) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
+			NULL, 0);
+	}
 
 	u32 iCardId=cardReadID(CARD_CLK_SLOW);	
 	u32 iCheapCard=iCardId&0x80000000;
@@ -190,6 +198,10 @@ int cardInit (tNDSHeader* ndsHeader)
 
 	tonccpy(headerData, ndsHeader, 0x1000);
 
+	u32 nds9Offset = *(u32*)(headerData+0x20);
+
+	int iCardDevice = ((*(u8*)(headerData+0x12) != 0) ? 1 : 0);
+
 	/*
 	// Check logo CRC
 	if (ndsHeader->logoCRC16 != 0xCF56) {
@@ -199,7 +211,7 @@ int cardInit (tNDSHeader* ndsHeader)
 
 	// Initialise blowfish encryption for KEY1 commands and decrypting the secure area
 	gameCode = (GameCode*)ndsHeader->gameCode;
-	init_keycode (gameCode->key, 2, 8);
+	init_keycode (gameCode->key, iCardDevice?1:2, 8, iCardDevice);
 
 	// Port 40001A4h setting for normal reads (command B7)
 	portFlags = ndsHeader->cardControl13 & ~CARD_BLK_SIZE(7);
@@ -214,7 +226,7 @@ int cardInit (tNDSHeader* ndsHeader)
 	}
 
 	// 3Ciiijjj xkkkkkxx - Activate KEY1 Encryption Mode
-	initKey1Encryption (cmdData);
+	initKey1Encryption (cmdData, iCardDevice);
 	cardPolledTransfer((ndsHeader->cardControl13 & (CARD_WR|CARD_nRESET|CARD_CLK_SLOW)) | CARD_ACTIVATE, NULL, 0, cmdData);
 
 	// 4llllmmm nnnkkkkk - Activate KEY2 Encryption Mode
@@ -223,10 +235,8 @@ int cardInit (tNDSHeader* ndsHeader)
 	if (normalChip) {
 		cardPolledTransfer(portFlagsKey1, NULL, 0, cmdData);
 		cardDelay(ndsHeader->readTimeout);
-		cardPolledTransfer(portFlagsKey1, NULL, 0, cmdData);
-	} else {
-		cardPolledTransfer(portFlagsKey1, NULL, 0, cmdData);
 	}
+	cardPolledTransfer(portFlagsKey1, NULL, 0, cmdData);
 
 	// Set the KEY2 encryption registers
 	REG_ROMCTRL = 0;
@@ -245,10 +255,8 @@ int cardInit (tNDSHeader* ndsHeader)
 	if (normalChip) {
 		cardPolledTransfer(portFlagsKey1, NULL, 0, cmdData);
 		cardDelay(ndsHeader->readTimeout);
-		cardPolledTransfer(portFlagsKey1 | CARD_BLK_SIZE(7), NULL, 0, cmdData);
-	} else {
-		cardPolledTransfer(portFlagsKey1 | CARD_BLK_SIZE(7), NULL, 0, cmdData);
 	}
+	cardPolledTransfer(portFlagsKey1 | CARD_BLK_SIZE(7), NULL, 0, cmdData);
 
 	// 2bbbbiii jjjkkkkk - Get Secure Area Block
 	secureArea = secureAreaData;
@@ -277,13 +285,14 @@ int cardInit (tNDSHeader* ndsHeader)
 	if (normalChip) {
 		cardPolledTransfer(portFlagsKey1, NULL, 0, cmdData);
 		cardDelay(ndsHeader->readTimeout);
-		cardPolledTransfer(portFlagsKey1, NULL, 0, cmdData);
-    } else {
-		cardPolledTransfer(portFlagsKey1, NULL, 0, cmdData);
-	}
+    }
+	cardPolledTransfer(portFlagsKey1, NULL, 0, cmdData);
 
-	// Now deal with secure area decryption and verification
-	decryptSecureArea (gameCode->key, secureAreaData);
+    //CycloDS doesn't like the dsi secure area being decrypted
+    if(!iCardDevice && ((nds9Offset != 0x4000) || secureAreaData[0] || secureAreaData[1]))
+    {
+		decryptSecureArea (gameCode->key, secureAreaData, iCardDevice);
+	}
 
 	secureArea = secureAreaData;
 	if (secureArea[0] == 0x72636e65 /*'encr'*/ && secureArea[1] == 0x6a624f79 /*'yObj'*/) {
@@ -291,45 +300,55 @@ int cardInit (tNDSHeader* ndsHeader)
 		secureArea[0] = 0xe7ffdeff;
 		secureArea[1] = 0xe7ffdeff;
 	} else {
-		// Secure area tag is not there, so destroy the entire secure area
-		for (i = 0; i < 0x200; i ++) {
-			*secureArea++ = 0xe7ffdeff;
-		}
 		//return normalChip ? ERR_SEC_NORM : ERR_SEC_OTHR;
 	}
 
 	return ERR_NONE;
 }
 
-void cardRead (u32 src, u32* dest, size_t size)
+void cardRead (u32 src, void* dest)
 {
-	size_t readSize;
-
 	if (src >= 0 && src < 0x1000) {
 		// Read header
-		readSize = size < CARD_DATA_BLOCK_SIZE ? size : CARD_DATA_BLOCK_SIZE;
-		tonccpy (dest, (u8*)headerData + src, readSize);
+		tonccpy (dest, (u8*)headerData + src, 0x200);
 		return;
 	} else if (src < CARD_SECURE_AREA_OFFSET) {
-		toncset (dest, 0, size);
+		toncset (dest, 0, 0x200);
 		return;
 	} else if (src < CARD_DATA_OFFSET) {
 		// Read data from secure area
-		readSize = src + size < CARD_DATA_OFFSET ? size : CARD_DATA_OFFSET - src;
-		tonccpy (dest, (u8*)secureAreaData + src - CARD_SECURE_AREA_OFFSET, readSize);
-		src += readSize;
-		dest += readSize/sizeof(*dest);
-		size -= readSize;
+		tonccpy (dest, (u8*)secureAreaData + src - CARD_SECURE_AREA_OFFSET, 0x200);
+		return;
 	}
 
-	while (size > 0) {
-		readSize = size < CARD_DATA_BLOCK_SIZE ? size : CARD_DATA_BLOCK_SIZE;
-		cardParamCommand (CARD_CMD_DATA_READ, src,
-			(portFlags &~CARD_BLK_SIZE(7)) | CARD_ACTIVATE | CARD_nRESET | CARD_BLK_SIZE(1),
-			dest, readSize);
-		src += readSize;
-		dest += readSize/sizeof(*dest);
-		size -= readSize;
-	}
+	cardParamCommand (CARD_CMD_DATA_READ, src,
+		portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_BLK_SIZE(1),
+		dest, 0x200);
+
+	/*int iCardDevice = ((*(u8*)(headerData+0x12) != 0) ? 1 : 0);
+	u32 arm9i_rom_offset = *(u32*)(headerData + 0x1C0);
+
+	if (iCardDevice && (src > arm9i_rom_offset) &&
+        (src < arm9i_rom_offset + MODC_AREA_SIZE))
+	{
+		u8* buffer8 = (u8*) dest;
+		u8* buff = buffer8;
+
+		// modcrypt area handling
+        u8* buffer_arm9i = buffer8;
+        u32 offset_i = 0;
+        u32 size_i = MODC_AREA_SIZE;
+        if (arm9i_rom_offset < (src))
+            offset_i = (src) - arm9i_rom_offset;
+        else buffer_arm9i = buffer8 + (arm9i_rom_offset - (src));
+        size_i = MODC_AREA_SIZE - offset_i;
+        if (size_i > (0x4000) - (buffer_arm9i - buffer8))
+            size_i = (0x4000) - (buffer_arm9i - buffer8);
+        if (size_i) {
+			cardParamCommand (CARD_CMD_DATA_READ, (0x4000 + offset_i),
+				portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_BLK_SIZE(1),
+				buffer_arm9i, size_i);
+		}
+	}*/
 }
 

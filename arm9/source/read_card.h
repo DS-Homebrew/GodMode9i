@@ -28,6 +28,7 @@
 #define CARD_SECURE_AREA_SIZE (0x4000)
 #define CARD_DATA_OFFSET (0x8000)
 #define CARD_DATA_BLOCK_SIZE (0x200)
+#define MODC_AREA_SIZE          0x4000
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,7 +36,7 @@ extern "C" {
 
 int cardInit (tNDSHeader* ndsHeader);
 
-void cardRead (u32 src, u32* dest, size_t size);
+void cardRead (u32 src, void* dest);
 
 #ifdef __cplusplus
 }
