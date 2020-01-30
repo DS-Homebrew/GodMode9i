@@ -31,6 +31,8 @@
 #include "screenshot.h"
 #include "driveOperations.h"
 #include "fileOperations.h"
+#include "read_card.h"
+#include "tonccpy.h"
 
 #define SCREEN_COLS 32
 #define ENTRIES_PER_SCREEN 22
@@ -45,10 +47,137 @@ bool flashcardMountSkipped = true;
 static bool flashcardMountRan = true;
 static bool dmTextPrinted = false;
 static int dmCursorPosition = 0;
-static int dmAssignedOp[3] = {-1};
+static int dmAssignedOp[4] = {-1};
 static int dmMaxCursors = -1;
 
 static u8 gbaFixedValue = 0;
+
+static tNDSHeader* ndsCardHeader = (tNDSHeader*)0x02000000;
+
+void ndsCardDump(void) {
+	int pressed = 0;
+
+	printf ("\x1b[0;27H");
+	printf ("\x1B[42m");		// Print green color
+	printf ("_____");	// Clear time
+	consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+	printf ("\x1B[47m");		// Print foreground white color
+	printf("Dump NDS card ROM to\n");
+	printf("\"%s:/gm9i/out\"?\n", (sdMounted ? "sd" : "fat"));
+	printf("(<A> yes, <Y> trim, <B> no)");
+	while (true) {
+		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
+		do {
+			scanKeys();
+			pressed = keysDownRepeat();
+			swiWaitForVBlank();
+		} while (!(pressed & KEY_A) && !(pressed & KEY_Y) && !(pressed & KEY_B));
+
+		if ((pressed & KEY_A) || (pressed & KEY_Y)) {
+			consoleClear();
+			sysSetCardOwner (BUS_OWNER_ARM9);	// Allow arm9 to access NDS cart
+			if (!flashcardMounted && isDSiMode()) {
+				// Reset card slot
+				disableSlot1();
+				for(int i = 0; i < 25; i++) { swiWaitForVBlank(); }
+				enableSlot1();
+				for(int i = 0; i < 15; i++) { swiWaitForVBlank(); }
+			}
+
+			char folderPath[2][256];
+			sprintf(folderPath[0], "%s:/gm9i", (sdMounted ? "sd" : "fat"));
+			sprintf(folderPath[1], "%s:/gm9i/out", (sdMounted ? "sd" : "fat"));
+			if (access(folderPath[0], F_OK) != 0) {
+				printf("Creating directory...");
+				mkdir(folderPath[0], 0777);
+			}
+			if (access(folderPath[1], F_OK) != 0) {
+				printf ("\x1b[0;0H");
+				printf("Creating directory...");
+				mkdir(folderPath[1], 0777);
+			}
+			consoleClear();
+			// Read header
+			u32 cardID = 0;
+			if (cardInit (ndsCardHeader, &cardID) == 0) {
+				printf("Dumping...\n");
+				printf("Do not remove the NDS card.\n");
+			} else {
+				printf("Unable to dump the ROM.\n");
+				for (int i = 0; i < 60*2; i++) {
+					swiWaitForVBlank();
+				}
+			}
+			char gameTitle[13] = {0};
+			tonccpy(gameTitle, ndsCardHeader->gameTitle, 12);
+			char gameCode[7] = {0};
+			tonccpy(gameCode, ndsCardHeader->gameCode, 6);
+			bool trimRom = (pressed & KEY_Y);
+			u32 romBuffer[0x200/sizeof(u32)];
+			char destPath[256];
+			sprintf(destPath, "%s:/gm9i/out/%s_%s_%x%s.nds", (sdMounted ? "sd" : "fat"), gameTitle, gameCode, ndsCardHeader->romversion, (trimRom ? "_trim" : ""));
+			//char destSavPath[256];
+			//sprintf(destSavPath, "fat:/gm9i/out/%s_%s%s_%x.sav", gbaHeaderGameTitle, gbaHeaderGameCode, gbaHeaderMakerCode, gbaHeaderSoftwareVersion);
+			// Determine ROM size
+			u32 romSize = 0;
+			if (trimRom) {
+				romSize = ndsCardHeader->romSize;
+			} else switch (ndsCardHeader->deviceSize) {
+				case 0x00:
+					romSize = 0x20000;
+					break;
+				case 0x01:
+					romSize = 0x40000;
+					break;
+				case 0x02:
+					romSize = 0x80000;
+					break;
+				case 0x03:
+					romSize = 0x100000;
+					break;
+				case 0x04:
+					romSize = 0x200000;
+					break;
+				case 0x05:
+					romSize = 0x400000;
+					break;
+				case 0x06:
+					romSize = 0x800000;
+					break;
+				case 0x07:
+					romSize = 0x1000000;
+					break;
+				case 0x08:
+					romSize = 0x2000000;
+					break;
+				case 0x09:
+					romSize = 0x4000000;
+					break;
+				case 0x0A:
+					romSize = 0x8000000;
+					break;
+				case 0x0B:
+					romSize = 0x10000000;
+					break;
+				case 0x0C:
+					romSize = 0x20000000;
+					break;
+			}
+			// Dump!
+			remove(destPath);
+			FILE* destinationFile = fopen(destPath, "wb");
+			for (u32 src = 0; src < romSize; src += 0x200) {
+				cardRead (src, romBuffer, 0x200);
+				fwrite(romBuffer, 1, 0x200, destinationFile);
+			}
+			fclose(destinationFile);
+			break;
+		}
+		if (pressed & KEY_B) {
+			break;
+		}
+	}
+}
 
 void gbaCartDump(void) {
 	int pressed = 0;
@@ -185,6 +314,8 @@ void dm_drawTopScreen(void) {
 				iprintf ("\x1b[%d;29H", i + ENTRIES_START_ROW);
 				printf ("[x]");
 			}
+		} else if (dmAssignedOp[i] == 4) {
+			printf ("NDS GAMECARD");
 		}
 	}
 }
@@ -243,6 +374,9 @@ void dm_drawBottomScreen(void) {
 	} else if (dmAssignedOp[dmCursorPosition] == 3) {
 		printf ("[nitro:] NDS GAME IMAGE\n");
 		printf ("(Game Virtual)");
+	} else if (dmAssignedOp[dmCursorPosition] == 4) {
+		printf ("NDS GAMECARD\n");
+		printf ("(NDS Game)");
 	}
 }
 
@@ -255,7 +389,7 @@ void driveMenu (void) {
 			gbaFixedValue = *(u8*)(0x080000B2);
 		}
 
-		for (int i = 0; i < 3; i++) {
+		for (int i = 0; i < 4; i++) {
 			dmAssignedOp[i] = -1;
 		}
 		dmMaxCursors = -1;
@@ -266,6 +400,9 @@ void driveMenu (void) {
 		if (flashcardMounted) {
 			dmMaxCursors++;
 			dmAssignedOp[dmMaxCursors] = 1;
+		} else {
+			dmMaxCursors++;
+			dmAssignedOp[dmMaxCursors] = 4;
 		}
 		if (!isDSiMode() && isRegularDS) {
 			dmMaxCursors++;
@@ -357,6 +494,9 @@ void driveMenu (void) {
 					screenMode = 1;
 					break;
 				}
+			} else if (dmAssignedOp[dmCursorPosition] == 4) {
+				dmTextPrinted = false;
+				ndsCardDump();
 			}
 		}
 
