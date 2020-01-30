@@ -64,14 +64,12 @@ static u32 getRandomNumber(void) {
 
 static void decryptSecureArea (u32 gameCode, u32* secureArea, int iCardDevice)
 {
-	int i;
-
 	init_keycode (gameCode, 2, 8, iCardDevice);
 	crypt_64bit_down (secureArea);
 
 	init_keycode (gameCode, 3, 8, iCardDevice);
 
-	for (i = 0; i < 0x200; i+= 2) {
+	for (int i = 0; i < 0x200; i+= 2) {
 		crypt_64bit_down (secureArea + i);
 	}
 }
@@ -260,7 +258,8 @@ static void switchToTwlBlowfish(sNDSHeaderExt* ndsHeader) {
     }
 	cardPolledTransfer(portFlagsKey1, NULL, 0, cmdData);
 
-	decryptSecureArea (gameCode->key, secureArea, 1);
+	// The 0x800 bytes are modcrypted, so not ran there
+	//decryptSecureArea (gameCode->key, secureArea, 1);
 
 	twlBlowfish = true;
 }
@@ -281,9 +280,9 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 		sysSetCardOwner (BUS_OWNER_ARM9);	// Allow arm9 to access NDS cart
 		// Reset card slot
 		disableSlot1();
-		for(int i = 0; i < 25; i++) { swiWaitForVBlank(); }
+		for(i = 0; i < 25; i++) { swiWaitForVBlank(); }
 		enableSlot1();
-		for(int i = 0; i < 15; i++) { swiWaitForVBlank(); }
+		for(i = 0; i < 15; i++) { swiWaitForVBlank(); }
 
 		// Dummy command sent after card reset
 		cardParamCommand (CARD_CMD_DUMMY, 0,
@@ -450,30 +449,6 @@ void cardRead (u32 src, void* dest)
 
 	if (src > ndsHeader->romSize) {
 		switchToTwlBlowfish(ndsHeader);
-
-		/*
-		if ((ndsHeader->unitCode != 0)
-		&& (src > ndsHeader->arm9iromOffset) && (src < ndsHeader->arm9iromOffset + MODC_AREA_SIZE))
-		{
-			u8* buffer8 = (u8*) dest;
-			//u8* buff = buffer8;
-
-			// modcrypt area handling
-			u8* buffer_arm9i = buffer8;
-			u32 offset_i = 0;
-			u32 size_i = MODC_AREA_SIZE;
-			if (arm9i_rom_offset < (src))
-				offset_i = (src) - arm9i_rom_offset;
-			else buffer_arm9i = buffer8 + (arm9i_rom_offset - (src));
-			size_i = MODC_AREA_SIZE - offset_i;
-			if (size_i > (0x4000) - (buffer_arm9i - buffer8))
-				size_i = (0x4000) - (buffer_arm9i - buffer8);
-			if (size_i) {
-				cardParamCommand (CARD_CMD_DATA_READ, (0x4000 + offset_i),
-					portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_BLK_SIZE(1),
-					buffer_arm9i, size_i);
-			}
-		}*/
 	}
 }
 
