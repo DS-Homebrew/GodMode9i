@@ -31,6 +31,7 @@
 #include "screenshot.h"
 #include "driveOperations.h"
 #include "fileOperations.h"
+#include "ndsheaderbanner.h"
 #include "read_card.h"
 #include "tonccpy.h"
 
@@ -73,15 +74,6 @@ void ndsCardDump(void) {
 
 		if ((pressed & KEY_A) || (pressed & KEY_Y)) {
 			consoleClear();
-			sysSetCardOwner (BUS_OWNER_ARM9);	// Allow arm9 to access NDS cart
-			if (!flashcardMounted && isDSiMode()) {
-				// Reset card slot
-				disableSlot1();
-				for(int i = 0; i < 25; i++) { swiWaitForVBlank(); }
-				enableSlot1();
-				for(int i = 0; i < 15; i++) { swiWaitForVBlank(); }
-			}
-
 			char folderPath[2][256];
 			sprintf(folderPath[0], "%s:/gm9i", (sdMounted ? "sd" : "fat"));
 			sprintf(folderPath[1], "%s:/gm9i/out", (sdMounted ? "sd" : "fat"));
@@ -96,7 +88,7 @@ void ndsCardDump(void) {
 			}
 			consoleClear();
 			// Read header
-			tNDSHeader* ndsCardHeader = (tNDSHeader*)malloc(0x1000);
+			sNDSHeaderExt* ndsCardHeader = (sNDSHeaderExt*)malloc(0x1000);
 			if (cardInit (ndsCardHeader) == 0) {
 				printf("Dumping...\n");
 				printf("Do not remove the NDS card.\n");
@@ -121,7 +113,8 @@ void ndsCardDump(void) {
 			// Determine ROM size
 			u32 romSize = 0;
 			if (trimRom) {
-				romSize = ndsCardHeader->romSize;
+				romSize = ((ndsCardHeader->unitCode != 0) && (ndsCardHeader->twlRomSize > 0))
+							? ndsCardHeader->twlRomSize : ndsCardHeader->romSize;
 			} else switch (ndsCardHeader->deviceSize) {
 				case 0x00:
 					romSize = 0x20000;

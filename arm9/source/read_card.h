@@ -23,6 +23,8 @@
 #include <nds/memory.h>
 #include <stdlib.h>
 
+#include "ndsheaderbanner.h"
+
 #define CARD_NDS_HEADER_SIZE (0x200)
 #define CARD_SECURE_AREA_OFFSET (0x4000)
 #define CARD_SECURE_AREA_SIZE (0x4000)
@@ -34,7 +36,7 @@
 extern "C" {
 #endif
 
-int cardInit (tNDSHeader* ndsHeader);
+int cardInit (sNDSHeaderExt* ndsHeader);
 
 void cardRead (u32 src, void* dest);
 

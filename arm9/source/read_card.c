@@ -48,9 +48,12 @@ typedef union
 	u32 key;
 } GameCode;
 
+static bool twlBlowfish = false;
+
+static bool normalChip = false;	// As defined by GBAtek, normal chip secure area is accessed in blocks of 0x200, other chip in blocks of 0x1000
 static u32 portFlags = 0;
 static u32 headerData[0x1000/sizeof(u32)] = {0};
-static u32 secureAreaData[CARD_SECURE_AREA_SIZE/sizeof(u32)] = {0};
+static u32 secureArea[CARD_SECURE_AREA_SIZE/sizeof(u32)] = {0};
 
 static const u8 cardSeedBytes[] = {0xE8, 0x4D, 0x5A, 0xB1, 0x17, 0x8F, 0x99, 0xD5};
 
@@ -151,67 +154,37 @@ static void cardDelay (u16 readTimeout) {
 	TIMER_DATA(0) = 0;
 }
 
+static void switchToTwlBlowfish(sNDSHeaderExt* ndsHeader) {
+	if (twlBlowfish || ndsHeader->unitCode == 0) return;
 
-int cardInit (tNDSHeader* ndsHeader)
-{
+	// Used for dumping the DSi arm9i/7i binaries
+
 	u32 portFlagsKey1, portFlagsSecRead;
-	bool normalChip;	// As defined by GBAtek, normal chip secure area is accessed in blocks of 0x200, other chip in blocks of 0x1000
-	u32* secureArea;
 	int secureBlockNumber;
 	int i;
 	u8 cmdData[8] __attribute__ ((aligned));
 	GameCode* gameCode;
 
 	if (isDSiMode()) { 
-		cardReset();
-	} else {
+		// Reset card slot
+		disableSlot1();
+		for(int i = 0; i < 25; i++) { swiWaitForVBlank(); }
+		enableSlot1();
+		for(int i = 0; i < 15; i++) { swiWaitForVBlank(); }
+
 		// Dummy command sent after card reset
 		cardParamCommand (CARD_CMD_DUMMY, 0,
 			CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(1) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
 			NULL, 0);
+	} else {
+		cardReset();
 	}
 
-	u32 iCardId=cardReadID(CARD_CLK_SLOW);	
-	u32 iCheapCard=iCardId&0x80000000;
-
-	// Read the header
-    if(iCheapCard)
-    {
-      //this is magic of wood goblins
-      for(size_t ii=0;ii<8;++ii) {
-		cardParamCommand (CARD_CMD_HEADER_READ, ii*0x200,
-			CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(1) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
-			(u32*)(void*)(ndsHeader+ii*0x200), 0x200);
-	  }
-	}
-	else
-	{
-		cardParamCommand (CARD_CMD_HEADER_READ, 0,
-			CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(4) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
-			(u32*)(void*)ndsHeader, 0x1000);
-	}
-
-	// Check header CRC
-	if (ndsHeader->headerCRC16 != swiCRC16(0xFFFF, (void*)ndsHeader, 0x15E)) {
-		return ERR_HEAD_CRC;
-	}
-
-	tonccpy(headerData, ndsHeader, 0x1000);
-
-	u32 nds9Offset = *(u32*)(headerData+0x20);
-
-	int iCardDevice = ((*(u8*)(headerData+0x12) != 0) ? 1 : 0);
-
-	/*
-	// Check logo CRC
-	if (ndsHeader->logoCRC16 != 0xCF56) {
-		return ERR_LOGO_CRC;
-	}
-	*/
+	//int iCardDevice = 1;
 
 	// Initialise blowfish encryption for KEY1 commands and decrypting the secure area
 	gameCode = (GameCode*)ndsHeader->gameCode;
-	init_keycode (gameCode->key, iCardDevice?1:2, 8, iCardDevice);
+	init_keycode (gameCode->key, 1, 8, 1);
 
 	// Port 40001A4h setting for normal reads (command B7)
 	portFlags = ndsHeader->cardControl13 & ~CARD_BLK_SIZE(7);
@@ -220,13 +193,12 @@ int cardInit (tNDSHeader* ndsHeader)
 		((ndsHeader->cardControlBF & (CARD_CLK_SLOW|CARD_DELAY1(0x1FFF))) + ((ndsHeader->cardControlBF & CARD_DELAY2(0x3F)) >> 16));
 
 	// Adjust card transfer method depending on the most significant bit of the chip ID
-	normalChip = (iCardId & 0x80000000) != 0;		// ROM chip ID MSB
 	if (!normalChip) {
 		portFlagsKey1 |= CARD_SEC_LARGE;
 	}
 
 	// 3Ciiijjj xkkkkkxx - Activate KEY1 Encryption Mode
-	initKey1Encryption (cmdData, iCardDevice);
+	initKey1Encryption (cmdData, 1);
 	cardPolledTransfer((ndsHeader->cardControl13 & (CARD_WR|CARD_nRESET|CARD_CLK_SLOW)) | CARD_ACTIVATE, NULL, 0, cmdData);
 
 	// 4llllmmm nnnkkkkk - Activate KEY2 Encryption Mode
@@ -259,10 +231,10 @@ int cardInit (tNDSHeader* ndsHeader)
 	cardPolledTransfer(portFlagsKey1 | CARD_BLK_SIZE(7), NULL, 0, cmdData);
 
 	// 2bbbbiii jjjkkkkk - Get Secure Area Block
-	secureArea = secureAreaData;
 	portFlagsSecRead = (ndsHeader->cardControlBF & (CARD_CLK_SLOW|CARD_DELAY1(0x1FFF)|CARD_DELAY2(0x3F)))
 		| CARD_ACTIVATE | CARD_nRESET | CARD_SEC_EN | CARD_SEC_DAT;
 
+    int secureAreaOffset = 0;
 	for (secureBlockNumber = 4; secureBlockNumber < 8; secureBlockNumber++) {
 		createEncryptedCommand (CARD_CMD_SECURE_READ, cmdData, secureBlockNumber);
 
@@ -270,12 +242,158 @@ int cardInit (tNDSHeader* ndsHeader)
 			cardPolledTransfer(portFlagsSecRead, NULL, 0, cmdData);
 			cardDelay(ndsHeader->readTimeout);
 			for (i = 8; i > 0; i--) {
-				cardPolledTransfer(portFlagsSecRead | CARD_BLK_SIZE(1), secureArea, 0x200, cmdData);
-				secureArea += 0x200/sizeof(u32);
+				cardPolledTransfer(portFlagsSecRead | CARD_BLK_SIZE(1), secureArea + secureAreaOffset, 0x200, cmdData);
+				secureAreaOffset += 0x200/sizeof(u32);
 			}
 		} else {
-			cardPolledTransfer(portFlagsSecRead | CARD_BLK_SIZE(4) | CARD_SEC_LARGE, secureArea, 0x1000, cmdData);
-			secureArea += 0x1000/sizeof(u32);
+			cardPolledTransfer(portFlagsSecRead | CARD_BLK_SIZE(4) | CARD_SEC_LARGE, secureArea + secureAreaOffset, 0x1000, cmdData);
+			secureAreaOffset += 0x1000/sizeof(u32);
+		}
+	}
+
+	// Alllliii jjjkkkkk - Enter Main Data Mode
+	createEncryptedCommand (CARD_CMD_DATA_MODE, cmdData, 0);
+
+	if (normalChip) {
+		cardPolledTransfer(portFlagsKey1, NULL, 0, cmdData);
+		cardDelay(ndsHeader->readTimeout);
+    }
+	cardPolledTransfer(portFlagsKey1, NULL, 0, cmdData);
+
+	decryptSecureArea (gameCode->key, secureArea, 1);
+
+	twlBlowfish = true;
+}
+
+
+int cardInit (sNDSHeaderExt* ndsHeader)
+{
+	u32 portFlagsKey1, portFlagsSecRead;
+	normalChip = false;	// As defined by GBAtek, normal chip secure area is accessed in blocks of 0x200, other chip in blocks of 0x1000
+	int secureBlockNumber;
+	int i;
+	u8 cmdData[8] __attribute__ ((aligned));
+	GameCode* gameCode;
+
+	twlBlowfish = false;
+
+	if (isDSiMode()) { 
+		sysSetCardOwner (BUS_OWNER_ARM9);	// Allow arm9 to access NDS cart
+		// Reset card slot
+		disableSlot1();
+		for(int i = 0; i < 25; i++) { swiWaitForVBlank(); }
+		enableSlot1();
+		for(int i = 0; i < 15; i++) { swiWaitForVBlank(); }
+
+		// Dummy command sent after card reset
+		cardParamCommand (CARD_CMD_DUMMY, 0,
+			CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(1) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
+			NULL, 0);
+	} else {
+		cardReset();
+	}
+
+	u32 iCardId=cardReadID(CARD_CLK_SLOW);	
+	u32 iCheapCard=iCardId&0x80000000;
+
+	// Read the header
+    if(iCheapCard)
+    {
+      //this is magic of wood goblins
+      for(size_t ii=0;ii<8;++ii) {
+		cardParamCommand (CARD_CMD_HEADER_READ, ii*0x200,
+			CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(1) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
+			(u32*)(void*)(ndsHeader+ii*0x200), 0x200);
+	  }
+	}
+	else
+	{
+		cardParamCommand (CARD_CMD_HEADER_READ, 0,
+			CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(4) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
+			(u32*)(void*)ndsHeader, 0x1000);
+	}
+
+	// Check header CRC
+	if (ndsHeader->headerCRC16 != swiCRC16(0xFFFF, (void*)ndsHeader, 0x15E)) {
+		return ERR_HEAD_CRC;
+	}
+
+	tonccpy(headerData, ndsHeader, 0x1000);
+
+	/*
+	// Check logo CRC
+	if (ndsHeader->logoCRC16 != 0xCF56) {
+		return ERR_LOGO_CRC;
+	}
+	*/
+
+	// Initialise blowfish encryption for KEY1 commands and decrypting the secure area
+	gameCode = (GameCode*)ndsHeader->gameCode;
+	init_keycode (gameCode->key, 2, 8, 0);
+
+	// Port 40001A4h setting for normal reads (command B7)
+	portFlags = ndsHeader->cardControl13 & ~CARD_BLK_SIZE(7);
+	// Port 40001A4h setting for KEY1 commands   (usually 001808F8h)
+	portFlagsKey1 = CARD_ACTIVATE | CARD_nRESET | (ndsHeader->cardControl13 & (CARD_WR|CARD_CLK_SLOW)) |
+		((ndsHeader->cardControlBF & (CARD_CLK_SLOW|CARD_DELAY1(0x1FFF))) + ((ndsHeader->cardControlBF & CARD_DELAY2(0x3F)) >> 16));
+
+	// Adjust card transfer method depending on the most significant bit of the chip ID
+	normalChip = (iCardId & 0x80000000) != 0;		// ROM chip ID MSB
+	if (!normalChip) {
+		portFlagsKey1 |= CARD_SEC_LARGE;
+	}
+
+	// 3Ciiijjj xkkkkkxx - Activate KEY1 Encryption Mode
+	initKey1Encryption (cmdData, 0);
+	cardPolledTransfer((ndsHeader->cardControl13 & (CARD_WR|CARD_nRESET|CARD_CLK_SLOW)) | CARD_ACTIVATE, NULL, 0, cmdData);
+
+	// 4llllmmm nnnkkkkk - Activate KEY2 Encryption Mode
+	createEncryptedCommand (CARD_CMD_ACTIVATE_SEC, cmdData, 0);
+
+	if (normalChip) {
+		cardPolledTransfer(portFlagsKey1, NULL, 0, cmdData);
+		cardDelay(ndsHeader->readTimeout);
+	}
+	cardPolledTransfer(portFlagsKey1, NULL, 0, cmdData);
+
+	// Set the KEY2 encryption registers
+	REG_ROMCTRL = 0;
+	REG_CARD_1B0 = cardSeedBytes[ndsHeader->deviceType & 0x07] | (key1data.nnn << 15) | (key1data.mmm << 27) | 0x6000;
+	REG_CARD_1B4 = 0x879b9b05;
+	REG_CARD_1B8 = key1data.mmm >> 5;
+	REG_CARD_1BA = 0x5c;
+	REG_ROMCTRL = CARD_nRESET | CARD_SEC_SEED | CARD_SEC_EN | CARD_SEC_DAT;
+
+	// Update the DS card flags to suit KEY2 encryption
+	portFlagsKey1 |= CARD_SEC_EN | CARD_SEC_DAT;
+
+	// 1lllliii jjjkkkkk - 2nd Get ROM Chip ID / Get KEY2 Stream
+	createEncryptedCommand (CARD_CMD_SECURE_CHIPID, cmdData, 0);
+
+	if (normalChip) {
+		cardPolledTransfer(portFlagsKey1, NULL, 0, cmdData);
+		cardDelay(ndsHeader->readTimeout);
+	}
+	cardPolledTransfer(portFlagsKey1 | CARD_BLK_SIZE(7), NULL, 0, cmdData);
+
+	// 2bbbbiii jjjkkkkk - Get Secure Area Block
+	portFlagsSecRead = (ndsHeader->cardControlBF & (CARD_CLK_SLOW|CARD_DELAY1(0x1FFF)|CARD_DELAY2(0x3F)))
+		| CARD_ACTIVATE | CARD_nRESET | CARD_SEC_EN | CARD_SEC_DAT;
+
+    int secureAreaOffset = 0;
+	for (secureBlockNumber = 4; secureBlockNumber < 8; secureBlockNumber++) {
+		createEncryptedCommand (CARD_CMD_SECURE_READ, cmdData, secureBlockNumber);
+
+		if (normalChip) {
+			cardPolledTransfer(portFlagsSecRead, NULL, 0, cmdData);
+			cardDelay(ndsHeader->readTimeout);
+			for (i = 8; i > 0; i--) {
+				cardPolledTransfer(portFlagsSecRead | CARD_BLK_SIZE(1), secureArea + secureAreaOffset, 0x200, cmdData);
+				secureAreaOffset += 0x200/sizeof(u32);
+			}
+		} else {
+			cardPolledTransfer(portFlagsSecRead | CARD_BLK_SIZE(4) | CARD_SEC_LARGE, secureArea + secureAreaOffset, 0x1000, cmdData);
+			secureAreaOffset += 0x1000/sizeof(u32);
 		}
 	}
 
@@ -289,12 +407,11 @@ int cardInit (tNDSHeader* ndsHeader)
 	cardPolledTransfer(portFlagsKey1, NULL, 0, cmdData);
 
     //CycloDS doesn't like the dsi secure area being decrypted
-    if(!iCardDevice && ((nds9Offset != 0x4000) || secureAreaData[0] || secureAreaData[1]))
+    if((ndsHeader->arm9romOffset != 0x4000) || secureArea[0] || secureArea[1])
     {
-		decryptSecureArea (gameCode->key, secureAreaData, iCardDevice);
+		decryptSecureArea (gameCode->key, secureArea, 0);
 	}
 
-	secureArea = secureAreaData;
 	if (secureArea[0] == 0x72636e65 /*'encr'*/ && secureArea[1] == 0x6a624f79 /*'yObj'*/) {
 		// Secure area exists, so just clear the tag
 		secureArea[0] = 0xe7ffdeff;
@@ -308,6 +425,8 @@ int cardInit (tNDSHeader* ndsHeader)
 
 void cardRead (u32 src, void* dest)
 {
+	sNDSHeaderExt* ndsHeader = (sNDSHeaderExt*)headerData;
+
 	if (src >= 0 && src < 0x1000) {
 		// Read header
 		tonccpy (dest, (u8*)headerData + src, 0x200);
@@ -317,7 +436,11 @@ void cardRead (u32 src, void* dest)
 		return;
 	} else if (src < CARD_DATA_OFFSET) {
 		// Read data from secure area
-		tonccpy (dest, (u8*)secureAreaData + src - CARD_SECURE_AREA_OFFSET, 0x200);
+		tonccpy (dest, (u8*)secureArea + src - CARD_SECURE_AREA_OFFSET, 0x200);
+		return;
+	} else if ((ndsHeader->unitCode != 0) && (src >= ndsHeader->arm9iromOffset) && (src < ndsHeader->arm9iromOffset+MODC_AREA_SIZE)) {
+		// Read data from secure area
+		tonccpy (dest, (u8*)secureArea + src - ndsHeader->arm9iromOffset, 0x200);
 		return;
 	}
 
@@ -325,30 +448,32 @@ void cardRead (u32 src, void* dest)
 		portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_BLK_SIZE(1),
 		dest, 0x200);
 
-	/*int iCardDevice = ((*(u8*)(headerData+0x12) != 0) ? 1 : 0);
-	u32 arm9i_rom_offset = *(u32*)(headerData + 0x1C0);
+	if (src > ndsHeader->romSize) {
+		switchToTwlBlowfish(ndsHeader);
 
-	if (iCardDevice && (src > arm9i_rom_offset) &&
-        (src < arm9i_rom_offset + MODC_AREA_SIZE))
-	{
-		u8* buffer8 = (u8*) dest;
-		u8* buff = buffer8;
+		/*
+		if ((ndsHeader->unitCode != 0)
+		&& (src > ndsHeader->arm9iromOffset) && (src < ndsHeader->arm9iromOffset + MODC_AREA_SIZE))
+		{
+			u8* buffer8 = (u8*) dest;
+			//u8* buff = buffer8;
 
-		// modcrypt area handling
-        u8* buffer_arm9i = buffer8;
-        u32 offset_i = 0;
-        u32 size_i = MODC_AREA_SIZE;
-        if (arm9i_rom_offset < (src))
-            offset_i = (src) - arm9i_rom_offset;
-        else buffer_arm9i = buffer8 + (arm9i_rom_offset - (src));
-        size_i = MODC_AREA_SIZE - offset_i;
-        if (size_i > (0x4000) - (buffer_arm9i - buffer8))
-            size_i = (0x4000) - (buffer_arm9i - buffer8);
-        if (size_i) {
-			cardParamCommand (CARD_CMD_DATA_READ, (0x4000 + offset_i),
-				portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_BLK_SIZE(1),
-				buffer_arm9i, size_i);
-		}
-	}*/
+			// modcrypt area handling
+			u8* buffer_arm9i = buffer8;
+			u32 offset_i = 0;
+			u32 size_i = MODC_AREA_SIZE;
+			if (arm9i_rom_offset < (src))
+				offset_i = (src) - arm9i_rom_offset;
+			else buffer_arm9i = buffer8 + (arm9i_rom_offset - (src));
+			size_i = MODC_AREA_SIZE - offset_i;
+			if (size_i > (0x4000) - (buffer_arm9i - buffer8))
+				size_i = (0x4000) - (buffer_arm9i - buffer8);
+			if (size_i) {
+				cardParamCommand (CARD_CMD_DATA_READ, (0x4000 + offset_i),
+					portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_BLK_SIZE(1),
+					buffer_arm9i, size_i);
+			}
+		}*/
+	}
 }
 
