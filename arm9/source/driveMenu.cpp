@@ -189,7 +189,7 @@ void driveMenu (void) {
 		if (flashcardMounted) {
 			dmMaxCursors++;
 			dmAssignedOp[dmMaxCursors] = 1;
-		} else {
+		} else if (!(REG_SCFG_MC & BIT(0))) {
 			dmMaxCursors++;
 			dmAssignedOp[dmMaxCursors] = 4;
 		}
