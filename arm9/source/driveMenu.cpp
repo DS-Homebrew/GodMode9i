@@ -21,6 +21,7 @@
 ------------------------------------------------------------------*/
 
 #include <nds.h>
+#include <nds/arm9/dldi.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -189,7 +190,8 @@ void driveMenu (void) {
 		if (flashcardMounted) {
 			dmMaxCursors++;
 			dmAssignedOp[dmMaxCursors] = 1;
-		} else if (!(REG_SCFG_MC & BIT(0))) {
+		}
+		if (((*(u32*)io_dldi_data+(0x64/4)) & FEATURE_SLOT_GBA) || !(REG_SCFG_MC & BIT(0))) {
 			dmMaxCursors++;
 			dmAssignedOp[dmMaxCursors] = 4;
 		}
