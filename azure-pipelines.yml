@@ -54,7 +54,7 @@ steps:
     export COMMIT_TAG="$(git log --format=%h -1)"
     git config --global user.email "flamekat54@aol.com"
     git config --global user.name "TWLBot"
-    git clone https://$GITHUB_TOKEN@github.com/TWLBot/Builds.git
+    git clone --depth 1 https://$GITHUB_TOKEN@github.com/TWLBot/Builds.git
     cd Builds/extras
     cp ../../GodMode9i.7z GodMode9i.7z
     git stage .
