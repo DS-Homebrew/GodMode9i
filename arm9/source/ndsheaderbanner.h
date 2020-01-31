@@ -117,7 +117,7 @@ typedef struct {
 
 	// 0x200
 	// TODO: More DSi-specific fields.
-	u8 dsi1[0x10];
+	u32 dsi1[0x10/4];
 	u32 twlRomSize;
 	u32 dsi_unk3;
 	u32 dsi_unk4;
