@@ -39,6 +39,8 @@ steps:
      export DEVKITARM="/opt/devkitpro/devkitARM"
      sudo cp libmm7.a /opt/devkitpro/libnds/lib/libmm7.a
      make
+     chmod +x make_cia
+     ./make_cia --srl="GodMode9i.nds" --id_0=$(git rev-parse --short=7 HEAD) --tikID=$(git rev-parse --short=16 HEAD)
   displayName: 'Build GodMode9i'
 
 - script: |
