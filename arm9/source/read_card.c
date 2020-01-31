@@ -174,8 +174,6 @@ static void switchToTwlBlowfish(sNDSHeaderExt* ndsHeader) {
 		cardParamCommand (CARD_CMD_DUMMY, 0,
 			CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(1) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
 			NULL, 0);
-	} else {
-		cardReset();
 	}
 
 	//int iCardDevice = 1;
@@ -258,7 +256,7 @@ static void switchToTwlBlowfish(sNDSHeaderExt* ndsHeader) {
     }
 	cardPolledTransfer(portFlagsKey1, NULL, 0, cmdData);
 
-	// The 0x800 bytes are modcrypted, so not ran there
+	// The 0x800 bytes are modcrypted, so this function isn't ran
 	//decryptSecureArea (gameCode->key, secureArea, 1);
 
 	twlBlowfish = true;
@@ -276,8 +274,8 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 
 	twlBlowfish = false;
 
+	sysSetCardOwner (BUS_OWNER_ARM9);	// Allow arm9 to access NDS cart
 	if (isDSiMode()) { 
-		sysSetCardOwner (BUS_OWNER_ARM9);	// Allow arm9 to access NDS cart
 		// Reset card slot
 		disableSlot1();
 		for(i = 0; i < 25; i++) { swiWaitForVBlank(); }
@@ -288,11 +286,10 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 		cardParamCommand (CARD_CMD_DUMMY, 0,
 			CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(1) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
 			NULL, 0);
-	} else {
-		cardReset();
 	}
 
 	u32 iCardId=cardReadID(CARD_CLK_SLOW);	
+	while(REG_ROMCTRL & CARD_BUSY);
 	u32 iCheapCard=iCardId&0x80000000;
 
 	// Read the header
@@ -302,14 +299,14 @@ int cardInit (sNDSHeaderExt* ndsHeader)
       for(size_t ii=0;ii<8;++ii) {
 		cardParamCommand (CARD_CMD_HEADER_READ, ii*0x200,
 			CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(1) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
-			(u32*)(void*)(ndsHeader+ii*0x200), 0x200);
+			(u32*)(void*)(ndsHeader+ii*0x200), 0x200/sizeof(u32));
 	  }
 	}
 	else
 	{
 		cardParamCommand (CARD_CMD_HEADER_READ, 0,
 			CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(4) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
-			(u32*)(void*)ndsHeader, 0x1000);
+			(u32*)(void*)ndsHeader, 0x1000/sizeof(u32));
 	}
 
 	// Check header CRC
@@ -445,7 +442,7 @@ void cardRead (u32 src, void* dest)
 
 	cardParamCommand (CARD_CMD_DATA_READ, src,
 		portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_BLK_SIZE(1),
-		dest, 0x200);
+		dest, 0x200/sizeof(u32));
 
 	if (src > ndsHeader->romSize) {
 		switchToTwlBlowfish(ndsHeader);
