@@ -46,6 +46,7 @@ steps:
 - script: |
      mkdir GodMode9i/
      cp GodMode9i.nds GodMode9i/
+     cp GodMode9i.cia GodMode9i/
      7z a GodMode9i.7z GodMode9i/
      cp GodMode9i.7z $(Build.ArtifactStagingDirectory)/GodMode9i.7z
   displayName: 'Pack 7z'
