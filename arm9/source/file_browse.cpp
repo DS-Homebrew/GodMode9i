@@ -575,6 +575,21 @@ string browseForFile (void) {
 			consoleClear();
 
 			if (newName[0] != '\0') {
+				// Check for unsupported characters
+				for (int i = 0; i < (int)sizeof(newName); i++) {
+					if (newName[i] == '>'
+					|| newName[i] == '<'
+					|| newName[i] == ':'
+					|| newName[i] == '"'
+					|| newName[i] == '/'
+					|| newName[i] == '\x5C'
+					|| newName[i] == '|'
+					|| newName[i] == '?'
+					|| newName[i] == '*')
+					{
+						newName[i] = '_';	// Remove unsupported character
+					}
+				}
 				if (rename(entry->name.c_str(), newName) == 0) {
 					getDirectoryContents (dirContents);
 				}
