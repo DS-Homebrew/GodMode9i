@@ -519,8 +519,7 @@ string browseForFile (void) {
 		getcwd(path, PATH_MAX);
 
 		if ((!(held & KEY_R) && (pressed & KEY_A))
-		|| (!dirContents.at(fileOffset).isDirectory && (held & KEY_R) && (pressed & KEY_A))) {
-			DirEntry* entry = &dirContents.at(fileOffset);
+		|| (!entry->isDirectory && (held & KEY_R) && (pressed & KEY_A))) {
 			if (((strcmp (entry->name.c_str(), "..") == 0) && (strcmp (path, (secondaryDrive ? "fat:/" : "sd:/")) == 0))
 			|| ((strcmp (entry->name.c_str(), "..") == 0) && (strcmp (path, "nitro:/") == 0)))
 			{
@@ -551,8 +550,7 @@ string browseForFile (void) {
 		}
 
 		// Directory options
-		if (dirContents.at(fileOffset).isDirectory && (held & KEY_R) && (pressed & KEY_A)) {
-			DirEntry* entry = &dirContents.at(fileOffset);
+		if (entry->isDirectory && (held & KEY_R) && (pressed & KEY_A)) {
 			int getOp = fileBrowse_A(entry, path);
 			if (getOp == 1 || getOp == 2) {
 				getDirectoryContents (dirContents);		// Refresh directory listing
