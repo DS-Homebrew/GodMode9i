@@ -397,7 +397,7 @@ void recRemove(DirEntry* entry, std::vector<DirEntry> dirContents) {
 	remove(startEntry->name.c_str());
 }
 
-void fileBrowse_drawBottomScreen(DirEntry* entry, int fileOffset) {
+void fileBrowse_drawBottomScreen(DirEntry* entry) {
 	printf ("\x1B[47m");		// Print foreground white color
 	printf ("\x1b[22;0H");
 	printf (titleName);
@@ -460,7 +460,7 @@ string browseForFile (void) {
 		DirEntry* entry = &dirContents.at(fileOffset);
 
 		consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
-		fileBrowse_drawBottomScreen(entry, fileOffset);
+		fileBrowse_drawBottomScreen(entry);
 		consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
 		showDirectoryContents (dirContents, fileOffset, screenOffset);
 
@@ -749,7 +749,7 @@ string browseForFile (void) {
 			// Seamlessly swap top and bottom screens
 			lcdMainOnBottom();
 			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
-			fileBrowse_drawBottomScreen(entry, fileOffset);
+			fileBrowse_drawBottomScreen(entry);
 			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
 			showDirectoryContents (dirContents, fileOffset, screenOffset);
 			printf("\x1B[42m");		// Print green color for time text
