@@ -649,6 +649,7 @@ string browseForFile (void) {
 							pressed = keysDown();
 							swiWaitForVBlank();
 						}
+						for (int i = 0; i < 15; i++) swiWaitForVBlank();
 					} else {
 						if (entry->isDirectory) {
 							printf ("Deleting folder, please wait...");
