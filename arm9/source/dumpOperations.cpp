@@ -11,6 +11,8 @@
 #include "read_card.h"
 #include "tonccpy.h"
 
+extern PrintConsole topConsole, bottomConsole;
+
 void ndsCardSaveDump(const char* filename) {
 	std::ofstream output(filename, std::ofstream::binary);
 	if(output.is_open()) {
@@ -49,7 +51,8 @@ void ndsCardDump(void) {
 	printf ("\x1b[0;27H");
 	printf ("\x1B[42m");		// Print green color
 	printf ("_____");	// Clear time
-	consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+	consoleSelect(&bottomConsole);
+	consoleClear();
 	printf ("\x1B[47m");		// Print foreground white color
 	printf("Dump NDS card ROM to\n");
 	printf("\"%s:/gm9i/out\"?\n", (sdMounted ? "sd" : "fat"));
@@ -173,7 +176,8 @@ void gbaCartDump(void) {
 	printf ("\x1b[0;27H");
 	printf ("\x1B[42m");		// Print green color
 	printf ("_____");	// Clear time
-	consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+	consoleSelect(&bottomConsole);
+	consoleClear();
 	printf ("\x1B[47m");		// Print foreground white color
 	printf("Dump GBA cart ROM to\n");
 	printf("\"fat:/gm9i/out\"?\n");

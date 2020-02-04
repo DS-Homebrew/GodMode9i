@@ -45,8 +45,7 @@
 #define OPTIONS_ENTRIES_START_ROW 2
 #define ENTRY_PAGE_LENGTH 10
 bool bigJump = false;
-
-using namespace std;
+extern PrintConsole topConsole, bottomConsole;
 
 static char path[PATH_MAX];
 
@@ -133,12 +132,11 @@ void getDirectoryContents (vector<DirEntry>& dirContents) {
 void showDirectoryContents (const vector<DirEntry>& dirContents, int fileOffset, int startRow) {
 	getcwd(path, PATH_MAX);
 	
-	// Clear the screen
-	iprintf ("\x1b[2J");
+	consoleClear();
 	
 	// Print the path
 	printf ("\x1B[42m");		// Print green color
-	printf ("________________________________");
+	printf ("___________________________%s", RetTime().c_str());
 	printf ("\x1b[0;0H");
 	if (strlen(path) < SCREEN_COLS) {
 		iprintf ("%s", path);
@@ -152,7 +150,6 @@ void showDirectoryContents (const vector<DirEntry>& dirContents, int fileOffset,
 	// Print directory listing
 	for (int i = 0; i < ((int)dirContents.size() - startRow) && i < ENTRIES_PER_SCREEN; i++) {
 		const DirEntry* entry = &dirContents.at(i + startRow);
-		char entryName[SCREEN_COLS + 1];
 
 		// Set row
 		iprintf ("\x1b[%d;0H", i + ENTRIES_START_ROW);
@@ -164,9 +161,7 @@ void showDirectoryContents (const vector<DirEntry>& dirContents, int fileOffset,
 			printf ("\x1B[40m");		// Print foreground black color
 		}
 
-		strncpy (entryName, entry->name.c_str(), SCREEN_COLS);
-		entryName[SCREEN_COLS] = '\0';
-		printf (entryName);
+		printf ("%.*s", SCREEN_COLS, entry->name.c_str());
 		if (strcmp(entry->name.c_str(), "..") == 0) {
 			printf ("\x1b[%d;28H", i + ENTRIES_START_ROW);
 			printf ("(..)");
@@ -192,7 +187,8 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 	printf ("\x1b[0;27H");
 	printf ("\x1B[42m");		// Print green color
 	printf ("_____");	// Clear time
-	consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+	consoleSelect(&bottomConsole);
+	consoleClear();
 	printf ("\x1B[47m");		// Print foreground white color
 	char fullPath[256];
 	snprintf(fullPath, sizeof(fullPath), "%s%s", path, entry->name.c_str());
@@ -319,10 +315,12 @@ bool fileBrowse_paste(char destPath[256]) {
 	int optionOffset = 0;
 	int maxCursors = -1;
 
+	consoleClear();
+
 	printf ("\x1b[0;27H");
 	printf ("\x1B[42m");		// Print green color
 	printf ("_____");	// Clear time
-	consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+	consoleSelect(&bottomConsole);
 	printf ("\x1B[47m");		// Print foreground white color
 	printf(clipboardFolder ? "Paste folder here?" : "Paste file here?");
 	printf("\n\n");
@@ -398,37 +396,26 @@ void recRemove(DirEntry* entry, std::vector<DirEntry> dirContents) {
 }
 
 void fileBrowse_drawBottomScreen(DirEntry* entry) {
+	consoleClear();
 	printf ("\x1B[47m");		// Print foreground white color
 	printf ("\x1b[22;0H");
-	printf (titleName);
-	printf ("\n");
-	printf ("X - DELETE/[+R] RENAME file");
-	printf ("\n");
-	printf (clipboardOn ? "Y - PASTE file" : "Y - COPY file");
-	printf ("/[+R] CREATE entry");
-	if (!clipboardOn) {
-		printf ("\n");
-	}
-	printf ("R+A - Directory options");
-	printf ("\n");
-	printf (SCREENSHOTTEXT);
-	printf ("\n");
-	printf (clipboardOn ? "SELECT - Clear Clipboard" : "SELECT - Restore Clipboard");
-	printf ("\n");
+	printf ("%s\n", titleName);
+	printf ("X - DELETE/[+R] RENAME file\n");
+	printf ("%s/[+R] CREATE entry%s", clipboardOn ? "Y - PASTE file" : "Y - COPY file", clipboardOn ? "" : "\n");
+	printf ("R+A - Directory options\n");
+	printf ("%s\n", SCREENSHOTTEXT);
+	printf ("%s\n", clipboardOn ? "SELECT - Clear Clipboard" : "SELECT - Restore Clipboard");
 	if (!isDSiMode() && isRegularDS) {
 		printf (POWERTEXT_DS);
 	} else if (is3DS) {
-		printf (POWERTEXT_3DS);
-		printf ("\n");
-		printf (HOMETEXT);
+		printf ("%s\n%s", POWERTEXT_3DS, HOMETEXT);
 	} else {
 		printf (POWERTEXT);
 	}
 
 	printf (entry->isDirectory ? "\x1B[34m" : "\x1B[40m");		// Print background blue color or foreground black color
 	printf ("\x1b[0;0H");
-	printf (entry->name.c_str());
-	printf ("\n");
+	printf ("%s\n", entry->name.c_str());
 	if (strcmp(entry->name.c_str(), "..") != 0) {
 		if (entry->isDirectory) {
 			printf ("(dir)");
@@ -459,9 +446,9 @@ string browseForFile (void) {
 	while (true) {
 		DirEntry* entry = &dirContents.at(fileOffset);
 
-		consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+		consoleSelect(&bottomConsole);
 		fileBrowse_drawBottomScreen(entry);
-		consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
+		consoleSelect(&topConsole);
 		showDirectoryContents (dirContents, fileOffset, screenOffset);
 
 		stored_SCFG_MC = REG_SCFG_MC;
@@ -514,11 +501,9 @@ string browseForFile (void) {
 		// Scroll screen if needed
 		if (fileOffset < screenOffset) 	{
 			screenOffset = fileOffset;
-			showDirectoryContents (dirContents, fileOffset, screenOffset);
 		}
 		if (fileOffset > screenOffset + ENTRIES_PER_SCREEN - 1) {
 			screenOffset = fileOffset - ENTRIES_PER_SCREEN + 1;
-			showDirectoryContents (dirContents, fileOffset, screenOffset);
 		}
 
 		getcwd(path, PATH_MAX);
@@ -600,6 +585,8 @@ string browseForFile (void) {
 			keyboardHide();
 			consoleClear();
 
+			consoleInit(&bottomConsole, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+
 			if (newName[0] != '\0') {
 				// Check for unsupported characters
 				for (int i = 0; i < (int)sizeof(newName); i++) {
@@ -627,7 +614,8 @@ string browseForFile (void) {
 			printf ("\x1b[0;27H");
 			printf ("\x1B[42m");		// Print green color
 			printf ("_____");	// Clear time
-			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+			consoleSelect(&bottomConsole);
+			consoleClear();
 			printf ("\x1B[47m");		// Print foreground white color
 			iprintf("Delete \"%s\"?\n", entry->name.c_str());
 			printf ("(<A> yes, <B> no)");
@@ -692,6 +680,8 @@ string browseForFile (void) {
 			keyboardHide();
 			consoleClear();
 
+			consoleInit(&bottomConsole, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+
 			if (newName[0] != '\0') {
 				if (mkdir(newName, 0777) == 0) {
 					getDirectoryContents (dirContents);
@@ -748,9 +738,9 @@ string browseForFile (void) {
 			screenshotbmp(snapPath);
 			// Seamlessly swap top and bottom screens
 			lcdMainOnBottom();
-			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
+			consoleSelect(&bottomConsole);
 			fileBrowse_drawBottomScreen(entry);
-			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+			consoleSelect(&topConsole);
 			showDirectoryContents (dirContents, fileOffset, screenOffset);
 			printf("\x1B[42m");		// Print green color for time text
 			printf ("\x1b[0;26H");
