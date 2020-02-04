@@ -45,6 +45,7 @@
 #define OPTIONS_ENTRIES_START_ROW 2
 #define ENTRY_PAGE_LENGTH 10
 bool bigJump = false;
+bool whiteFolderName = false;
 extern PrintConsole topConsole, bottomConsole;
 
 static char path[PATH_MAX];
@@ -156,7 +157,7 @@ void showDirectoryContents (const vector<DirEntry>& dirContents, int fileOffset,
 		if ((fileOffset - startRow) == i) {
 			printf ("\x1B[47m");		// Print foreground white color
 		} else if (entry->isDirectory) {
-			printf ("\x1B[34m");		// Print background blue color
+			printf (whiteFolderName ? "\x1B[47m" : "\x1B[34m");		// Print foreground white color or background blue color
 		} else {
 			printf ("\x1B[40m");		// Print foreground black color
 		}
@@ -174,6 +175,7 @@ void showDirectoryContents (const vector<DirEntry>& dirContents, int fileOffset,
 		}
 	}
 
+	whiteFolderName = !whiteFolderName;
 	printf ("\x1B[47m");		// Print foreground white color
 }
 
@@ -475,10 +477,7 @@ string browseForFile (void) {
 
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
-			// Move to right side of screen
-			printf ("\x1b[0;26H");
-			// Print time
-			printf ("_%s" ,RetTime().c_str());
+			showDirectoryContents (dirContents, fileOffset, screenOffset);
 
 			scanKeys();
 			pressed = keysDownRepeat();
