@@ -1,0 +1,5 @@
+*/build
+*.nds
+*.cia
+*.elf
+data/*
