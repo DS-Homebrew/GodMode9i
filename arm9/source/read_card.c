@@ -291,6 +291,8 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 			NULL, 0);
 	}
 
+	toncset(headerData, 0, 0x1000);
+
 	u32 iCardId=cardReadID(CARD_CLK_SLOW);	
 	while(REG_ROMCTRL & CARD_BUSY);
 	//u32 iCheapCard=iCardId&0x80000000;
@@ -298,27 +300,28 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 	// Read the header
 	cardParamCommand (CARD_CMD_HEADER_READ, 0,
 		CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(1) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
-		(void*)ndsHeader, 0x200/sizeof(u32));
+		(void*)headerData, 0x200/sizeof(u32));
+
+	tonccpy(ndsHeader, headerData, 0x200);
 
 	if ((ndsHeader->unitCode != 0) || (ndsHeader->dsi_flags != 0))
 	{
 		// Extended header found
 		cardParamCommand (CARD_CMD_HEADER_READ, 0,
 			CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(4) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
-			(void*)ndsHeader, 0x1000/sizeof(u32));
+			(void*)headerData, 0x1000/sizeof(u32));
 		if (ndsHeader->dsi1[0]==0xFFFFFFFF && ndsHeader->dsi1[1]==0xFFFFFFFF
 		 && ndsHeader->dsi1[2]==0xFFFFFFFF && ndsHeader->dsi1[3]==0xFFFFFFFF)
 		{
-			toncset((u8*)ndsHeader+0x200, 0, 0xE00);
+			toncset((u8*)headerData+0x200, 0, 0xE00);	// Clear out FFs
 		}
+		tonccpy(ndsHeader, headerData, sizeof(sNDSHeaderExt));
 	}
 
 	// Check header CRC
 	if (ndsHeader->headerCRC16 != swiCRC16(0xFFFF, (void*)ndsHeader, 0x15E)) {
 		return ERR_HEAD_CRC;
 	}
-
-	tonccpy(headerData, ndsHeader, 0x1000);
 
 	/*
 	// Check logo CRC

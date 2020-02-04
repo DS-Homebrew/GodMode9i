@@ -590,6 +590,9 @@ string browseForFile (void) {
 
 		// Rename file/folder
 		if ((held & KEY_R) && (pressed & KEY_X) && (strcmp (entry->name.c_str(), "..") != 0) && (strncmp (path, "nitro:/", 7) != 0)) {
+			printf ("\x1b[0;27H");
+			printf ("\x1B[42m");		// Print green color
+			printf ("_____");	// Clear time
 			pressed = 0;
 			consoleDemoInit();
 			Keyboard *kbd = keyboardDemoInit(); 
@@ -698,6 +701,9 @@ string browseForFile (void) {
 
 		// Create new folder
 		if ((held & KEY_R) && (pressed & KEY_Y) && (strncmp (path, "nitro:/", 7) != 0)) {
+			printf ("\x1b[0;27H");
+			printf ("\x1B[42m");		// Print green color
+			printf ("_____");	// Clear time
 			pressed = 0;
 			consoleDemoInit();
 			Keyboard *kbd = keyboardDemoInit(); 

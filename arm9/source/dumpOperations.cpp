@@ -14,6 +14,8 @@
 
 extern PrintConsole topConsole, bottomConsole;
 
+static sNDSHeaderExt ndsCardHeader;
+
 void ndsCardSaveDump(const char* filename) {
 	std::ofstream output(filename, std::ofstream::binary);
 	if(output.is_open()) {
@@ -88,9 +90,7 @@ void ndsCardDump(void) {
 			mkdir(folderPath[1], 0777);
 		}
 		consoleClear();
-		// Read header
-		sNDSHeaderExt* ndsCardHeader = (sNDSHeaderExt*)malloc(0x1000);
-		if (cardInit (ndsCardHeader) == 0) {
+		if (cardInit(&ndsCardHeader) == 0) {
 			printf("Dumping...\n");
 			printf("Do not remove the NDS card.\n");
 		} else {
@@ -98,25 +98,24 @@ void ndsCardDump(void) {
 			for (int i = 0; i < 60*2; i++) {
 				swiWaitForVBlank();
 			}
-			free(ndsCardHeader);
 			return;
 		}
 		char gameTitle[13] = {0};
-		tonccpy(gameTitle, ndsCardHeader->gameTitle, 12);
+		tonccpy(gameTitle, ndsCardHeader.gameTitle, 12);
 		char gameCode[7] = {0};
-		tonccpy(gameCode, ndsCardHeader->gameCode, 6);
+		tonccpy(gameCode, ndsCardHeader.gameCode, 6);
 		bool trimRom = (pressed & KEY_Y);
 		char romBuffer[0x200];
 		char destPath[256];
-		sprintf(destPath, "%s:/gm9i/out/%s_%s_%x%s.nds", (sdMounted ? "sd" : "fat"), gameTitle, gameCode, ndsCardHeader->romversion, (trimRom ? "_trim" : ""));
+		sprintf(destPath, "%s:/gm9i/out/%s_%s_%x%s.nds", (sdMounted ? "sd" : "fat"), gameTitle, gameCode, ndsCardHeader.romversion, (trimRom ? "_trim" : ""));
 		char destSavPath[256];
-		sprintf(destSavPath, "%s:/gm9i/out/%s_%s_%x%s.sav", (sdMounted ? "sd" : "fat"), gameTitle, gameCode, ndsCardHeader->romversion, (trimRom ? "_trim" : ""));
+		sprintf(destSavPath, "%s:/gm9i/out/%s_%s_%x%s.sav", (sdMounted ? "sd" : "fat"), gameTitle, gameCode, ndsCardHeader.romversion, (trimRom ? "_trim" : ""));
 		// Determine ROM size
 		u32 romSize = 0;
 		if (trimRom) {
-			romSize = ((ndsCardHeader->unitCode != 0) && (ndsCardHeader->twlRomSize > 0))
-						? ndsCardHeader->twlRomSize : ndsCardHeader->romSize;
-		} else switch (ndsCardHeader->deviceSize) {
+			romSize = ((ndsCardHeader.unitCode != 0) && (ndsCardHeader.twlRomSize > 0))
+						? ndsCardHeader.twlRomSize : ndsCardHeader.romSize;
+		} else switch (ndsCardHeader.deviceSize) {
 			case 0x00:
 				romSize = 0x20000;
 				break;
@@ -168,6 +167,8 @@ void ndsCardDump(void) {
 			// Print time
 			printf ("_%s" ,RetTime().c_str());
 
+			consoleSelect(&bottomConsole);
+			printf ("\x1B[47m");		// Print foreground white color
 			printf ("\x1b[8;0H");
 			printf ("Progress:\n");
 			printf ("%i/%i Bytes                       ", (int)src, (int)romSize);
@@ -176,7 +177,6 @@ void ndsCardDump(void) {
 		}
 		fclose(destinationFile);
 		ndsCardSaveDump(destSavPath);
-		free(ndsCardHeader);
 	}
 }
 
