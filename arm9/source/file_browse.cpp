@@ -152,7 +152,7 @@ void showDirectoryContents (const vector<DirEntry>& dirContents, int fileOffset,
 		if ((fileOffset - startRow) == i) {
 			printf ("\x1B[47m");		// Print foreground white color
 		} else if (entry->isDirectory) {
-			printf ("\x1B[37m");		// Print background white color
+			printf ("\x1B[37m");		// Print custom blue color
 		} else {
 			printf ("\x1B[40m");		// Print foreground black color
 		}
@@ -427,7 +427,7 @@ void fileBrowse_drawBottomScreen(DirEntry* entry) {
 		printf (POWERTEXT);
 	}
 
-	printf (entry->isDirectory ? "\x1B[37m" : "\x1B[40m");		// Print background white color or foreground black color
+	printf (entry->isDirectory ? "\x1B[37m" : "\x1B[40m");		// Print custom blue color or foreground black color
 	printf ("\x1b[0;0H");
 	printf ("%s\n", entry->name.c_str());
 	if (strcmp(entry->name.c_str(), "..") != 0) {
@@ -443,7 +443,7 @@ void fileBrowse_drawBottomScreen(DirEntry* entry) {
 		printf ("\x1b[9;0H");
 		printf ("\x1B[47m");		// Print foreground white color
 		printf ("[CLIPBOARD]\n");
-		printf (clipboardFolder ? "\x1B[37m" : "\x1B[40m");		// Print background white color or foreground black color
+		printf (clipboardFolder ? "\x1B[37m" : "\x1B[40m");		// Print custom blue color or foreground black color
 		printf (clipboardFilename);
 	}
 }

@@ -159,6 +159,9 @@ int main(int argc, char **argv) {
 	videoSetMode(MODE_0_2D);
 	vramSetBankG(VRAM_G_MAIN_BG);
 	consoleInit(&topConsole, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
+	
+	BG_PALETTE[15+(7*16)] = 0x656A;
+	BG_PALETTE_SUB[15+(7*16)] = 0x656A;
 
 	keysSetRepeat(25,5);
 
