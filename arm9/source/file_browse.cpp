@@ -29,6 +29,7 @@
 #include <dirent.h>
 
 #include <nds.h>
+#include <fat.h>
 
 #include "main.h"
 #include "date.h"
@@ -388,7 +389,9 @@ void recRemove(DirEntry* entry, std::vector<DirEntry> dirContents) {
 	for (int i = 1; i < ((int)dirContents.size()); i++) {
 		entry = &dirContents.at(i);
 		if (entry->isDirectory)	recRemove(entry, dirContents);
-		remove(entry->name.c_str());
+		if (!(FAT_getAttr(entry->name.c_str()) & ATTR_READONLY)) {
+			remove(entry->name.c_str());
+		}
 	}
 	chdir ("..");
 	remove(startEntry->name.c_str());
@@ -634,21 +637,35 @@ string browseForFile (void) {
 				swiWaitForVBlank();
 				if (pressed & KEY_A) {
 					consoleClear();
-					if (entry->isDirectory) {
-						printf ("Deleting folder, please wait...");
-						recRemove(entry, dirContents);
+					if (FAT_getAttr(entry->name.c_str()) & ATTR_READONLY) {
+						printf ("Failed deleting:\n");
+						printf (entry->name.c_str());
+						printf ("\n");
+						printf ("\n");
+						printf ("(<A> to continue)");
+						pressed = 0;
+						while (!(pressed & KEY_A)) {
+							scanKeys();
+							pressed = keysDown();
+							swiWaitForVBlank();
+						}
 					} else {
-						printf ("Deleting file, please wait...");
-						remove(entry->name.c_str());
+						if (entry->isDirectory) {
+							printf ("Deleting folder, please wait...");
+							recRemove(entry, dirContents);
+						} else {
+							printf ("Deleting file, please wait...");
+							remove(entry->name.c_str());
+						}
+						char filePath[256];
+						snprintf(filePath, sizeof(filePath), "%s%s", path, entry->name.c_str());
+						if (strcmp(filePath, clipboard) == 0) {
+							clipboardUsed = false;	// Disable clipboard restore
+							clipboardOn = false;
+						}
+						getDirectoryContents (dirContents);
+						fileOffset--;
 					}
-					char filePath[256];
-					snprintf(filePath, sizeof(filePath), "%s%s", path, entry->name.c_str());
-					if (strcmp(filePath, clipboard) == 0) {
-						clipboardUsed = false;	// Disable clipboard restore
-						clipboardOn = false;
-					}
-					getDirectoryContents (dirContents);
-					fileOffset--;
 					pressed = 0;
 					break;
 				}
