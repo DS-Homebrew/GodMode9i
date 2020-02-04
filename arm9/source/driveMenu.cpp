@@ -54,6 +54,11 @@ static u8 gbaFixedValue = 0;
 
 extern PrintConsole topConsole, bottomConsole;
 
+extern void printBorderTop(void);
+extern void printBorderBottom(void);
+extern void clearBorderTop(void);
+extern void clearBorderBottom(void);
+
 void dm_drawTopScreen(void) {
 	/*if (!ramDumped) {
 		printf ("Dumping RAM...");
@@ -66,8 +71,11 @@ void dm_drawTopScreen(void) {
 
 	consoleClear();
 
-	printf ("\x1B[42m");		// Print green color
-	printf ("___________________________%s", RetTime().c_str());
+	printf ("\x1B[30m");		// Print background black color
+	// Print time
+	printf ("\x1b[0;27H");
+	printf (RetTime().c_str());
+
 	printf ("\x1b[0;0H");
 	printf ("[root]");
 	printf ("\x1B[47m");		// Print foreground white color
@@ -225,7 +233,7 @@ void driveMenu (void) {
 
 		stored_SCFG_MC = REG_SCFG_MC;
 
-		printf ("\x1B[42m");		// Print green color for time text
+		printf ("\x1B[30m");		// Print black color for time text
 
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
@@ -335,11 +343,13 @@ void driveMenu (void) {
 				screenshotbmp(snapPath);
 				// Seamlessly swap top and bottom screens
 				lcdMainOnBottom();
+				printBorderBottom();
 				consoleSelect(&bottomConsole);
 				dm_drawTopScreen();
-				printf("\x1B[42m");		// Print green color for time text
+				printf("\x1B[30m");		// Print black color for time text
 				printf("\x1b[0;27H");
 				printf(timeText);
+				clearBorderTop();
 				consoleSelect(&topConsole);
 				dm_drawBottomScreen();
 				// Take bottom screenshot
@@ -347,6 +357,8 @@ void driveMenu (void) {
 				screenshotbmp(snapPath);
 				dmTextPrinted = false;
 				lcdMainOnTop();
+				printBorderTop();
+				clearBorderBottom();
 			}
 		}
 

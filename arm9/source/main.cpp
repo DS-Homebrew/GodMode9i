@@ -50,7 +50,7 @@ bool applaunch = false;
 
 static int bg3;
 
-PrintConsole topConsole, bottomConsole;
+PrintConsole topConsoleBG, topConsole, bottomConsoleBG, bottomConsole;
 
 using namespace std;
 
@@ -70,6 +70,32 @@ bool extention(const std::string& filename, const char* ext) {
 	} else {
 		return true;
 	}
+}
+
+void printBorderTop(void) {
+	consoleSelect(&topConsoleBG);
+	printf ("\x1B[42m");		// Print green color
+	for (int i = 0; i < 32; i++) {
+		printf ("\x02");	// Print top border
+	}
+}
+
+void printBorderBottom(void) {
+	consoleSelect(&bottomConsoleBG);
+	printf ("\x1B[42m");		// Print green color
+	for (int i = 0; i < 32; i++) {
+		printf ("\x02");	// Print top border
+	}
+}
+
+void clearBorderTop(void) {
+	consoleSelect(&topConsoleBG);
+	consoleClear();
+}
+
+void clearBorderBottom(void) {
+	consoleSelect(&bottomConsoleBG);
+	consoleClear();
 }
 
 //---------------------------------------------------------------------------------
@@ -101,6 +127,7 @@ int main(int argc, char **argv) {
 	// Subscreen as a console
 	videoSetModeSub(MODE_0_2D);
 	vramSetBankH(VRAM_H_SUB_BG);
+	consoleInit(&bottomConsoleBG, 1, BgType_Text4bpp, BgSize_T_256x256, 7, 0, false, true);
 	consoleInit(&bottomConsole, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
 
 	// Display GM9i logo
@@ -158,10 +185,20 @@ int main(int argc, char **argv) {
 	// Top screen as a console
 	videoSetMode(MODE_0_2D);
 	vramSetBankG(VRAM_G_MAIN_BG);
+	consoleInit(&topConsoleBG, 1, BgType_Text4bpp, BgSize_T_256x256, 7, 0, true, true);
 	consoleInit(&topConsole, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
-	
+
+	// Overwrite background white color
 	BG_PALETTE[15+(7*16)] = 0x656A;
 	BG_PALETTE_SUB[15+(7*16)] = 0x656A;
+
+	// Overwrite 2nd smiley face with filled tile
+	for (int i = 0; i < 8*8; i++) {
+		*(u8*)(0x6000040+i) = 0xFF;	// Top screen
+		*(u8*)(0x6200040+i) = 0xFF;	// Bottom screen
+	}
+
+	printBorderTop();
 
 	keysSetRepeat(25,5);
 

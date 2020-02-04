@@ -125,11 +125,11 @@ int fcopy(const char *sourcePath, const char *destinationPath)
 				break;
 			}
 			consoleSelect(&topConsole);
-			printf ("\x1B[42m");		// Print green color
+			printf ("\x1B[30m");		// Print black color
 			// Move to right side of screen
 			printf ("\x1b[0;26H");
 			// Print time
-			printf ("_%s" ,RetTime().c_str());
+			printf (" %s" ,RetTime().c_str());
 
 			consoleSelect(&bottomConsole);
 			printf ("\x1B[47m");		// Print foreground white color
@@ -208,13 +208,13 @@ void changeFileAttribs(DirEntry* entry) {
 		printf ((currentAttribs==newAttribs) ? "(<A> to continue)            " : "(<A> to apply, <B> to cancel)");
 
 		consoleSelect(&topConsole);
-		printf ("\x1B[42m");		// Print green color
+		printf ("\x1B[30m");		// Print black color
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
 			// Move to right side of screen
 			printf ("\x1b[0;26H");
 			// Print time
-			printf ("_%s" ,RetTime().c_str());
+			printf (" %s" ,RetTime().c_str());
 
 			scanKeys();
 			pressed = keysDown();

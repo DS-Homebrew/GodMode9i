@@ -47,6 +47,11 @@
 bool bigJump = false;
 extern PrintConsole topConsole, bottomConsole;
 
+extern void printBorderTop(void);
+extern void printBorderBottom(void);
+extern void clearBorderTop(void);
+extern void clearBorderBottom(void);
+
 static char path[PATH_MAX];
 
 bool nameEndsWith (const string& name) {
@@ -131,8 +136,11 @@ void showDirectoryContents (const vector<DirEntry>& dirContents, int fileOffset,
 	consoleClear();
 	
 	// Print the path
-	printf ("\x1B[42m");		// Print green color
-	printf ("___________________________%s", RetTime().c_str());
+	printf ("\x1B[30m");		// Print black color
+	// Print time
+	printf ("\x1b[0;27H");
+	printf (RetTime().c_str());
+
 	printf ("\x1b[0;0H");
 	if (strlen(path) < SCREEN_COLS) {
 		iprintf ("%s", path);
@@ -236,13 +244,13 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 		iprintf ("\x1b[%d;0H->", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
 
 		consoleSelect(&topConsole);
-		printf ("\x1B[42m");		// Print green color for time text
+		printf ("\x1B[30m");		// Print black color for time text
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
 			// Move to right side of screen
 			printf ("\x1b[0;26H");
 			// Print time
-			printf ("_%s" ,RetTime().c_str());
+			printf (" %s" ,RetTime().c_str());
 
 			scanKeys();
 			pressed = keysDownRepeat();
@@ -346,13 +354,13 @@ bool fileBrowse_paste(char destPath[256]) {
 		iprintf ("\x1b[%d;0H->", optionOffset + OPTIONS_ENTRIES_START_ROW);
 
 		consoleSelect(&topConsole);
-		printf ("\x1B[42m");		// Print green color for time text
+		printf ("\x1B[30m");		// Print black color for time text
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
 			// Move to right side of screen
 			printf ("\x1b[0;26H");
 			// Print time
-			printf ("_%s" ,RetTime().c_str());
+			printf (" %s" ,RetTime().c_str());
 
 			scanKeys();
 			pressed = keysDownRepeat();
@@ -467,14 +475,14 @@ string browseForFile (void) {
 
 		stored_SCFG_MC = REG_SCFG_MC;
 
-		printf ("\x1B[42m");		// Print green color for time text
+		printf ("\x1B[30m");		// Print black color for time text
 
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
 			// Move to right side of screen
 			printf ("\x1b[0;26H");
 			// Print time
-			printf ("_%s" ,RetTime().c_str());
+			printf (" %s" ,RetTime().c_str());
 
 			scanKeys();
 			pressed = keysDownRepeat();
@@ -587,8 +595,7 @@ string browseForFile (void) {
 		// Rename file/folder
 		if ((held & KEY_R) && (pressed & KEY_X) && (strcmp (entry->name.c_str(), "..") != 0) && (strncmp (path, "nitro:/", 7) != 0)) {
 			printf ("\x1b[0;27H");
-			printf ("\x1B[42m");		// Print green color
-			printf ("_____");	// Clear time
+			printf ("     ");	// Clear time
 			pressed = 0;
 			consoleDemoInit();
 			Keyboard *kbd = keyboardDemoInit(); 
@@ -634,12 +641,12 @@ string browseForFile (void) {
 			iprintf("Delete \"%s\"?\n", entry->name.c_str());
 			printf ("(<A> yes, <B> no)");
 			consoleSelect(&topConsole);
-			printf ("\x1B[42m");		// Print green color for time text
+			printf ("\x1B[30m");		// Print black color for time text
 			while (true) {
 				// Move to right side of screen
 				printf ("\x1b[0;26H");
 				// Print time
-				printf ("_%s" ,RetTime().c_str());
+				printf (" %s" ,RetTime().c_str());
 
 				scanKeys();
 				pressed = keysDownRepeat();
@@ -656,12 +663,12 @@ string browseForFile (void) {
 						printf ("(<A> to continue)");
 						pressed = 0;
 						consoleSelect(&topConsole);
-						printf ("\x1B[42m");		// Print green color for time text
+						printf ("\x1B[30m");		// Print black color for time text
 						while (!(pressed & KEY_A)) {
 							// Move to right side of screen
 							printf ("\x1b[0;26H");
 							// Print time
-							printf ("_%s" ,RetTime().c_str());
+							printf (" %s" ,RetTime().c_str());
 
 							scanKeys();
 							pressed = keysDown();
@@ -698,8 +705,7 @@ string browseForFile (void) {
 		// Create new folder
 		if ((held & KEY_R) && (pressed & KEY_Y) && (strncmp (path, "nitro:/", 7) != 0)) {
 			printf ("\x1b[0;27H");
-			printf ("\x1B[42m");		// Print green color
-			printf ("_____");	// Clear time
+			printf ("     ");	// Clear time
 			pressed = 0;
 			consoleDemoInit();
 			Keyboard *kbd = keyboardDemoInit(); 
@@ -786,11 +792,13 @@ string browseForFile (void) {
 			screenshotbmp(snapPath);
 			// Seamlessly swap top and bottom screens
 			lcdMainOnBottom();
+			printBorderBottom();
 			consoleSelect(&bottomConsole);
 			showDirectoryContents (dirContents, fileOffset, screenOffset);
-			printf("\x1B[42m");		// Print green color for time text
+			printf("\x1B[30m");		// Print black color for time text
 			printf ("\x1b[0;26H");
-			printf ("_%s" ,timeText);
+			printf (" %s" ,timeText);
+			clearBorderTop();
 			consoleSelect(&topConsole);
 			fileBrowse_drawBottomScreen(entry);
 			// Take bottom screenshot
@@ -800,6 +808,8 @@ string browseForFile (void) {
 				getDirectoryContents (dirContents);
 			}
 			lcdMainOnTop();
+			printBorderTop();
+			clearBorderBottom();
 		}
 	}
 }

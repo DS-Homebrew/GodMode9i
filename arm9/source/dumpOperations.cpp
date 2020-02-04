@@ -59,13 +59,13 @@ void ndsCardDump(void) {
 	printf("(<A> yes, <Y> trim, <B> no)");
 
 	consoleSelect(&topConsole);
-	printf ("\x1B[42m");		// Print green color
+	printf ("\x1B[30m");		// Print black color
 	// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 	do {
 		// Move to right side of screen
 		printf ("\x1b[0;26H");
 		// Print time
-		printf ("_%s" ,RetTime().c_str());
+		printf (" %s" ,RetTime().c_str());
 
 		scanKeys();
 		pressed = keysDownRepeat();
@@ -161,11 +161,11 @@ void ndsCardDump(void) {
 		FILE* destinationFile = fopen(destPath, "wb");
 		for (u32 src = 0; src < romSize; src += 0x200) {
 			consoleSelect(&topConsole);
-			printf ("\x1B[42m");		// Print green color
+			printf ("\x1B[30m");		// Print black color
 			// Move to right side of screen
 			printf ("\x1b[0;26H");
 			// Print time
-			printf ("_%s" ,RetTime().c_str());
+			printf (" %s" ,RetTime().c_str());
 
 			consoleSelect(&bottomConsole);
 			printf ("\x1B[47m");		// Print foreground white color
@@ -191,13 +191,13 @@ void gbaCartDump(void) {
 	printf("(<A> yes, <B> no)");
 
 	consoleSelect(&topConsole);
-	printf ("\x1B[42m");		// Print green color
+	printf ("\x1B[30m");		// Print black color
 	// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 	do {
 		// Move to right side of screen
 		printf ("\x1b[0;26H");
 		// Print time
-		printf ("_%s" ,RetTime().c_str());
+		printf (" %s" ,RetTime().c_str());
 
 		scanKeys();
 		pressed = keysDownRepeat();
@@ -206,8 +206,7 @@ void gbaCartDump(void) {
 
 	if (pressed & KEY_A) {
 		printf ("\x1b[0;27H");
-		printf ("\x1B[42m");		// Print green color
-		printf ("_____");	// Clear time
+		printf ("     ");	// Clear time
 	}
 
 	consoleSelect(&bottomConsole);
