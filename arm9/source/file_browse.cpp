@@ -157,6 +157,8 @@ void showDirectoryContents (const vector<DirEntry>& dirContents, int fileOffset,
 		iprintf ("\x1b[%d;0H", i + ENTRIES_START_ROW);
 		if ((fileOffset - startRow) == i) {
 			printf ("\x1B[47m");		// Print foreground white color
+		} else if (entry->isDirectory) {
+			printf ("\x1B[31m");		// Print background red color
 		} else {
 			printf ("\x1B[40m");		// Print foreground black color
 		}
