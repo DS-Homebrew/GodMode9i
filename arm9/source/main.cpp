@@ -50,6 +50,8 @@ bool applaunch = false;
 
 static int bg3;
 
+PrintConsole topConsole, bottomConsole;
+
 using namespace std;
 
 //---------------------------------------------------------------------------------
@@ -99,7 +101,7 @@ int main(int argc, char **argv) {
 	// Subscreen as a console
 	videoSetModeSub(MODE_0_2D);
 	vramSetBankH(VRAM_H_SUB_BG);
-	consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+	consoleInit(&bottomConsole, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
 
 	// Display GM9i logo
 	bg3 = bgInit(3, BgType_Bmp16, BgSize_B16_256x256, 1, 0);
@@ -156,6 +158,7 @@ int main(int argc, char **argv) {
 	// Top screen as a console
 	videoSetMode(MODE_0_2D);
 	vramSetBankG(VRAM_G_MAIN_BG);
+	consoleInit(&topConsole, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
 
 	keysSetRepeat(25,5);
 

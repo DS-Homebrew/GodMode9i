@@ -52,6 +52,8 @@ static int dmMaxCursors = -1;
 
 static u8 gbaFixedValue = 0;
 
+extern PrintConsole topConsole, bottomConsole;
+
 void dm_drawTopScreen(void) {
 	/*if (!ramDumped) {
 		printf ("Dumping RAM...");
@@ -61,8 +63,11 @@ void dm_drawTopScreen(void) {
 		consoleClear();
 		ramDumped = true;
 	}*/
+
+	consoleClear();
+
 	printf ("\x1B[42m");		// Print green color
-	printf ("________________________________");
+	printf ("___________________________%s", RetTime().c_str());
 	printf ("\x1b[0;0H");
 	printf ("[root]");
 	printf ("\x1B[47m");		// Print foreground white color
@@ -111,6 +116,8 @@ void dm_drawTopScreen(void) {
 }
 
 void dm_drawBottomScreen(void) {
+	consoleClear();
+
 	printf ("\x1B[47m");		// Print foreground white color
 	printf ("\x1b[23;0H");
 	printf (titleName);
@@ -208,9 +215,9 @@ void driveMenu (void) {
 		if (dmCursorPosition > dmMaxCursors)	dmCursorPosition = 0;		// Wrap around to top of list
 
 		if (!dmTextPrinted) {
-			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+			consoleSelect(&bottomConsole);
 			dm_drawBottomScreen();
-			consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
+			consoleSelect(&topConsole);
 			dm_drawTopScreen();
 
 			dmTextPrinted = true;
@@ -328,9 +335,9 @@ void driveMenu (void) {
 				screenshotbmp(snapPath);
 				// Seamlessly swap top and bottom screens
 				lcdMainOnBottom();
-				consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
+				consoleSelect(&bottomConsole);
 				dm_drawBottomScreen();
-				consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+				consoleSelect(&topConsole);
 				dm_drawTopScreen();
 				printf("\x1B[42m");		// Print green color for time text
 				printf("\x1b[0;27H");
