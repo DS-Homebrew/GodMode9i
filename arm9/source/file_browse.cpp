@@ -204,17 +204,19 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 		}
 	}
 	iprintf ("\x1b[%d;0H", cursorScreenPos + OPTIONS_ENTRIES_START_ROW);
-	if (entry->isApp) {
-		maxCursors++;
-		assignedOp[maxCursors] = 0;
-		printf("   Boot file\n");
-	}
-	if((entry->name.substr(entry->name.find_last_of(".") + 1) == "nds")
-	|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "NDS"))
-	{
-		maxCursors++;
-		assignedOp[maxCursors] = 3;
-		printf("   Mount NitroFS\n");
+	if (!entry->isDirectory) {
+		if (entry->isApp) {
+			maxCursors++;
+			assignedOp[maxCursors] = 0;
+			printf("   Boot file\n");
+		}
+		if((entry->name.substr(entry->name.find_last_of(".") + 1) == "nds")
+		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "NDS"))
+		{
+			maxCursors++;
+			assignedOp[maxCursors] = 3;
+			printf("   Mount NitroFS\n");
+		}
 	}
 	maxCursors++;
 	assignedOp[maxCursors] = 4;
@@ -392,7 +394,7 @@ void recRemove(DirEntry* entry, std::vector<DirEntry> dirContents) {
 
 void fileBrowse_drawBottomScreen(DirEntry* entry, int fileOffset) {
 	printf ("\x1B[47m");		// Print foreground white color
-	printf ("\x1b[23;0H");
+	printf ("\x1b[22;0H");
 	printf (titleName);
 	printf ("\n");
 	printf ("X - DELETE/[+R] RENAME file");
@@ -402,6 +404,8 @@ void fileBrowse_drawBottomScreen(DirEntry* entry, int fileOffset) {
 	if (!clipboardOn) {
 		printf ("\n");
 	}
+	printf ("R+A - Directory options");
+	printf ("\n");
 	printf (SCREENSHOTTEXT);
 	printf ("\n");
 	printf (clipboardOn ? "SELECT - Clear Clipboard" : "SELECT - Restore Clipboard");
@@ -514,7 +518,8 @@ string browseForFile (void) {
 
 		getcwd(path, PATH_MAX);
 
-		if (pressed & KEY_A) {
+		if ((!(held & KEY_R) && (pressed & KEY_A))
+		|| (!dirContents.at(fileOffset).isDirectory && (held & KEY_R) && (pressed & KEY_A))) {
 			DirEntry* entry = &dirContents.at(fileOffset);
 			if (((strcmp (entry->name.c_str(), "..") == 0) && (strcmp (path, (secondaryDrive ? "fat:/" : "sd:/")) == 0))
 			|| ((strcmp (entry->name.c_str(), "..") == 0) && (strcmp (path, "nitro:/") == 0)))
@@ -528,9 +533,7 @@ string browseForFile (void) {
 				getDirectoryContents (dirContents);
 				screenOffset = 0;
 				fileOffset = 0;
-			} else if (bothSDandFlashcard() || entry->isApp
-					|| strcmp (path, (secondaryDrive ? "fat:/gm9i/out/" : "sd:/gm9i/out/")) != 0)
-			{
+			} else {
 				int getOp = fileBrowse_A(entry, path);
 				if (getOp == 0) {
 					// Return the chosen file
@@ -544,6 +547,21 @@ string browseForFile (void) {
 				} else if (getOp == 4) {
 					for (int i = 0; i < 15; i++) swiWaitForVBlank();
 				}
+			}
+		}
+
+		// Directory options
+		if (dirContents.at(fileOffset).isDirectory && (held & KEY_R) && (pressed & KEY_A)) {
+			DirEntry* entry = &dirContents.at(fileOffset);
+			int getOp = fileBrowse_A(entry, path);
+			if (getOp == 1 || getOp == 2) {
+				getDirectoryContents (dirContents);		// Refresh directory listing
+				if (getOp == 3 && nitroMounted) {
+					screenOffset = 0;
+					fileOffset = 0;
+				}
+			} else if (getOp == 4) {
+				for (int i = 0; i < 15; i++) swiWaitForVBlank();
 			}
 		}
 
