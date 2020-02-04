@@ -714,6 +714,21 @@ string browseForFile (void) {
 			consoleInit(&bottomConsole, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
 
 			if (newName[0] != '\0') {
+				// Check for unsupported characters
+				for (int i = 0; i < (int)sizeof(newName); i++) {
+					if (newName[i] == '>'
+					|| newName[i] == '<'
+					|| newName[i] == ':'
+					|| newName[i] == '"'
+					|| newName[i] == '/'
+					|| newName[i] == '\x5C'
+					|| newName[i] == '|'
+					|| newName[i] == '?'
+					|| newName[i] == '*')
+					{
+						newName[i] = '_';	// Remove unsupported character
+					}
+				}
 				if (mkdir(newName, 0777) == 0) {
 					getDirectoryContents (dirContents);
 				}
