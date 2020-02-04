@@ -126,8 +126,8 @@ int fcopy(const char *sourcePath, const char *destinationPath)
 			printf ("%i/%i Bytes                       ", (int)offset, (int)fsize);
 
 			// Copy file to destination path
-			numr = fread(copyBuf, 2, copyBufSize, sourceFile);
-			fwrite(copyBuf, 2, numr, destinationFile);
+			numr = fread(copyBuf, 1, copyBufSize, sourceFile);
+			fwrite(copyBuf, 1, numr, destinationFile);
 			offset += copyBufSize;
 
 			if (offset > fsize) {
