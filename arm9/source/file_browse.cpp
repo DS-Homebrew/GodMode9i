@@ -577,6 +577,11 @@ string browseForFile (void) {
 			fileOffset = 0;
 		}
 
+		if (strcmp(entry->name.c_str(), "..")==0 && (pressed & KEY_R) && (pressed & KEY_A)) {
+			screenMode = 0;
+			return "null";
+		}
+
 		// Rename file/folder
 		if ((held & KEY_R) && (pressed & KEY_X) && (strcmp (entry->name.c_str(), "..") != 0) && (strncmp (path, "nitro:/", 7) != 0)) {
 			pressed = 0;
