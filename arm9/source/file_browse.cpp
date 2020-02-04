@@ -791,12 +791,12 @@ string browseForFile (void) {
 			// Seamlessly swap top and bottom screens
 			lcdMainOnBottom();
 			consoleSelect(&bottomConsole);
-			fileBrowse_drawBottomScreen(entry);
-			consoleSelect(&topConsole);
 			showDirectoryContents (dirContents, fileOffset, screenOffset);
 			printf("\x1B[42m");		// Print green color for time text
 			printf ("\x1b[0;26H");
 			printf ("_%s" ,timeText);
+			consoleSelect(&topConsole);
+			fileBrowse_drawBottomScreen(entry);
 			// Take bottom screenshot
 			snprintf(snapPath, sizeof(snapPath), "%s:/gm9i/out/snap_%s_bot.bmp", (sdMounted ? "sd" : "fat"), fileTimeText);
 			screenshotbmp(snapPath);

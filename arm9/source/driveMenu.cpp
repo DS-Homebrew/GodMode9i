@@ -336,12 +336,12 @@ void driveMenu (void) {
 				// Seamlessly swap top and bottom screens
 				lcdMainOnBottom();
 				consoleSelect(&bottomConsole);
-				dm_drawBottomScreen();
-				consoleSelect(&topConsole);
 				dm_drawTopScreen();
 				printf("\x1B[42m");		// Print green color for time text
 				printf("\x1b[0;27H");
 				printf(timeText);
+				consoleSelect(&topConsole);
+				dm_drawBottomScreen();
 				// Take bottom screenshot
 				snprintf(snapPath, sizeof(snapPath), "%s:/gm9i/out/snap_%s_bot.bmp", (sdMounted ? "sd" : "fat"), fileTimeText);
 				screenshotbmp(snapPath);
