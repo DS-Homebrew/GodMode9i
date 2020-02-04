@@ -44,7 +44,7 @@ bool appInited = false;
 
 bool arm7SCFGLocked = false;
 bool isRegularDS = true;
-bool is3DS = true;
+bool is3DS = false;
 
 bool applaunch = false;
 
@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
 	
 	bool yHeld = false;
 
-	snprintf(titleName, sizeof(titleName), "GodMode9i v%i.%i.%i", 2, 0, 1);
+	sprintf(titleName, "GodMode9i v%i.%i.%i", 2, 1, 0);
 
 	// initialize video mode
 	videoSetMode(MODE_4_2D);
@@ -145,9 +145,8 @@ int main(int argc, char **argv) {
 			yHeld = true;
 		}
 		sdMounted = sdMount();
-	}
-	if (!isDSiMode() || !sdMounted || (access("sd:/Nintendo 3DS", F_OK) != 0)) {
-		is3DS = false;
+		*(vu32*)(0x0DFFFE0C) = 0x474D3969;		// Check for 32MB of RAM
+		is3DS = ((access("sd:/Nintendo 3DS", F_OK) == 0) && (*(vu32*)(0x0DFFFE0C) == 0x474D3969));
 	}
 	if (!isDSiMode() || !yHeld) {
 		flashcardMounted = flashcardMount();
