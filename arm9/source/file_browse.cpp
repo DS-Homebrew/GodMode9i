@@ -184,9 +184,6 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 	int cursorScreenPos = 0;
 	int maxCursors = -1;
 
-	printf ("\x1b[0;27H");
-	printf ("\x1B[42m");		// Print green color
-	printf ("_____");	// Clear time
 	consoleSelect(&bottomConsole);
 	consoleClear();
 	printf ("\x1B[47m");		// Print foreground white color
@@ -232,6 +229,8 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 	}
 	printf("\n");
 	printf("(<A> select, <B> cancel)");
+	consoleSelect(&bottomConsole);
+	printf ("\x1B[47m");		// Print foreground white color
 	while (true) {
 		// Clear old cursors
 		for (int i = OPTIONS_ENTRIES_START_ROW+cursorScreenPos; i < (maxCursors+1) + OPTIONS_ENTRIES_START_ROW+cursorScreenPos; i++) {
@@ -240,13 +239,23 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 		// Show cursor
 		iprintf ("\x1b[%d;0H->", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
 
+		consoleSelect(&topConsole);
+		printf ("\x1B[42m");		// Print green color for time text
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
+			// Move to right side of screen
+			printf ("\x1b[0;26H");
+			// Print time
+			printf ("_%s" ,RetTime().c_str());
+
 			scanKeys();
 			pressed = keysDownRepeat();
 			swiWaitForVBlank();
 		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN)
 				&& !(pressed & KEY_A) && !(pressed & KEY_B));
+
+		consoleSelect(&bottomConsole);
+		printf ("\x1B[47m");		// Print foreground white color
 
 		if (pressed & KEY_UP) 		optionOffset -= 1;
 		if (pressed & KEY_DOWN) 	optionOffset += 1;
@@ -317,9 +326,6 @@ bool fileBrowse_paste(char destPath[256]) {
 
 	consoleClear();
 
-	printf ("\x1b[0;27H");
-	printf ("\x1B[42m");		// Print green color
-	printf ("_____");	// Clear time
 	consoleSelect(&bottomConsole);
 	printf ("\x1B[47m");		// Print foreground white color
 	printf(clipboardFolder ? "Paste folder here?" : "Paste file here?");
@@ -333,6 +339,8 @@ bool fileBrowse_paste(char destPath[256]) {
 	}
 	printf("\n");
 	printf("(<A> select, <B> cancel)");
+	consoleSelect(&bottomConsole);
+	printf ("\x1B[47m");		// Print foreground white color
 	while (true) {
 		// Clear old cursors
 		for (int i = OPTIONS_ENTRIES_START_ROW; i < (maxCursors+1) + OPTIONS_ENTRIES_START_ROW; i++) {
@@ -341,13 +349,23 @@ bool fileBrowse_paste(char destPath[256]) {
 		// Show cursor
 		iprintf ("\x1b[%d;0H->", optionOffset + OPTIONS_ENTRIES_START_ROW);
 
+		consoleSelect(&topConsole);
+		printf ("\x1B[42m");		// Print green color for time text
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
+			// Move to right side of screen
+			printf ("\x1b[0;26H");
+			// Print time
+			printf ("_%s" ,RetTime().c_str());
+
 			scanKeys();
 			pressed = keysDownRepeat();
 			swiWaitForVBlank();
 		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN)
 				&& !(pressed & KEY_A) && !(pressed & KEY_B));
+
+		consoleSelect(&bottomConsole);
+		printf ("\x1B[47m");		// Print foreground white color
 
 		if (pressed & KEY_UP) 		optionOffset -= 1;
 		if (pressed & KEY_DOWN) 	optionOffset += 1;
@@ -461,7 +479,7 @@ string browseForFile (void) {
 			printf ("\x1b[0;26H");
 			// Print time
 			printf ("_%s" ,RetTime().c_str());
-	
+
 			scanKeys();
 			pressed = keysDownRepeat();
 			held = keysHeld();
@@ -611,20 +629,26 @@ string browseForFile (void) {
 
 		// Delete file/folder
 		if ((pressed & KEY_X) && (strcmp (entry->name.c_str(), "..") != 0) && (strncmp (path, "nitro:/", 7) != 0)) {
-			printf ("\x1b[0;27H");
-			printf ("\x1B[42m");		// Print green color
-			printf ("_____");	// Clear time
 			consoleSelect(&bottomConsole);
 			consoleClear();
 			printf ("\x1B[47m");		// Print foreground white color
 			iprintf("Delete \"%s\"?\n", entry->name.c_str());
 			printf ("(<A> yes, <B> no)");
+			consoleSelect(&topConsole);
+			printf ("\x1B[42m");		// Print green color for time text
 			while (true) {
+				// Move to right side of screen
+				printf ("\x1b[0;26H");
+				// Print time
+				printf ("_%s" ,RetTime().c_str());
+
 				scanKeys();
 				pressed = keysDownRepeat();
 				swiWaitForVBlank();
 				if (pressed & KEY_A) {
+					consoleSelect(&bottomConsole);
 					consoleClear();
+					printf ("\x1B[47m");		// Print foreground white color
 					if (FAT_getAttr(entry->name.c_str()) & ATTR_READONLY) {
 						printf ("Failed deleting:\n");
 						printf (entry->name.c_str());
@@ -632,7 +656,14 @@ string browseForFile (void) {
 						printf ("\n");
 						printf ("(<A> to continue)");
 						pressed = 0;
+						consoleSelect(&topConsole);
+						printf ("\x1B[42m");		// Print green color for time text
 						while (!(pressed & KEY_A)) {
+							// Move to right side of screen
+							printf ("\x1b[0;26H");
+							// Print time
+							printf ("_%s" ,RetTime().c_str());
+
 							scanKeys();
 							pressed = keysDown();
 							swiWaitForVBlank();

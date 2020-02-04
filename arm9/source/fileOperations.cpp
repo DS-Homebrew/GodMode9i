@@ -5,6 +5,7 @@
 #include <dirent.h>
 #include <vector>
 
+#include "date.h"
 #include "file_browse.h"
 
 using namespace std;
@@ -12,6 +13,8 @@ using namespace std;
 #define copyBufSize 0x8000
 
 u32 copyBuf[copyBufSize];
+
+extern PrintConsole topConsole, bottomConsole;
 
 char clipboard[256];
 char clipboardFilename[256];
@@ -121,6 +124,15 @@ int fcopy(const char *sourcePath, const char *destinationPath)
 				return -1;
 				break;
 			}
+			consoleSelect(&topConsole);
+			printf ("\x1B[42m");		// Print green color
+			// Move to right side of screen
+			printf ("\x1b[0;26H");
+			// Print time
+			printf ("_%s" ,RetTime().c_str());
+
+			consoleSelect(&bottomConsole);
+			printf ("\x1B[47m");		// Print foreground white color
 			printf ("\x1b[16;0H");
 			printf ("Progress:\n");
 			printf ("%i/%i Bytes                       ", (int)offset, (int)fsize);
@@ -182,6 +194,8 @@ void changeFileAttribs(DirEntry* entry) {
 	printf ("\x1b[%i;0H", 9+cursorScreenPos);
 	printf ("(UDRL to change attributes)");
 	while (1) {
+		consoleSelect(&bottomConsole);
+		printf ("\x1B[47m");		// Print foreground white color
 		printf ("\x1b[%i;1H", 5+cursorScreenPos);
 		printf ((newAttribs & ATTR_READONLY) ? "X" : " ");
 		printf ("\x1b[%i;18H", 5+cursorScreenPos);
@@ -193,8 +207,15 @@ void changeFileAttribs(DirEntry* entry) {
 		printf ("\x1b[%i;0H", 11+cursorScreenPos);
 		printf ((currentAttribs==newAttribs) ? "(<A> to continue)            " : "(<A> to apply, <B> to cancel)");
 
+		consoleSelect(&topConsole);
+		printf ("\x1B[42m");		// Print green color
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
+			// Move to right side of screen
+			printf ("\x1b[0;26H");
+			// Print time
+			printf ("_%s" ,RetTime().c_str());
+
 			scanKeys();
 			pressed = keysDown();
 			swiWaitForVBlank();
