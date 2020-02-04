@@ -553,15 +553,20 @@ string browseForFile (void) {
 
 		// Directory options
 		if (entry->isDirectory && (held & KEY_R) && (pressed & KEY_A)) {
-			int getOp = fileBrowse_A(entry, path);
-			if (getOp == 1 || getOp == 2) {
-				getDirectoryContents (dirContents);		// Refresh directory listing
-				if (getOp == 3 && nitroMounted) {
-					screenOffset = 0;
-					fileOffset = 0;
+			if (strcmp(entry->name.c_str(), "..") == 0) {
+				screenMode = 0;
+				return "null";
+			} else {
+				int getOp = fileBrowse_A(entry, path);
+				if (getOp == 1 || getOp == 2) {
+					getDirectoryContents (dirContents);		// Refresh directory listing
+					if (getOp == 3 && nitroMounted) {
+						screenOffset = 0;
+						fileOffset = 0;
+					}
+				} else if (getOp == 4) {
+					for (int i = 0; i < 15; i++) swiWaitForVBlank();
 				}
-			} else if (getOp == 4) {
-				for (int i = 0; i < 15; i++) swiWaitForVBlank();
 			}
 		}
 
@@ -575,11 +580,6 @@ string browseForFile (void) {
 			getDirectoryContents (dirContents);
 			screenOffset = 0;
 			fileOffset = 0;
-		}
-
-		if (strcmp(entry->name.c_str(), "..")==0 && (pressed & KEY_R) && (pressed & KEY_A)) {
-			screenMode = 0;
-			return "null";
 		}
 
 		// Rename file/folder
