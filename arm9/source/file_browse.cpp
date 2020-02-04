@@ -96,19 +96,15 @@ void getDirectoryContents (vector<DirEntry>& dirContents) {
 				if (!dirEntry.isDirectory) {
 					dirEntry.size = getFileSize(dirEntry.name.c_str());
 				}
-				if((dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "nds")
+				dirEntry.isApp =
+				  ((dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "nds")
 				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "NDS")
 				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "argv")
 				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "ARGV")
 				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "dsi")
 				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "DSI")
 				|| (isDSiMode() && is3DS && sdMounted && dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "firm")
-				|| (isDSiMode() && is3DS && sdMounted && dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "FIRM"))
-				{
-					dirEntry.isApp = true;
-				} else {
-					dirEntry.isApp = false;
-				}
+				|| (isDSiMode() && is3DS && sdMounted && dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "FIRM"));
 
 				if (dirEntry.name.compare(".") != 0 && (dirEntry.isDirectory || nameEndsWith(dirEntry.name))) {
 					dirContents.push_back (dirEntry);
@@ -156,7 +152,7 @@ void showDirectoryContents (const vector<DirEntry>& dirContents, int fileOffset,
 		if ((fileOffset - startRow) == i) {
 			printf ("\x1B[47m");		// Print foreground white color
 		} else if (entry->isDirectory) {
-			printf ("\x1B[34m");		// Print background blue color
+			printf ("\x1B[37m");		// Print background white color
 		} else {
 			printf ("\x1B[40m");		// Print foreground black color
 		}
@@ -431,7 +427,7 @@ void fileBrowse_drawBottomScreen(DirEntry* entry) {
 		printf (POWERTEXT);
 	}
 
-	printf (entry->isDirectory ? "\x1B[34m" : "\x1B[40m");		// Print background blue color or foreground black color
+	printf (entry->isDirectory ? "\x1B[37m" : "\x1B[40m");		// Print background white color or foreground black color
 	printf ("\x1b[0;0H");
 	printf ("%s\n", entry->name.c_str());
 	if (strcmp(entry->name.c_str(), "..") != 0) {
@@ -447,7 +443,7 @@ void fileBrowse_drawBottomScreen(DirEntry* entry) {
 		printf ("\x1b[9;0H");
 		printf ("\x1B[47m");		// Print foreground white color
 		printf ("[CLIPBOARD]\n");
-		printf (clipboardFolder ? "\x1B[34m" : "\x1B[40m");		// Print background blue color or foreground black color
+		printf (clipboardFolder ? "\x1B[37m" : "\x1B[40m");		// Print background white color or foreground black color
 		printf (clipboardFilename);
 	}
 }
