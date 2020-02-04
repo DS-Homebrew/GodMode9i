@@ -29,6 +29,7 @@
 #include <dirent.h>
 
 #include <nds.h>
+#include <fat.h>
 
 #include "main.h"
 #include "date.h"
@@ -155,7 +156,7 @@ void showDirectoryContents (const vector<DirEntry>& dirContents, int fileOffset,
 		if ((fileOffset - startRow) == i) {
 			printf ("\x1B[47m");		// Print foreground white color
 		} else if (entry->isDirectory) {
-			printf ("\x1B[31m");		// Print background red color
+			printf ("\x1B[34m");		// Print background blue color
 		} else {
 			printf ("\x1B[40m");		// Print foreground black color
 		}
@@ -386,15 +387,16 @@ void recRemove(DirEntry* entry, std::vector<DirEntry> dirContents) {
 	for (int i = 1; i < ((int)dirContents.size()); i++) {
 		entry = &dirContents.at(i);
 		if (entry->isDirectory)	recRemove(entry, dirContents);
-		remove(entry->name.c_str());
+		if (!(FAT_getAttr(entry->name.c_str()) & ATTR_READONLY)) {
+			remove(entry->name.c_str());
+		}
 	}
 	chdir ("..");
 	remove(startEntry->name.c_str());
 }
 
-void fileBrowse_drawBottomScreen(DirEntry* entry, int fileOffset) {
+void fileBrowse_drawBottomScreen(DirEntry* entry) {
 	consoleClear();
-
 	printf ("\x1B[47m");		// Print foreground white color
 	printf ("\x1b[22;0H");
 	printf ("%s\n", titleName);
@@ -411,7 +413,7 @@ void fileBrowse_drawBottomScreen(DirEntry* entry, int fileOffset) {
 		printf (POWERTEXT);
 	}
 
-	printf ("\x1B[40m");		// Print foreground black color
+	printf (entry->isDirectory ? "\x1B[34m" : "\x1B[40m");		// Print background blue color or foreground black color
 	printf ("\x1b[0;0H");
 	printf ("%s\n", entry->name.c_str());
 	if (strcmp(entry->name.c_str(), "..") != 0) {
@@ -427,7 +429,7 @@ void fileBrowse_drawBottomScreen(DirEntry* entry, int fileOffset) {
 		printf ("\x1b[9;0H");
 		printf ("\x1B[47m");		// Print foreground white color
 		printf ("[CLIPBOARD]\n");
-		printf ("\x1B[40m");		// Print foreground black color
+		printf (clipboardFolder ? "\x1B[34m" : "\x1B[40m");		// Print background blue color or foreground black color
 		printf (clipboardFilename);
 	}
 }
@@ -445,7 +447,7 @@ string browseForFile (void) {
 		DirEntry* entry = &dirContents.at(fileOffset);
 
 		consoleSelect(&bottomConsole);
-		fileBrowse_drawBottomScreen(entry, fileOffset);
+		fileBrowse_drawBottomScreen(entry);
 		consoleSelect(&topConsole);
 		showDirectoryContents (dirContents, fileOffset, screenOffset);
 
@@ -539,15 +541,20 @@ string browseForFile (void) {
 
 		// Directory options
 		if (entry->isDirectory && (held & KEY_R) && (pressed & KEY_A)) {
-			int getOp = fileBrowse_A(entry, path);
-			if (getOp == 1 || getOp == 2) {
-				getDirectoryContents (dirContents);		// Refresh directory listing
-				if (getOp == 3 && nitroMounted) {
-					screenOffset = 0;
-					fileOffset = 0;
+			if (strcmp(entry->name.c_str(), "..") == 0) {
+				screenMode = 0;
+				return "null";
+			} else {
+				int getOp = fileBrowse_A(entry, path);
+				if (getOp == 1 || getOp == 2) {
+					getDirectoryContents (dirContents);		// Refresh directory listing
+					if (getOp == 3 && nitroMounted) {
+						screenOffset = 0;
+						fileOffset = 0;
+					}
+				} else if (getOp == 4) {
+					for (int i = 0; i < 15; i++) swiWaitForVBlank();
 				}
-			} else if (getOp == 4) {
-				for (int i = 0; i < 15; i++) swiWaitForVBlank();
 			}
 		}
 
@@ -561,11 +568,6 @@ string browseForFile (void) {
 			getDirectoryContents (dirContents);
 			screenOffset = 0;
 			fileOffset = 0;
-		}
-
-		if (strcmp(entry->name.c_str(), "..")==0 && (pressed & KEY_R) && (pressed & KEY_A)) {
-			screenMode = 0;
-			return "null";
 		}
 
 		// Rename file/folder
@@ -623,21 +625,36 @@ string browseForFile (void) {
 				swiWaitForVBlank();
 				if (pressed & KEY_A) {
 					consoleClear();
-					if (entry->isDirectory) {
-						printf ("Deleting folder, please wait...");
-						recRemove(entry, dirContents);
+					if (FAT_getAttr(entry->name.c_str()) & ATTR_READONLY) {
+						printf ("Failed deleting:\n");
+						printf (entry->name.c_str());
+						printf ("\n");
+						printf ("\n");
+						printf ("(<A> to continue)");
+						pressed = 0;
+						while (!(pressed & KEY_A)) {
+							scanKeys();
+							pressed = keysDown();
+							swiWaitForVBlank();
+						}
+						for (int i = 0; i < 15; i++) swiWaitForVBlank();
 					} else {
-						printf ("Deleting file, please wait...");
-						remove(entry->name.c_str());
+						if (entry->isDirectory) {
+							printf ("Deleting folder, please wait...");
+							recRemove(entry, dirContents);
+						} else {
+							printf ("Deleting file, please wait...");
+							remove(entry->name.c_str());
+						}
+						char filePath[256];
+						snprintf(filePath, sizeof(filePath), "%s%s", path, entry->name.c_str());
+						if (strcmp(filePath, clipboard) == 0) {
+							clipboardUsed = false;	// Disable clipboard restore
+							clipboardOn = false;
+						}
+						getDirectoryContents (dirContents);
+						fileOffset--;
 					}
-					char filePath[256];
-					snprintf(filePath, sizeof(filePath), "%s%s", path, entry->name.c_str());
-					if (strcmp(filePath, clipboard) == 0) {
-						clipboardUsed = false;	// Disable clipboard restore
-						clipboardOn = false;
-					}
-					getDirectoryContents (dirContents);
-					fileOffset--;
 					pressed = 0;
 					break;
 				}
@@ -722,7 +739,7 @@ string browseForFile (void) {
 			// Seamlessly swap top and bottom screens
 			lcdMainOnBottom();
 			consoleSelect(&bottomConsole);
-			fileBrowse_drawBottomScreen(entry, fileOffset);
+			fileBrowse_drawBottomScreen(entry);
 			consoleSelect(&topConsole);
 			showDirectoryContents (dirContents, fileOffset, screenOffset);
 			printf("\x1B[42m");		// Print green color for time text

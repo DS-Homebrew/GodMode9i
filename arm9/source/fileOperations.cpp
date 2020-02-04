@@ -126,8 +126,8 @@ int fcopy(const char *sourcePath, const char *destinationPath)
 			printf ("%i/%i Bytes                       ", (int)offset, (int)fsize);
 
 			// Copy file to destination path
-			numr = fread(copyBuf, 2, copyBufSize, sourceFile);
-			fwrite(copyBuf, 2, numr, destinationFile);
+			numr = fread(copyBuf, 1, copyBufSize, sourceFile);
+			fwrite(copyBuf, 1, numr, destinationFile);
 			offset += copyBufSize;
 
 			if (offset > fsize) {
@@ -150,36 +150,47 @@ int fcopy(const char *sourcePath, const char *destinationPath)
 void changeFileAttribs(DirEntry* entry) {
 	consoleClear();
 	int pressed = 0;
+	int cursorScreenPos = 0;
 	uint8_t currentAttribs = FAT_getAttr(entry->name.c_str());
 	uint8_t newAttribs = currentAttribs;
+
+	// Position cursor, depending on how long the file name is
+	for (int i = 0; i < 256; i++) {
+		if (i == 33 || i == 65 || i == 97 || i == 129 || i == 161 || i == 193 || i == 225) {
+			cursorScreenPos++;
+		}
+		if (entry->name.c_str()[i] == '\0') {
+			break;
+		}
+	}
 
 	printf ("\x1b[0;0H");
 	printf (entry->name.c_str());
 	if (!entry->isDirectory) {
-		printf ("\x1b[3;0H");
+		printf ("\x1b[%i;0H", 3+cursorScreenPos);
 		printf ("filesize: ");
 		printBytes(entry->size);
 	}
-	printf ("\x1b[5;0H");
+	printf ("\x1b[%i;0H", 5+cursorScreenPos);
 	printf ("[ ] U read-only  [ ] D hidden");
-	printf ("\x1b[6;0H");
+	printf ("\x1b[%i;0H", 6+cursorScreenPos);
 	printf ("[ ] R system     [ ] L archive");
-	printf ("\x1b[7;0H");
+	printf ("\x1b[%i;0H", 7+cursorScreenPos);
 	printf ("[ ]   virtual");
-	printf ("\x1b[7;1H");
+	printf ("\x1b[%i;1H", 7+cursorScreenPos);
 	printf ((newAttribs & ATTR_VOLUME) ? "X" : " ");
-	printf ("\x1b[9;0H");
+	printf ("\x1b[%i;0H", 9+cursorScreenPos);
 	printf ("(UDRL to change attributes)");
 	while (1) {
-		printf ("\x1b[5;1H");
+		printf ("\x1b[%i;1H", 5+cursorScreenPos);
 		printf ((newAttribs & ATTR_READONLY) ? "X" : " ");
-		printf ("\x1b[5;18H");
+		printf ("\x1b[%i;18H", 5+cursorScreenPos);
 		printf ((newAttribs & ATTR_HIDDEN) ? "X" : " ");
-		printf ("\x1b[6;1H");
+		printf ("\x1b[%i;1H", 6+cursorScreenPos);
 		printf ((newAttribs & ATTR_SYSTEM) ? "X" : " ");
-		printf ("\x1b[6;18H");
+		printf ("\x1b[%i;18H", 6+cursorScreenPos);
 		printf ((newAttribs & ATTR_ARCHIVE) ? "X" : " ");
-		printf ("\x1b[11;0H");
+		printf ("\x1b[%i;0H", 11+cursorScreenPos);
 		printf ((currentAttribs==newAttribs) ? "(<A> to continue)            " : "(<A> to apply, <B> to cancel)");
 
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
