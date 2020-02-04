@@ -1,5 +1,7 @@
 #include <nds.h>
 
+#include "file_browse.h"
+
 #ifndef FILE_COPY
 #define FILE_COPY
 
@@ -15,5 +17,6 @@ extern void printBytes(int bytes);
 
 extern off_t getFileSize(const char *fileName);
 extern int fcopy(const char *sourcePath, const char *destinationPath);
+void changeFileAttribs(DirEntry* entry);
 
 #endif // FILE_COPY

@@ -1,5 +1,6 @@
 #include "fileOperations.h"
 #include <nds.h>
+#include <fat.h>
 #include <stdio.h>
 #include <dirent.h>
 #include <vector>
@@ -143,5 +144,91 @@ int fcopy(const char *sourcePath, const char *destinationPath)
 		}
 
 		return -1;
+	}
+}
+
+void changeFileAttribs(DirEntry* entry) {
+	consoleClear();
+	int pressed = 0;
+	uint8_t currentAttribs = FAT_getAttr(entry->name.c_str());
+	uint8_t newAttribs = currentAttribs;
+
+	printf ("\x1b[0;0H");
+	printf (entry->name.c_str());
+	if (!entry->isDirectory) {
+		printf ("\x1b[3;0H");
+		printf ("filesize: ");
+		printBytes(entry->size);
+	}
+	printf ("\x1b[5;0H");
+	printf ("[ ] U read-only  [ ] D hidden");
+	printf ("\x1b[6;0H");
+	printf ("[ ] R system     [ ] L archive");
+	printf ("\x1b[7;0H");
+	printf ("[ ]   virtual");
+	printf ("\x1b[7;1H");
+	printf ((newAttribs & ATTR_VOLUME) ? "X" : " ");
+	printf ("\x1b[9;0H");
+	printf ("(UDRL to change attributes)");
+	while (1) {
+		printf ("\x1b[5;1H");
+		printf ((newAttribs & ATTR_READONLY) ? "X" : " ");
+		printf ("\x1b[5;18H");
+		printf ((newAttribs & ATTR_HIDDEN) ? "X" : " ");
+		printf ("\x1b[6;1H");
+		printf ((newAttribs & ATTR_SYSTEM) ? "X" : " ");
+		printf ("\x1b[6;18H");
+		printf ((newAttribs & ATTR_ARCHIVE) ? "X" : " ");
+		printf ("\x1b[11;0H");
+		printf ((currentAttribs==newAttribs) ? "(<A> to continue)            " : "(<A> to apply, <B> to cancel)");
+
+		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
+		do {
+			scanKeys();
+			pressed = keysDown();
+			swiWaitForVBlank();
+		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN) && !(pressed & KEY_RIGHT) && !(pressed & KEY_LEFT)
+				&& !(pressed & KEY_A) && !(pressed & KEY_B));
+
+		if (pressed & KEY_UP) {
+			if (newAttribs & ATTR_READONLY) {
+				newAttribs -= ATTR_READONLY;
+			} else {
+				newAttribs += ATTR_READONLY;
+			}
+		}
+
+		if (pressed & KEY_DOWN) {
+			if (newAttribs & ATTR_HIDDEN) {
+				newAttribs -= ATTR_HIDDEN;
+			} else {
+				newAttribs += ATTR_HIDDEN;
+			}
+		}
+
+		if (pressed & KEY_RIGHT) {
+			if (newAttribs & ATTR_SYSTEM) {
+				newAttribs -= ATTR_SYSTEM;
+			} else {
+				newAttribs += ATTR_SYSTEM;
+			}
+		}
+
+		if (pressed & KEY_LEFT) {
+			if (newAttribs & ATTR_ARCHIVE) {
+				newAttribs -= ATTR_ARCHIVE;
+			} else {
+				newAttribs += ATTR_ARCHIVE;
+			}
+		}
+
+		if ((pressed & KEY_A) && (currentAttribs!=newAttribs)) {
+			FAT_setAttr(entry->name.c_str(), newAttribs);
+			break;
+		}
+
+		if ((pressed & KEY_A) || (pressed & KEY_B)) {
+			break;
+		}
 	}
 }

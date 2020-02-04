@@ -181,7 +181,7 @@ void showDirectoryContents (const vector<DirEntry>& dirContents, int fileOffset,
 
 int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 	int pressed = 0;
-	int assignedOp[3] = {0};
+	int assignedOp[4] = {0};
 	int optionOffset = 0;
 	int cursorScreenPos = 0;
 	int maxCursors = -1;
@@ -216,6 +216,9 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 		assignedOp[maxCursors] = 3;
 		printf("   Mount NitroFS\n");
 	}
+	maxCursors++;
+	assignedOp[maxCursors] = 4;
+	printf(entry->isDirectory ? "   Show directory info\n" : "   Show file info\n");
 	if (sdMounted && (strcmp (path, "sd:/gm9i/out/") != 0)) {
 		maxCursors++;
 		assignedOp[maxCursors] = 1;
@@ -295,6 +298,8 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					chdir("nitro:/");
 					nitroSecondaryDrive = secondaryDrive;
 				}
+			} else if (assignedOp[optionOffset] == 4) {
+				changeFileAttribs(entry);
 			}
 			return assignedOp[optionOffset];
 		}
@@ -536,6 +541,8 @@ string browseForFile (void) {
 						screenOffset = 0;
 						fileOffset = 0;
 					}
+				} else if (getOp == 4) {
+					for (int i = 0; i < 15; i++) swiWaitForVBlank();
 				}
 			}
 		}
