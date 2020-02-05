@@ -21,7 +21,7 @@ char clipboardFilename[256];
 bool clipboardFolder = false;
 bool clipboardOn = false;
 bool clipboardUsed = false;
-bool clipboardDrive = false;	// false == SD card, true == Flashcard
+int clipboardDrive = false;	// 0 == SD card, 1 == Flashcard, 2 == RAMdrive 1, 3 == RAMdrive 2
 bool clipboardInNitro = false;
 
 void printBytes(int bytes)

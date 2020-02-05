@@ -10,7 +10,7 @@ extern char clipboardFilename[256];
 extern bool clipboardFolder;
 extern bool clipboardOn;
 extern bool clipboardUsed;
-extern bool clipboardDrive;	// false == SD card, true == Flashcard
+extern int clipboardDrive;	// 0 == SD card, 1 == Flashcard, 2 == RAMdrive 1, 3 == RAMdrive 2
 extern bool clipboardInNitro;
 
 extern void printBytes(int bytes);

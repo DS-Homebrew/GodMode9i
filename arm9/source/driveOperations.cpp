@@ -7,6 +7,10 @@
 
 #include "main.h"
 #include "dldi-include.h"
+#include "lzss.h"
+#include "ramd.h"
+#include "ramdrive-include.h"
+#include "tonccpy.h"
 
 static sNDSHeader nds;
 
@@ -17,16 +21,31 @@ static bool slot1Enabled = true;
 bool sdMounted = false;
 bool sdMountedDone = false;				// true if SD mount is successful once
 bool flashcardMounted = false;
+bool ramdrive1Mounted = false;
+bool ramdrive2Mounted = false;
 bool nitroMounted = false;
 
-bool secondaryDrive = false;				// false == SD card, true == Flashcard
-bool nitroSecondaryDrive = false;			// false == SD card, true == Flashcard
+int currentDrive = 0;						// 0 == SD card, 1 == Flashcard, 2 == RAMdrive 1, 3 == RAMdrive 2
+int nitroCurrentDrive = 0;
 
 char sdLabel[12];
 char fatLabel[12];
 
 int sdSize = 0;
 int fatSize = 0;
+
+const char* getDrivePath(void) {
+	switch (currentDrive) {
+		case 0:
+			return "sd:/";
+		case 1:
+			return "fat:/";
+		case 2:
+			return "ram1:/";
+		case 3:
+			return "ram2:/";
+	}
+}
 
 void fixLabel(bool fat) {
 	if (fat) {
@@ -115,7 +134,7 @@ TWL_CODE DLDI_INTERFACE* dldiLoadFromBin (const u8 dldiAddr[]) {
 	dldiSize = (dldiSize + 0x03) & ~0x03; 		// Round up to nearest integer multiple
 	
 	// Clear unused space
-	memset(device+dldiSize, 0, 0x4000-dldiSize);
+	toncset(device+dldiSize, 0, 0x4000-dldiSize);
 
 	dldiFixDriverAddresses (device);
 
@@ -131,10 +150,10 @@ TWL_CODE DLDI_INTERFACE* dldiLoadFromBin (const u8 dldiAddr[]) {
 
 TWL_CODE bool UpdateCardInfo(char* gameid, char* gamename) {
 	cardReadHeader((uint8*)0x02000000);
-	memcpy(&nds, (void*)0x02000000, sizeof(sNDSHeader));
-	memcpy(gameid, &nds.gameCode, 4);
+	tonccpy(&nds, (void*)0x02000000, sizeof(sNDSHeader));
+	tonccpy(gameid, &nds.gameCode, 4);
 	gameid[4] = 0x00;
-	memcpy(gamename, &nds.gameTitle, 12);
+	tonccpy(gamename, &nds.gameTitle, 12);
 	gamename[12] = 0x00;
 	return true;
 }
@@ -175,7 +194,7 @@ TWL_CODE bool twl_flashcardMount(void) {
 		for (int i = 0; i < 10; i++) {
 			swiWaitForVBlank();
 		}
-		memcpy(&nds, (void*)0x02000000, sizeof(nds));*/
+		tonccpy(&nds, (void*)0x02000000, sizeof(nds));*/
 		UpdateCardInfo(&gameid[0], &gamename[0]);
 
 		/*consoleClear();
@@ -252,4 +271,16 @@ void flashcardUnmount(void) {
 	fatLabel[0] = '\0';
 	fatSize = 0;
 	flashcardMounted = false;
+}
+
+TWL_CODE void ramdrive1Mount(void) {
+	LZ77_Decompress((u8*)__9MB_lz77, (u8*)0x02500000);
+	fatMountSimple("ram1", &io_ram_drive);
+	ramdrive1Mounted = (access("ram1:/", F_OK) == 0);
+}
+
+TWL_CODE void ramdrive2Mount(void) {
+	LZ77_Decompress((u8*)__16MB_lz77, (u8*)0x0D000000);
+	fatMountSimple("ram2", &io_ram_drive2);
+	ramdrive2Mounted = (access("ram2:/", F_OK) == 0);
 }

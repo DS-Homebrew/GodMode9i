@@ -47,7 +47,7 @@ bool flashcardMountSkipped = true;
 static bool flashcardMountRan = true;
 static bool dmTextPrinted = false;
 static int dmCursorPosition = 0;
-static int dmAssignedOp[4] = {-1};
+static int dmAssignedOp[6] = {-1};
 static int dmMaxCursors = -1;
 
 static u8 gbaFixedValue = 0;
@@ -111,14 +111,24 @@ void dm_drawTopScreen(void) {
 			}
 		} else if (dmAssignedOp[i] == 3) {
 			printf ("[nitro:] NDS GAME IMAGE");
-			if ((!sdMounted && !nitroSecondaryDrive)
-			|| (!flashcardMounted && nitroSecondaryDrive))
+			if ((sdMounted && nitroCurrentDrive==0)
+			|| (flashcardMounted && nitroCurrentDrive==1)
+			|| (ramdrive1Mounted && nitroCurrentDrive==2)
+			|| (ramdrive2Mounted && nitroCurrentDrive==3))
+			{
+				// Do nothing
+			}
+			else
 			{
 				iprintf ("\x1b[%d;29H", i + ENTRIES_START_ROW);
 				printf ("[x]");
 			}
 		} else if (dmAssignedOp[i] == 4) {
 			printf ("NDS GAMECARD");
+		} else if (dmAssignedOp[i] == 5) {
+			printf ("[ram1:] RAMDRIVE");
+		} else if (dmAssignedOp[i] == 6) {
+			printf ("[ram2:] RAMDRIVE");
 		}
 	}
 }
@@ -182,6 +192,12 @@ void dm_drawBottomScreen(void) {
 	} else if (dmAssignedOp[dmCursorPosition] == 4) {
 		printf ("NDS GAMECARD\n");
 		printf ("(NDS Game)");
+	} else if (dmAssignedOp[dmCursorPosition] == 5) {
+		printf ("[ram1:] RAMDRIVE\n");
+		printf ("(RAMdrive FAT)");
+	} else if (dmAssignedOp[dmCursorPosition] == 6) {
+		printf ("[ram2:] RAMDRIVE\n");
+		printf ("(RAMdrive FAT)");
 	}
 }
 
@@ -194,7 +210,7 @@ void driveMenu (void) {
 			gbaFixedValue = *(u8*)(0x080000B2);
 		}
 
-		for (int i = 0; i < 4; i++) {
+		for (int i = 0; i < 6; i++) {
 			dmAssignedOp[i] = -1;
 		}
 		dmMaxCursors = -1;
@@ -205,6 +221,14 @@ void driveMenu (void) {
 		if (flashcardMounted) {
 			dmMaxCursors++;
 			dmAssignedOp[dmMaxCursors] = 1;
+		}
+		if (ramdrive1Mounted) {
+			dmMaxCursors++;
+			dmAssignedOp[dmMaxCursors] = 5;
+		}
+		if (ramdrive2Mounted) {
+			dmMaxCursors++;
+			dmAssignedOp[dmMaxCursors] = 6;
 		}
 		if (((*(u32*)io_dldi_data+(0x64/4)) & FEATURE_SLOT_GBA) || !(REG_SCFG_MC & BIT(0))) {
 			dmMaxCursors++;
@@ -277,13 +301,13 @@ void driveMenu (void) {
 		if (pressed & KEY_A) {
 			if (dmAssignedOp[dmCursorPosition] == 0 && isDSiMode() && sdMounted) {
 				dmTextPrinted = false;
-				secondaryDrive = false;
+				currentDrive = 0;
 				chdir("sd:/");
 				screenMode = 1;
 				break;
 			} else if (dmAssignedOp[dmCursorPosition] == 1 && flashcardMounted) {
 				dmTextPrinted = false;
-				secondaryDrive = true;
+				currentDrive = 1;
 				chdir("fat:/");
 				screenMode = 1;
 				break;
@@ -291,11 +315,13 @@ void driveMenu (void) {
 				dmTextPrinted = false;
 				gbaCartDump();
 			} else if (dmAssignedOp[dmCursorPosition] == 3 && nitroMounted) {
-				if ((sdMounted && !nitroSecondaryDrive)
-				|| (flashcardMounted && nitroSecondaryDrive))
+				if ((sdMounted && nitroCurrentDrive==0)
+				|| (flashcardMounted && nitroCurrentDrive==1)
+				|| (ramdrive1Mounted && nitroCurrentDrive==2)
+				|| (ramdrive2Mounted && nitroCurrentDrive==3))
 				{
 					dmTextPrinted = false;
-					secondaryDrive = nitroSecondaryDrive;
+					currentDrive = nitroCurrentDrive;
 					chdir("nitro:/");
 					screenMode = 1;
 					break;
@@ -303,6 +329,18 @@ void driveMenu (void) {
 			} else if (dmAssignedOp[dmCursorPosition] == 4) {
 				dmTextPrinted = false;
 				ndsCardDump();
+			} else if (dmAssignedOp[dmCursorPosition] == 5 && isDSiMode() && ramdrive1Mounted) {
+				dmTextPrinted = false;
+				currentDrive = 2;
+				chdir("ram1:/");
+				screenMode = 1;
+				break;
+			} else if (dmAssignedOp[dmCursorPosition] == 6 && isDSiMode() && ramdrive2Mounted) {
+				dmTextPrinted = false;
+				currentDrive = 3;
+				chdir("ram2:/");
+				screenMode = 1;
+				break;
 			}
 		}
 

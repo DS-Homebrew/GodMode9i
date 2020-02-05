@@ -19,15 +19,15 @@ include $(DEVKITARM)/ds_rules
 #---------------------------------------------------------------------------------
 TARGET		:=	GodMode9i
 BUILD		:=	build
-SOURCES		:=	source dldi-include
-INCLUDES	:=	include dldi-include source
+SOURCES		:=	source dldi-include ramdrive-include
+INCLUDES	:=	include dldi-include ramdrive-include source
 DATA		:=	../data
 GRAPHICS	:=  ../gfx
 
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
-ARCH	:=	-mthumb -mthumb-interwork
+ARCH	:=	-mthumb-interwork
 
 CFLAGS	:=	-g -Wall -O2\
  		-march=armv5te -mtune=arm946e-s -fomit-frame-pointer\

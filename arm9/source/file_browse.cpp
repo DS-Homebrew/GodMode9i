@@ -310,7 +310,7 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 				nitroMounted = nitroFSInit(entry->name.c_str());
 				if (nitroMounted) {
 					chdir("nitro:/");
-					nitroSecondaryDrive = secondaryDrive;
+					nitroCurrentDrive = currentDrive;
 				}
 			} else if (assignedOp[optionOffset] == 4) {
 				changeFileAttribs(entry);
@@ -385,7 +385,7 @@ bool fileBrowse_paste(char destPath[256]) {
 				fcopy(clipboard, destPath);
 			} else {
 				printf("Moving...");
-				if (secondaryDrive == clipboardDrive) {
+				if (currentDrive == clipboardDrive) {
 					rename(clipboard, destPath);
 				} else {
 					fcopy(clipboard, destPath);		// Copy file to destination, since renaming won't work
@@ -503,7 +503,7 @@ string browseForFile (void) {
 		printf ("\x1B[47m");		// Print foreground white color
 		iprintf ("\x1b[%d;0H", fileOffset - screenOffset + ENTRIES_START_ROW);
 
-		if (isDSiMode() && !pressed && secondaryDrive && REG_SCFG_MC == 0x11 && flashcardMounted) {
+		if (isDSiMode() && !pressed && currentDrive == 1 && REG_SCFG_MC == 0x11 && flashcardMounted) {
 			flashcardUnmount();
 			screenMode = 0;
 			return "null";
@@ -532,7 +532,7 @@ string browseForFile (void) {
 
 		if ((!(held & KEY_R) && (pressed & KEY_A))
 		|| (!entry->isDirectory && (held & KEY_R) && (pressed & KEY_A))) {
-			if (((strcmp (entry->name.c_str(), "..") == 0) && (strcmp (path, (secondaryDrive ? "fat:/" : "sd:/")) == 0))
+			if (((strcmp (entry->name.c_str(), "..") == 0) && (strcmp (path, getDrivePath()) == 0))
 			|| ((strcmp (entry->name.c_str(), "..") == 0) && (strcmp (path, "nitro:/") == 0)))
 			{
 				screenMode = 0;
@@ -581,7 +581,7 @@ string browseForFile (void) {
 		}
 
 		if (pressed & KEY_B) {
-			if ((strcmp (path, "sd:/") == 0) || (strcmp (path, "fat:/") == 0) || (strcmp (path, "nitro:/") == 0)) {
+			if ((strcmp (path, getDrivePath()) == 0) || (strcmp (path, "nitro:/") == 0)) {
 				screenMode = 0;
 				return "null";
 			}
@@ -758,7 +758,7 @@ string browseForFile (void) {
 				snprintf(clipboardFilename, sizeof(clipboardFilename), "%s", entry->name.c_str());
 				clipboardFolder = entry->isDirectory;
 				clipboardOn = true;
-				clipboardDrive = secondaryDrive;
+				clipboardDrive = currentDrive;
 				clipboardInNitro = (strncmp (path, "nitro:/", 7) == 0);
 				clipboardUsed = true;
 			}

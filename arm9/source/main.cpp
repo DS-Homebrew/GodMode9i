@@ -174,7 +174,11 @@ int main(int argc, char **argv) {
 			yHeld = true;
 		}
 		sdMounted = sdMount();
+		ramdrive1Mount();
 		*(vu32*)(0x0DFFFE0C) = 0x474D3969;		// Check for 32MB of RAM
+		if (*(vu32*)(0x0DFFFE0C) == 0x474D3969) {
+			ramdrive2Mount();
+		}
 		is3DS = ((access("sd:/Nintendo 3DS", F_OK) == 0) && (*(vu32*)(0x0DFFFE0C) == 0x474D3969));
 	}
 	if (!isDSiMode() || !yHeld) {
