@@ -45,7 +45,7 @@
 #define OPTIONS_ENTRIES_START_ROW 2
 #define ENTRY_PAGE_LENGTH 10
 bool bigJump = false;
-extern PrintConsole topConsole, bottomConsole;
+extern PrintConsole topConsole, bottomConsoleBG, bottomConsole;
 
 extern void printBorderTop(void);
 extern void printBorderBottom(void);
@@ -614,6 +614,7 @@ string browseForFile (void) {
 			keyboardHide();
 			consoleClear();
 
+			consoleInit(&bottomConsoleBG, 1, BgType_Text4bpp, BgSize_T_256x256, 7, 0, false, true);
 			consoleInit(&bottomConsole, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
 
 			if (newName[0] != '\0') {
@@ -724,6 +725,7 @@ string browseForFile (void) {
 			keyboardHide();
 			consoleClear();
 
+			consoleInit(&bottomConsoleBG, 1, BgType_Text4bpp, BgSize_T_256x256, 7, 0, false, true);
 			consoleInit(&bottomConsole, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
 
 			if (newName[0] != '\0') {
