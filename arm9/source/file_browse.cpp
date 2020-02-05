@@ -544,7 +544,7 @@ string browseForFile (void) {
 				screenMode = 0;
 				return "null";
 			} else if (entry->isDirectory) {
-				iprintf("Entering directory\n");
+				iprintf("Entering directory ");
 				// Enter selected directory
 				chdir (entry->name.c_str());
 				getDirectoryContents (dirContents);
