@@ -170,19 +170,17 @@ void dm_drawBottomScreen(void) {
 		if (sdLabel[0] != '\0') {
 			iprintf (" (%s)", sdLabel);
 		}
-		printf ("\n(SD FAT)");
-		//printf ("\n(SD FAT, ");
-		//printBytes(sdSize);
-		//printf(")");
+		printf ("\n(SD FAT, ");
+		printDriveBytes(sdSize);
+		printf(")");
 	} else if (dmAssignedOp[dmCursorPosition] == 1) {
 		printf ("[fat:] FLASHCART");
 		if (fatLabel[0] != '\0') {
 			iprintf (" (%s)", fatLabel);
 		}
-		printf ("\n(Slot-1 SD FAT)");
-		//printf ("\n(Slot-1 SD FAT, ");
-		//printBytes(fatSize);
-		//printf(")");
+		printf ("\n(Slot-1 SD FAT, ");
+		printDriveBytes(fatSize);
+		printf(")");
 	} else if (dmAssignedOp[dmCursorPosition] == 2) {
 		printf ("GBA GAMECART\n");
 		printf ("(GBA Game)");
@@ -194,10 +192,10 @@ void dm_drawBottomScreen(void) {
 		printf ("(NDS Game)");
 	} else if (dmAssignedOp[dmCursorPosition] == 5) {
 		printf ("[ram1:] RAMDRIVE\n");
-		printf ("(RAMdrive FAT)");
+		printf ("(RAMdrive FAT, 9 MB)");
 	} else if (dmAssignedOp[dmCursorPosition] == 6) {
 		printf ("[ram2:] RAMDRIVE\n");
-		printf ("(RAMdrive FAT)");
+		printf ("(RAMdrive FAT, 16 MB)");
 	}
 }
 

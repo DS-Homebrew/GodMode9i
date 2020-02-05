@@ -16,8 +16,9 @@ extern int nitroCurrentDrive;
 extern char sdLabel[12];
 extern char fatLabel[12];
 
-extern int sdSize;
-extern int fatSize;
+extern u64 sdSize;
+extern u64 fatSize;
+extern void printDriveBytes(u64 bytes);
 
 extern const char* getDrivePath(void);
 

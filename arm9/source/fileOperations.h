@@ -14,6 +14,7 @@ extern int clipboardDrive;	// 0 == SD card, 1 == Flashcard, 2 == RAMdrive 1, 3 =
 extern bool clipboardInNitro;
 
 extern void printBytes(int bytes);
+extern void printBytesAlign(int bytes);
 
 extern off_t getFileSize(const char *fileName);
 extern int fcopy(const char *sourcePath, const char *destinationPath);

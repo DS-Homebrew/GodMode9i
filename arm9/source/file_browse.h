@@ -29,7 +29,7 @@ using namespace std;
 
 struct DirEntry {
 	string name;
-	off_t size;
+	size_t size;
 	bool isDirectory;
 	bool isApp;
 } ;

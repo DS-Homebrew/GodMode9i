@@ -31,8 +31,45 @@ int nitroCurrentDrive = 0;
 char sdLabel[12];
 char fatLabel[12];
 
-int sdSize = 0;
-int fatSize = 0;
+u64 sdSize = 0;
+u64 fatSize = 0;
+
+static int getGbNumber(u64 bytes) {
+	int gbNumber = 0;
+	for (u64 i = 0; i <= bytes; i += 0x40000000) {
+		gbNumber++;
+	}
+	return gbNumber;
+}
+
+static int getTbNumber(u64 bytes) {
+	int tbNumber = 0;
+	for (u64 i = 0; i <= bytes; i += 0x10000000000) {
+		tbNumber++;
+	}
+	return tbNumber;
+}
+
+void printDriveBytes(u64 bytes)
+{
+	if (bytes == 1)
+		iprintf("%d Byte", (int)bytes);
+
+	else if (bytes >= 0 && bytes < 1024)
+		iprintf("%d Bytes", (int)bytes);
+
+	else if (bytes >= 1024 && bytes < (1024 * 1024))
+		printf("%d KB", (int)bytes / 1024);
+
+	else if (bytes >= (1024 * 1024) && bytes < (1024 * 1024 * 1024))
+		printf("%d MB", (int)bytes / 1024 / 1024);
+
+	else if (bytes >= 0x40000000 && bytes < 0x10000000000)
+		printf("%d GB", getGbNumber(bytes));
+
+	else
+		printf("%d TB", getTbNumber(bytes));
+}
 
 const char* getDrivePath(void) {
 	switch (currentDrive) {
@@ -45,6 +82,7 @@ const char* getDrivePath(void) {
 		case 3:
 			return "ram2:/";
 	}
+	return "";
 }
 
 void fixLabel(bool fat) {
@@ -99,10 +137,10 @@ TWL_CODE bool sdMount(void) {
 		sdMountedDone = true;
 		fatGetVolumeLabel("sd", sdLabel);
 		fixLabel(false);
-		/*struct statvfs st;
+		struct statvfs st;
 		if (statvfs("sd:/", &st) == 0) {
 			sdSize = st.f_bsize * st.f_blocks;
-		}*/
+		}
 		return true;
 	}
 	return false;
@@ -238,10 +276,10 @@ TWL_CODE bool twl_flashcardMount(void) {
 		if (flashcardFound()) {
 			fatGetVolumeLabel("fat", fatLabel);
 			fixLabel(true);
-			/*struct statvfs st;
+			struct statvfs st;
 			if (statvfs("fat:/", &st) == 0) {
 				fatSize = st.f_bsize * st.f_blocks;
-			}*/
+			}
 			return true;
 		}
 	}
@@ -254,10 +292,10 @@ bool flashcardMount(void) {
 		if (flashcardFound()) {
 			fatGetVolumeLabel("fat", fatLabel);
 			fixLabel(true);
-			/*struct statvfs st;
+			struct statvfs st;
 			if (statvfs("fat:/", &st) == 0) {
 				fatSize = st.f_bsize * st.f_blocks;
-			}*/
+			}
 			return true;
 		}
 		return false;

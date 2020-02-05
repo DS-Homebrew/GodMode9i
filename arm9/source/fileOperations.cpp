@@ -27,15 +27,33 @@ bool clipboardInNitro = false;
 void printBytes(int bytes)
 {
 	if (bytes == 1)
+		iprintf("%d Byte", bytes);
+
+	else if (bytes < 1024)
+		iprintf("%d Bytes", bytes);
+
+	else if (bytes < (1024 * 1024))
+		printf("%d KB", bytes / 1024);
+
+	else if (bytes < (1024 * 1024 * 1024))
+		printf("%d MB", bytes / 1024 / 1024);
+
+	else
+		printf("%d GB", bytes / 1024 / 1024 / 1024);
+}
+
+void printBytesAlign(int bytes)
+{
+	if (bytes == 1)
 		iprintf("%4d Byte", bytes);
 
 	else if (bytes < 1024)
 		iprintf("%3d Bytes", bytes);
 
-	else if (bytes < 1024 * 1024)
+	else if (bytes < (1024 * 1024))
 		printf("%6d KB", bytes / 1024);
 
-	else if (bytes < 1024 * 1024 * 1024)
+	else if (bytes < (1024 * 1024 * 1024))
 		printf("%6d MB", bytes / 1024 / 1024);
 
 	else

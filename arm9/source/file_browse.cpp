@@ -181,7 +181,7 @@ void showDirectoryContents (const vector<DirEntry>& dirContents, int fileOffset,
 			printf ("(dir)");
 		} else {
 			printf ("\x1b[%d;23H", i + ENTRIES_START_ROW);
-			printBytes((int)entry->size);
+			printBytesAlign((int)entry->size);
 		}
 	}
 
