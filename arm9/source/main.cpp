@@ -116,10 +116,8 @@ void reinitConsoles(void) {
 	BG_PALETTE_SUB[15+(7*16)] = 0x656A;
 
 	// Overwrite 2nd smiley face with filled tile
-	for (int i = 0; i < 8*8; i++) {
-		*(u8*)(0x6000040+i) = 0xFF;	// Top screen
-		*(u8*)(0x6200040+i) = 0xFF;	// Bottom screen
-	}
+	dmaFillWords(0xFFFFFFFF, (void*)0x6000040, 8*8);	// Top screen
+	dmaFillWords(0xFFFFFFFF, (void*)0x6200040, 8*8);	// Bottom screen
 
 	printBorderTop();
 }
@@ -223,10 +221,8 @@ int main(int argc, char **argv) {
 	BG_PALETTE_SUB[15+(7*16)] = 0x656A;
 
 	// Overwrite 2nd smiley face with filled tile
-	for (int i = 0; i < 8*8; i++) {
-		*(u8*)(0x6000040+i) = 0xFF;	// Top screen
-		*(u8*)(0x6200040+i) = 0xFF;	// Bottom screen
-	}
+	dmaFillWords(0xFFFFFFFF, (void*)0x6000040, 8*8);	// Top screen
+	dmaFillWords(0xFFFFFFFF, (void*)0x6200040, 8*8);	// Bottom screen
 
 	printBorderTop();
 
