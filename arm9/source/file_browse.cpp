@@ -431,7 +431,9 @@ void fileBrowse_drawBottomScreen(DirEntry* entry) {
 	printf ("X - DELETE/[+R] RENAME file\n");
 	printf ("%s/[+R] CREATE entry%s", clipboardOn ? "Y - PASTE file" : "Y - COPY file", clipboardOn ? "" : "\n");
 	printf ("R+A - Directory options\n");
-	printf ("%s\n", SCREENSHOTTEXT);
+	if (sdMounted || flashcardMounted) {
+		printf ("%s\n", SCREENSHOTTEXT);
+	}
 	printf ("%s\n", clipboardOn ? "SELECT - Clear Clipboard" : "SELECT - Restore Clipboard");
 	if (!isDSiMode() && isRegularDS) {
 		printf (POWERTEXT_DS);
@@ -776,6 +778,7 @@ string browseForFile (void) {
 
 		// Make a screenshot
 		if ((held & KEY_R) && (pressed & KEY_L)) {
+		  if (sdMounted || flashcardMounted) {
 			if (access((sdMounted ? "sd:/gm9i" : "fat:/gm9i"), F_OK) != 0) {
 				mkdir((sdMounted ? "sd:/gm9i" : "fat:/gm9i"), 0777);
 				if (strcmp (path, (sdMounted ? "sd:/" : "fat:/")) == 0) {
@@ -816,6 +819,7 @@ string browseForFile (void) {
 			lcdMainOnTop();
 			printBorderTop();
 			clearBorderBottom();
+		  }
 		}
 	}
 }
