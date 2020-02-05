@@ -326,7 +326,7 @@ void driveMenu (void) {
 					screenMode = 1;
 					break;
 				}
-			} else if (dmAssignedOp[dmCursorPosition] == 4) {
+			} else if (dmAssignedOp[dmCursorPosition] == 4 && (sdMounted || flashcardMounted)) {
 				dmTextPrinted = false;
 				ndsCardDump();
 			} else if (dmAssignedOp[dmCursorPosition] == 5 && isDSiMode() && ramdrive1Mounted) {
