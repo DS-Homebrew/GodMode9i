@@ -175,8 +175,15 @@ static void switchToTwlBlowfish(sNDSHeaderExt* ndsHeader) {
 			CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(1) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
 			NULL, 0);
 	} else {
+		REG_ROMCTRL=0;
+		REG_AUXSPICNT=0;
+		//ioDelay2(167550);
+		for(i = 0; i < 25; i++) { swiWaitForVBlank(); }
+		REG_AUXSPICNT=CARD_CR1_ENABLE|CARD_CR1_IRQ;
+		REG_ROMCTRL=CARD_nRESET|CARD_SEC_SEED;
+		while(REG_ROMCTRL&CARD_BUSY) ;
 		cardReset();
-		while(REG_ROMCTRL & CARD_BUSY);
+		while(REG_ROMCTRL&CARD_BUSY) ;
 	}
 
 	//int iCardDevice = 1;
@@ -289,6 +296,16 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 		cardParamCommand (CARD_CMD_DUMMY, 0,
 			CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(1) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
 			NULL, 0);
+	} else {
+		REG_ROMCTRL=0;
+		REG_AUXSPICNT=0;
+		//ioDelay2(167550);
+		for(i = 0; i < 25; i++) { swiWaitForVBlank(); }
+		REG_AUXSPICNT=CARD_CR1_ENABLE|CARD_CR1_IRQ;
+		REG_ROMCTRL=CARD_nRESET|CARD_SEC_SEED;
+		while(REG_ROMCTRL&CARD_BUSY) ;
+		cardReset();
+		while(REG_ROMCTRL&CARD_BUSY) ;
 	}
 
 	toncset(headerData, 0, 0x1000);

@@ -20,6 +20,7 @@
 
 ------------------------------------------------------------------*/
 #include <nds.h>
+#include <nds/arm9/dldi.h>
 #include <stdio.h>
 #include <fat.h>
 #include <sys/stat.h>
@@ -44,6 +45,7 @@ bool appInited = false;
 
 bool arm7SCFGLocked = false;
 bool isRegularDS = true;
+bool expansionPakFound = false;
 bool is3DS = false;
 
 bool applaunch = false;
@@ -204,7 +206,10 @@ int main(int argc, char **argv) {
 			ramdrive2Mount();
 		}
 		is3DS = ((access("sd:/Nintendo 3DS", F_OK) == 0) && (*(vu32*)(0x0DFFFE0C) == 0x474D3969));
-	}
+	} /*else if (isRegularDS) {
+		*(vu32*)(0x08240000) = 1;
+		expansionPakFound = ((*(vu32*)(0x08240000) == 1) && (io_dldi_data->ioInterface.features & FEATURE_SLOT_NDS));
+	}*/
 	if (!isDSiMode() || !yHeld) {
 		flashcardMounted = flashcardMount();
 		flashcardMountSkipped = false;

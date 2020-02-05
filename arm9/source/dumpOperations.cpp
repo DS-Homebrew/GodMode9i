@@ -1,4 +1,5 @@
 #include <nds.h>
+#include <nds/arm9/dldi.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -11,6 +12,8 @@
 #include "ndsheaderbanner.h"
 #include "read_card.h"
 #include "tonccpy.h"
+
+extern bool expansionPakFound;
 
 extern PrintConsole topConsole, bottomConsole;
 
@@ -50,6 +53,7 @@ void ndsCardSaveDump(const char* filename) {
 
 void ndsCardDump(void) {
 	int pressed = 0;
+	bool showGameCardMsgAgain = false;
 
 	consoleSelect(&bottomConsole);
 	consoleClear();
@@ -88,6 +92,29 @@ void ndsCardDump(void) {
 			printf ("\x1b[0;0H");
 			printf("Creating directory...");
 			mkdir(folderPath[1], 0777);
+		}
+		if (expansionPakFound) {
+			consoleClear();
+			printf("Please switch to the\ngame card, then press A.\n");
+			//flashcardUnmount();
+			io_dldi_data->ioInterface.shutdown();
+	
+			consoleSelect(&topConsole);
+			printf ("\x1B[30m");		// Print black color
+			// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
+			do {
+				// Move to right side of screen
+				printf ("\x1b[0;26H");
+				// Print time
+				printf (" %s" ,RetTime().c_str());
+
+				scanKeys();
+				pressed = keysDownRepeat();
+				swiWaitForVBlank();
+			} while (!(pressed & KEY_A));
+
+			consoleSelect(&bottomConsole);
+			printf ("\x1B[47m");		// Print foreground white color
 		}
 		consoleClear();
 		if (cardInit(&ndsCardHeader) == 0) {
@@ -157,26 +184,131 @@ void ndsCardDump(void) {
 				break;
 		}
 		// Dump!
-		remove(destPath);
-		FILE* destinationFile = fopen(destPath, "wb");
-		for (u32 src = 0; src < romSize; src += 0x200) {
-			consoleSelect(&topConsole);
-			printf ("\x1B[30m");		// Print black color
-			// Move to right side of screen
-			printf ("\x1b[0;26H");
-			// Print time
-			printf (" %s" ,RetTime().c_str());
+		if (expansionPakFound) {
+			u32 currentSize = ((expansionPakFound && romSize > 0x800000) ? 0x800000 : romSize);
+			u32 src = 0;
+			u32 writeSrc = 0;
+			FILE* destinationFile;
+			bool destinationFileOpened = false;
+			while (currentSize > 0) {
+				if (showGameCardMsgAgain) {
+					printf ("\x1b[8;0H");
+					printf ("          \n");
 
-			consoleSelect(&bottomConsole);
-			printf ("\x1B[47m");		// Print foreground white color
-			printf ("\x1b[8;0H");
-			printf ("Progress:\n");
-			printf ("%i/%i Bytes                       ", (int)src, (int)romSize);
-			cardRead (src, romBuffer);
-			fwrite(romBuffer, 1, 0x200, destinationFile);
+					printf ("\x1b[15;0H");
+					printf("Please switch to the\ngame card, then press A.\n");
+					//flashcardUnmount();
+					io_dldi_data->ioInterface.shutdown();
+
+					consoleSelect(&topConsole);
+					printf ("\x1B[30m");		// Print black color
+					// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
+					do {
+						// Move to right side of screen
+						printf ("\x1b[0;26H");
+						// Print time
+						printf (" %s" ,RetTime().c_str());
+
+						scanKeys();
+						pressed = keysDownRepeat();
+						swiWaitForVBlank();
+					} while (!(pressed & KEY_A));
+
+					consoleSelect(&bottomConsole);
+					printf ("\x1b[15;0H");
+					printf("                    \n                        \n");
+					cardInit(&ndsCardHeader);
+				}
+				showGameCardMsgAgain = true;
+
+				// Read from game card
+				for (src = src; src < currentSize; src += 0x200) {
+					consoleSelect(&topConsole);
+					printf ("\x1B[30m");		// Print black color
+					// Move to right side of screen
+					printf ("\x1b[0;26H");
+					// Print time
+					printf (" %s" ,RetTime().c_str());
+
+					consoleSelect(&bottomConsole);
+					printf ("\x1B[47m");		// Print foreground white color
+					printf ("\x1b[8;0H");
+					printf ("Read:\n");
+					printf ("%i/%i Bytes                       ", (int)src, (int)romSize);
+					cardRead (src, (void*)0x09000000+(src % 0x800000));
+				}
+				printf ("\x1b[15;0H");
+				printf("Please switch to the\nflashcard, then press A.\n");
+				consoleSelect(&topConsole);
+				printf ("\x1B[30m");		// Print black color
+				// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
+				do {
+					// Move to right side of screen
+					printf ("\x1b[0;26H");
+					// Print time
+					printf (" %s" ,RetTime().c_str());
+
+					scanKeys();
+					pressed = keysDownRepeat();
+					swiWaitForVBlank();
+				} while (!(pressed & KEY_A));
+
+				consoleSelect(&bottomConsole);
+				printf ("\x1b[15;0H");
+				printf("                    \n                        \n");
+
+				printf ("\x1B[47m");		// Print foreground white color
+				printf ("\x1b[11;0H");
+				printf ("Written:\n");
+
+				// Write back to flashcard
+				cardInit(&ndsCardHeader);
+				io_dldi_data->ioInterface.startup();
+				//flashcardMounted = flashcardMount();
+				if (!destinationFileOpened) {
+					destinationFile = fopen(destPath, "wb");
+					destinationFileOpened = true;
+				}
+				for (writeSrc = writeSrc; writeSrc < currentSize; writeSrc += 0x200) {
+					consoleSelect(&topConsole);
+					printf ("\x1B[30m");		// Print black color
+					// Move to right side of screen
+					printf ("\x1b[0;26H");
+					// Print time
+					printf (" %s" ,RetTime().c_str());
+
+					consoleSelect(&bottomConsole);
+					printf ("\x1B[47m");		// Print foreground white color
+					printf ("\x1b[12;0H");
+					printf ("%i/%i Bytes                       ", (int)writeSrc, (int)romSize);
+					fwrite((void*)0x09000000+(writeSrc % 0x800000), 1, currentSize, destinationFile);
+				}
+
+				currentSize -= 0x800000;
+			}
+			fclose(destinationFile);
+		} else {
+			remove(destPath);
+			FILE* destinationFile = fopen(destPath, "wb");
+			for (u32 src = 0; src < romSize; src += 0x200) {
+				consoleSelect(&topConsole);
+				printf ("\x1B[30m");		// Print black color
+				// Move to right side of screen
+				printf ("\x1b[0;26H");
+				// Print time
+				printf (" %s" ,RetTime().c_str());
+
+				consoleSelect(&bottomConsole);
+				printf ("\x1B[47m");		// Print foreground white color
+				printf ("\x1b[8;0H");
+				printf ("Progress:\n");
+				printf ("%i/%i Bytes", (int)src, (int)romSize);
+				cardRead (src, romBuffer);
+				fwrite(romBuffer, 1, 0x200, destinationFile);
+			}
+			fclose(destinationFile);
+			ndsCardSaveDump(destSavPath);
 		}
-		fclose(destinationFile);
-		ndsCardSaveDump(destSavPath);
 	}
 }
 
@@ -226,19 +358,25 @@ void gbaCartDump(void) {
 		char gbaHeaderGameTitle[13] = "\0";
 		char gbaHeaderGameCode[5] = "\0";
 		char gbaHeaderMakerCode[3] = "\0";
-		for (int i = 0; i < 12; i++) {
+		if (*(u8*)(0x080000A0) == 0 || *(u8*)(0x080000A0) == 0xFF) {
+			sprintf(gbaHeaderGameTitle, "NO-TITLE");
+		} else for (int i = 0; i < 12; i++) {
 			gbaHeaderGameTitle[i] = *(char*)(0x080000A0+i);
 			if (*(u8*)(0x080000A0+i) == 0) {
 				break;
 			}
 		}
-		for (int i = 0; i < 4; i++) {
+		if (*(u8*)(0x080000AC) == 0 || *(u8*)(0x080000AC) == 0xFF) {
+			sprintf(gbaHeaderGameCode, "NONE");
+		} else for (int i = 0; i < 4; i++) {
 			gbaHeaderGameCode[i] = *(char*)(0x080000AC+i);
 			if (*(u8*)(0x080000AC+i) == 0) {
 				break;
 			}
 		}
-		for (int i = 0; i < 2; i++) {
+		if (*(u8*)(0x080000B0) == 0 || *(u8*)(0x080000B0) == 0xFF) {
+			sprintf(gbaHeaderMakerCode, "00");
+		} else for (int i = 0; i < 2; i++) {
 			gbaHeaderMakerCode[i] = *(char*)(0x080000B0+i);
 		}
 		u8 gbaHeaderSoftwareVersion = *(u8*)(0x080000BC);

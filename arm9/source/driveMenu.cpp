@@ -52,6 +52,8 @@ static int dmMaxCursors = -1;
 
 static u8 gbaFixedValue = 0;
 
+extern bool expansionPakFound;
+
 extern PrintConsole topConsole, bottomConsole;
 
 extern void printBorderTop(void);
@@ -228,7 +230,9 @@ void driveMenu (void) {
 			dmMaxCursors++;
 			dmAssignedOp[dmMaxCursors] = 6;
 		}
-		if ((io_dldi_data->ioInterface.features & FEATURE_SLOT_GBA) || (isDSiMode() && !(REG_SCFG_MC & BIT(0)))) {
+		if (expansionPakFound
+		|| (io_dldi_data->ioInterface.features & FEATURE_SLOT_GBA)
+		|| (isDSiMode() && !(REG_SCFG_MC & BIT(0)))) {
 			dmMaxCursors++;
 			dmAssignedOp[dmMaxCursors] = 4;
 		}
