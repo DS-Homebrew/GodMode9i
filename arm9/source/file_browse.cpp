@@ -328,9 +328,8 @@ bool fileBrowse_paste(char destPath[256]) {
 	int optionOffset = 0;
 	int maxCursors = -1;
 
-	consoleClear();
-
 	consoleSelect(&bottomConsole);
+	consoleClear();
 	printf ("\x1B[47m");		// Print foreground white color
 	printf(clipboardFolder ? "Paste folder here?" : "Paste file here?");
 	printf("\n\n");
