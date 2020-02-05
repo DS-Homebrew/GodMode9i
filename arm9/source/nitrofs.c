@@ -160,8 +160,15 @@ nitroFSInit(const char *ndsfile)
                 hasLoader = false;
             }
             setvbuf(ndsFile, NULL, _IONBF, 0); //we dont need double buffs u_u
-            AddDevice(&nitroFSdevoptab);
-            return (1);
+			if (fntOffset==0 || fatOffset==0)
+			{
+				return (0);
+			}
+			else
+			{
+				AddDevice(&nitroFSdevoptab);
+				return (1);
+			}
         }
     }
     return (0);
