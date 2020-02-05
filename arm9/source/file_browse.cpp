@@ -108,7 +108,7 @@ void getDirectoryContents (vector<DirEntry>& dirContents) {
 				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "dsi")
 				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "DSI"))
 				{
-					dirEntry.isApp = (sdMounted || flashcardMounted);
+					dirEntry.isApp = ((currentDrive == 0 && sdMounted) || (currentDrive == 1 && flashcardMounted));
 				} else if ((dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "firm")
 						|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "FIRM"))
 				{
