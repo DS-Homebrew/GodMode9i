@@ -93,7 +93,7 @@ void ndsCardDump(void) {
 			printf("Creating directory...");
 			mkdir(folderPath[1], 0777);
 		}
-		if (expansionPakFound) {
+		/*if (expansionPakFound) {
 			consoleClear();
 			printf("Please switch to the\ngame card, then press A.\n");
 			//flashcardUnmount();
@@ -115,7 +115,7 @@ void ndsCardDump(void) {
 
 			consoleSelect(&bottomConsole);
 			printf ("\x1B[47m");		// Print foreground white color
-		}
+		}*/
 		consoleClear();
 		if (cardInit(&ndsCardHeader) == 0) {
 			printf("Dumping...\n");
@@ -184,7 +184,7 @@ void ndsCardDump(void) {
 				break;
 		}
 		// Dump!
-		if (expansionPakFound) {
+		/*if (expansionPakFound) {
 			u32 currentSize = ((expansionPakFound && romSize > 0x800000) ? 0x800000 : romSize);
 			u32 src = 0;
 			u32 writeSrc = 0;
@@ -287,7 +287,7 @@ void ndsCardDump(void) {
 				currentSize -= 0x800000;
 			}
 			fclose(destinationFile);
-		} else {
+		} else {*/
 			remove(destPath);
 			FILE* destinationFile = fopen(destPath, "wb");
 			for (u32 src = 0; src < romSize; src += 0x200) {
@@ -308,7 +308,7 @@ void ndsCardDump(void) {
 			}
 			fclose(destinationFile);
 			ndsCardSaveDump(destSavPath);
-		}
+		//}
 	}
 }
 
