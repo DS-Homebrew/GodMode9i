@@ -228,7 +228,7 @@ void driveMenu (void) {
 			dmMaxCursors++;
 			dmAssignedOp[dmMaxCursors] = 6;
 		}
-		if (((*(u32*)io_dldi_data+(0x64/4)) & FEATURE_SLOT_GBA) || !(REG_SCFG_MC & BIT(0))) {
+		if ((io_dldi_data->ioInterface.features & FEATURE_SLOT_GBA) || (isDSiMode() && !(REG_SCFG_MC & BIT(0)))) {
 			dmMaxCursors++;
 			dmAssignedOp[dmMaxCursors] = 4;
 		}
