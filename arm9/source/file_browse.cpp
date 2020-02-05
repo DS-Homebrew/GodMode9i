@@ -101,15 +101,21 @@ void getDirectoryContents (vector<DirEntry>& dirContents) {
 				if (!dirEntry.isDirectory) {
 					dirEntry.size = getFileSize(dirEntry.name.c_str());
 				}
-				dirEntry.isApp =
-				  ((dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "nds")
+				if ((dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "nds")
 				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "NDS")
 				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "argv")
 				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "ARGV")
 				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "dsi")
-				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "DSI")
-				|| (isDSiMode() && is3DS && sdMounted && dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "firm")
-				|| (isDSiMode() && is3DS && sdMounted && dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "FIRM"));
+				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "DSI"))
+				{
+					dirEntry.isApp = (sdMounted || flashcardMounted);
+				} else if ((dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "firm")
+						|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "FIRM"))
+				{
+					dirEntry.isApp = (isDSiMode() && is3DS && sdMounted);
+				} else {
+					dirEntry.isApp = false;
+				}
 
 				if (dirEntry.name.compare(".") != 0 && (dirEntry.isDirectory || nameEndsWith(dirEntry.name))) {
 					dirContents.push_back (dirEntry);
