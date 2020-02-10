@@ -10,6 +10,7 @@
 #include "lzss.h"
 #include "ramd.h"
 #include "ramdrive-include.h"
+#include "nand.h"
 #include "tonccpy.h"
 
 static sNDSHeader nds;
@@ -18,6 +19,8 @@ u8 stored_SCFG_MC = 0;
 
 static bool slot1Enabled = true;
 
+bool nandMounted = false;
+bool nandMountedDone = false;
 bool sdMounted = false;
 bool sdMountedDone = false;				// true if SD mount is successful once
 bool flashcardMounted = false;
@@ -25,12 +28,13 @@ bool ramdrive1Mounted = false;
 bool ramdrive2Mounted = false;
 bool nitroMounted = false;
 
-int currentDrive = 0;						// 0 == SD card, 1 == Flashcard, 2 == RAMdrive 1, 3 == RAMdrive 2
+int currentDrive = 0;						// 0 == SD card, 1 == Flashcard, 2 == RAMdrive 1, 3 == RAMdrive 2, 4 == NAND
 int nitroCurrentDrive = 0;
 
 char sdLabel[12];
 char fatLabel[12];
 
+u32 nandSize = 0;
 u64 sdSize = 0;
 u64 fatSize = 0;
 
@@ -81,6 +85,8 @@ const char* getDrivePath(void) {
 			return "ram1:/";
 		case 3:
 			return "ram2:/";
+		case 4:
+			return "nand:/";
 	}
 	return "";
 }
@@ -107,20 +113,16 @@ void fixLabel(bool fat) {
 	}
 }
 
+bool nandFound(void) {
+	return (access("nand:/", F_OK) == 0);
+}
+
 bool sdFound(void) {
-	if (access("sd:/", F_OK) == 0) {
-		return true;
-	} else {
-		return false;
-	}
+	return (access("sd:/", F_OK) == 0);
 }
 
 bool flashcardFound(void) {
-	if (access("fat:/", F_OK) == 0) {
-		return true;
-	} else {
-		return false;
-	}
+	return (access("fat:/", F_OK) == 0);
 }
 
 bool bothSDandFlashcard(void) {
@@ -129,6 +131,25 @@ bool bothSDandFlashcard(void) {
 	} else {
 		return false;
 	}
+}
+
+TWL_CODE bool nandMount(void) {
+	fatMountSimple("nand", &io_nand);
+	if (nandFound()) {
+		nandMountedDone = true;
+		struct statvfs st;
+		if (statvfs("nand:/", &st) == 0) {
+			nandSize = st.f_bsize * st.f_blocks;
+		}
+		return true;
+	}
+	return false;
+}
+
+TWL_CODE void nandUnmount(void) {
+	fatUnmount("nand");
+	sdSize = 0;
+	nandMounted = false;
 }
 
 TWL_CODE bool sdMount(void) {

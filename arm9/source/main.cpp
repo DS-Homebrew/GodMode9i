@@ -205,6 +205,7 @@ int main(int argc, char **argv) {
 		if (*(vu32*)(0x0DFFFE0C) == 0x474D3969) {
 			ramdrive2Mount();
 		}
+		nandMounted = nandMount();
 		is3DS = ((access("sd:/Nintendo 3DS", F_OK) == 0) && (*(vu32*)(0x0DFFFE0C) == 0x474D3969));
 	} /*else if (isRegularDS) {
 		*(vu32*)(0x08240000) = 1;

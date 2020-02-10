@@ -47,7 +47,7 @@ bool flashcardMountSkipped = true;
 static bool flashcardMountRan = true;
 static bool dmTextPrinted = false;
 static int dmCursorPosition = 0;
-static int dmAssignedOp[6] = {-1};
+static int dmAssignedOp[7] = {-1};
 static int dmMaxCursors = -1;
 
 static u8 gbaFixedValue = 0;
@@ -116,7 +116,8 @@ void dm_drawTopScreen(void) {
 			if ((sdMounted && nitroCurrentDrive==0)
 			|| (flashcardMounted && nitroCurrentDrive==1)
 			|| (ramdrive1Mounted && nitroCurrentDrive==2)
-			|| (ramdrive2Mounted && nitroCurrentDrive==3))
+			|| (ramdrive2Mounted && nitroCurrentDrive==3)
+			|| (nandMounted && nitroCurrentDrive==4))
 			{
 				// Do nothing
 			}
@@ -131,6 +132,8 @@ void dm_drawTopScreen(void) {
 			printf ("[ram1:] RAMDRIVE");
 		} else if (dmAssignedOp[i] == 6) {
 			printf ("[ram2:] RAMDRIVE");
+		} else if (dmAssignedOp[i] == 7) {
+			printf ("[nand:] SYSNAND");
 		}
 	}
 }
@@ -198,6 +201,11 @@ void dm_drawBottomScreen(void) {
 	} else if (dmAssignedOp[dmCursorPosition] == 6) {
 		printf ("[ram2:] RAMDRIVE\n");
 		printf ("(RAMdrive FAT, 16 MB)");
+	} else if (dmAssignedOp[dmCursorPosition] == 7) {
+		printf ("[nand:] SYSNAND");
+		printf ("\n(SysNAND FAT, ");
+		printDriveBytes(nandSize);
+		printf(")");
 	}
 }
 
@@ -229,6 +237,10 @@ void driveMenu (void) {
 		if (ramdrive2Mounted) {
 			dmMaxCursors++;
 			dmAssignedOp[dmMaxCursors] = 6;
+		}
+		if (nandMounted) {
+			dmMaxCursors++;
+			dmAssignedOp[dmMaxCursors] = 7;
 		}
 		if (expansionPakFound
 		|| (io_dldi_data->ioInterface.features & FEATURE_SLOT_GBA)
@@ -320,7 +332,8 @@ void driveMenu (void) {
 				if ((sdMounted && nitroCurrentDrive==0)
 				|| (flashcardMounted && nitroCurrentDrive==1)
 				|| (ramdrive1Mounted && nitroCurrentDrive==2)
-				|| (ramdrive2Mounted && nitroCurrentDrive==3))
+				|| (ramdrive2Mounted && nitroCurrentDrive==3)
+				|| (nandMounted && nitroCurrentDrive==4))
 				{
 					dmTextPrinted = false;
 					currentDrive = nitroCurrentDrive;
@@ -341,6 +354,12 @@ void driveMenu (void) {
 				dmTextPrinted = false;
 				currentDrive = 3;
 				chdir("ram2:/");
+				screenMode = 1;
+				break;
+			} else if (dmAssignedOp[dmCursorPosition] == 7 && isDSiMode() && nandMounted) {
+				dmTextPrinted = false;
+				currentDrive = 4;
+				chdir("nand:/");
 				screenMode = 1;
 				break;
 			}

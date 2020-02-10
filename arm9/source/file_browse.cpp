@@ -107,7 +107,11 @@ void getDirectoryContents (vector<DirEntry>& dirContents) {
 				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "argv")
 				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "ARGV")
 				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "dsi")
-				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "DSI"))
+				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "DSI")
+				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "ids")
+				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "IDS")
+				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "app")
+				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "APP"))
 				{
 					dirEntry.isApp = ((currentDrive == 0 && sdMounted) || (currentDrive == 1 && flashcardMounted));
 				} else if ((dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "firm")
@@ -218,7 +222,13 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 			printf("   Boot file\n");
 		}
 		if((entry->name.substr(entry->name.find_last_of(".") + 1) == "nds")
-		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "NDS"))
+		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "NDS")
+		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "dsi")
+		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "DSI")
+		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "ids")
+		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "IDS")
+		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "app")
+		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "APP"))
 		{
 			maxCursors++;
 			assignedOp[maxCursors] = 3;
