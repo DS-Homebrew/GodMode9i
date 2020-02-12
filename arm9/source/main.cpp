@@ -207,6 +207,9 @@ int main(int argc, char **argv) {
 		}
 		nandMounted = nandMount();
 		is3DS = ((access("sd:/Nintendo 3DS", F_OK) == 0) && (*(vu32*)(0x0DFFFE0C) == 0x474D3969));
+		/*FILE* cidFile = fopen("sd:/gm9i/CID.bin", "wb");
+		fwrite((void*)0x2FFD7BC, 1, 16, cidFile);
+		fclose(cidFile);*/
 	} /*else if (isRegularDS) {
 		*(vu32*)(0x08240000) = 1;
 		expansionPakFound = ((*(vu32*)(0x08240000) == 1) && (io_dldi_data->ioInterface.features & FEATURE_SLOT_NDS));

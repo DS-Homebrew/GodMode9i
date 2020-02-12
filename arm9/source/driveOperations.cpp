@@ -10,7 +10,7 @@
 #include "lzss.h"
 #include "ramd.h"
 #include "ramdrive-include.h"
-#include "nand.h"
+#include "nandio.h"
 #include "tonccpy.h"
 
 static sNDSHeader nds;
@@ -134,7 +134,7 @@ bool bothSDandFlashcard(void) {
 }
 
 TWL_CODE bool nandMount(void) {
-	fatMountSimple("nand", &io_nand);
+	fatMountSimple("nand", &io_dsi_nand);
 	if (nandFound()) {
 		nandMountedDone = true;
 		struct statvfs st;

@@ -222,9 +222,13 @@ void driveMenu (void) {
 			dmAssignedOp[i] = -1;
 		}
 		dmMaxCursors = -1;
-		if (isDSiMode() && sdMounted){
+		if (sdMounted){
 			dmMaxCursors++;
 			dmAssignedOp[dmMaxCursors] = 0;
+		}
+		if (nandMounted) {
+			dmMaxCursors++;
+			dmAssignedOp[dmMaxCursors] = 7;
 		}
 		if (flashcardMounted) {
 			dmMaxCursors++;
@@ -237,10 +241,6 @@ void driveMenu (void) {
 		if (ramdrive2Mounted) {
 			dmMaxCursors++;
 			dmAssignedOp[dmMaxCursors] = 6;
-		}
-		if (nandMounted) {
-			dmMaxCursors++;
-			dmAssignedOp[dmMaxCursors] = 7;
 		}
 		if (expansionPakFound
 		|| (io_dldi_data->ioInterface.features & FEATURE_SLOT_GBA)

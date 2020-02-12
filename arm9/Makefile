@@ -19,7 +19,7 @@ include $(DEVKITARM)/ds_rules
 #---------------------------------------------------------------------------------
 TARGET		:=	GodMode9i
 BUILD		:=	build
-SOURCES		:=	source dldi-include ramdrive-include
+SOURCES		:=	source dldi-include ramdrive-include mbedtls
 INCLUDES	:=	include dldi-include ramdrive-include source
 DATA		:=	../data
 GRAPHICS	:=  ../gfx
