@@ -38,7 +38,7 @@ Once everything is downloaded and installed, `git clone` this repository, naviga
 
 ## Screenshots
 
-![](https://gbatemp.b-cdn.net/attachments/snap_212809-png.147117/)![](https://gbatemp.b-cdn.net/attachments/snap_211051-png.147114/)![](https://gbatemp.b-cdn.net/attachments/file-options-v1-3-0-no-border-png.147118/)
+![](https://gbatemp.b-cdn.net/attachments/snap_191051-png.195366/)![](https://gbatemp.b-cdn.net/attachments/snap_191132-png.195368/)![](https://gbatemp.b-cdn.net/attachments/file-options-v2-1-0-png.195367/)
 
 ## Credits
 * [RocketRobz](https://github.com/RocketRobz): Creator of GodMode9i.
