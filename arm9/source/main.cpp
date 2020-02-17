@@ -200,7 +200,9 @@ int main(int argc, char **argv) {
 		if (keysHeld() & KEY_Y) {
 			yHeld = true;
 		}
-		sdMounted = sdMount();
+		if (*(u8*)(0x2FFFD08) == 0) {
+			sdMounted = sdMount();
+		}
 		ramdrive1Mount();
 		*(vu32*)(0x0DFFFE0C) = 0x474D3969;		// Check for 32MB of RAM
 		if (*(vu32*)(0x0DFFFE0C) == 0x474D3969) {

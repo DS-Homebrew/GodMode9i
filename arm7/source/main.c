@@ -141,6 +141,7 @@ int main() {
 			sdmmc_nand_cid((u32*)0x2FFD7BC);	// Get eMMC CID
 			*(u32*)(0x2FFFD0C) = 0;
 		}
+		*(u8*)(0x2FFFD08) = ((*(vu32*)(0x400481C) & BIT(3)) || !(*(vu32*)(0x400481C) & BIT(5)));	// Set if there's no SD inserted
 		resyncClock();
 		swiWaitForVBlank();
 	}
