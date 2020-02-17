@@ -13,6 +13,8 @@
 #include "read_card.h"
 #include "tonccpy.h"
 
+extern u8 copyBuf[];
+
 extern bool expansionPakFound;
 
 extern PrintConsole topConsole, bottomConsole;
@@ -53,7 +55,7 @@ void ndsCardSaveDump(const char* filename) {
 
 void ndsCardDump(void) {
 	int pressed = 0;
-	bool showGameCardMsgAgain = false;
+	//bool showGameCardMsgAgain = false;
 
 	consoleSelect(&bottomConsole);
 	consoleClear();
@@ -132,7 +134,6 @@ void ndsCardDump(void) {
 		char gameCode[7] = {0};
 		tonccpy(gameCode, ndsCardHeader.gameCode, 6);
 		bool trimRom = (pressed & KEY_Y);
-		char romBuffer[0x200];
 		char destPath[256];
 		sprintf(destPath, "%s:/gm9i/out/%s_%s_%x%s.nds", (sdMounted ? "sd" : "fat"), gameTitle, gameCode, ndsCardHeader.romversion, (trimRom ? "_trim" : ""));
 		char destSavPath[256];
@@ -289,8 +290,9 @@ void ndsCardDump(void) {
 			fclose(destinationFile);
 		} else {*/
 			remove(destPath);
+			u32 currentSize = romSize;
 			FILE* destinationFile = fopen(destPath, "wb");
-			for (u32 src = 0; src < romSize; src += 0x200) {
+			for (u32 src = 0; src < romSize; src += 0x8000) {
 				consoleSelect(&topConsole);
 				printf ("\x1B[30m");		// Print black color
 				// Move to right side of screen
@@ -303,8 +305,11 @@ void ndsCardDump(void) {
 				printf ("\x1b[8;0H");
 				printf ("Progress:\n");
 				printf ("%i/%i Bytes", (int)src, (int)romSize);
-				cardRead (src, romBuffer);
-				fwrite(romBuffer, 1, 0x200, destinationFile);
+				for (u32 i = 0; i < 0x8000; i += 0x200) {
+					cardRead (src+i, copyBuf+i);
+				}
+				fwrite(copyBuf, 1, (currentSize>=0x8000 ? 0x8000 : currentSize), destinationFile);
+				currentSize -= 0x8000;
 			}
 			fclose(destinationFile);
 			ndsCardSaveDump(destSavPath);

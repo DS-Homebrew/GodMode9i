@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
 	
 	bool yHeld = false;
 
-	sprintf(titleName, "GodMode9i v%i.%i.%i", 2, 2, 0);
+	sprintf(titleName, "GodMode9i v%i.%i.%i", 2, 2, 1);
 
 	// initialize video mode
 	videoSetMode(MODE_4_2D);
@@ -191,6 +191,7 @@ int main(int argc, char **argv) {
 	}
 	printf ("\x1b[22;11H");
 	printf ("mounting drive(s)...");
+	//printf ("%X %X", *(u32*)0x2FFFD00, *(u32*)0x2FFFD04);
 
 	sysSetCartOwner (BUS_OWNER_ARM9);	// Allow arm9 to access GBA ROM
 

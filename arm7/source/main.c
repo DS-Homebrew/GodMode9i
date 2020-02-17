@@ -29,6 +29,8 @@
 ---------------------------------------------------------------------------------*/
 #include <nds.h>
 
+//static u8 aesIvValues[0x10] = {0x80,0x6B,0xCF,0x4F,0x93,0xEE,0x6F,0x21,0xF9,0x86,0xDF,0x98,0x7D,0xE7,0xFD,0x07};
+
 unsigned int * SCFG_EXT=(unsigned int*)0x4004008;
 
 //---------------------------------------------------------------------------------
@@ -97,6 +99,34 @@ int main() {
 	for (int i = 0; i < 8; i++) {
 		*(u8*)(0x2FFFD00+i) = *(u8*)(0x4004D07-i);	// Get ConsoleID
 	}
+	// Get ConsoleID
+	/*for (int i = 0; i < 0x10; i++) {
+		REG_AES_IV[i] = aesIvValues[i];
+	}
+	*(vu16*)0x4004406 = 1;*/
+
+	/* *(u32*)(0x4004104+(0*0x1C)) = REG_AES_RDFIFO;
+	*(u32*)(0x4004108+(0*0x1C)) = 0x2FFFD00;
+	
+	*(u32*)(0x4004110+(0*0x1C)) = 2;	
+	
+    *(u32*)(0x4004114+(0*0x1C)) = 0x1;
+	
+	*(u32*)(0x400411C+(0*0x1C)) = (1<<19 | 11<<28); */
+
+	/*REG_AES_WRFIFO = 0xFFFFFFFF;
+	REG_AES_WRFIFO = 0xEEEEEEEE;
+	REG_AES_WRFIFO = 0xDDDDDDDD;
+	REG_AES_WRFIFO = 0xCCCCCCCC;
+	REG_AES_CNT = (AES_RDFIFO_FLUSH | AES_CNT_DMA_READ_SIZE(1) | AES_CNT_KEY_APPLY | AES_CNT_KEYSLOT(3) | AES_CNT_MODE(0) | AES_CNT_IRQ | AES_CNT_ENABLE);
+	*/
+	/* *(u32*)(0x2FFFD00) = REG_AES_RDFIFO;
+	for (int i = 0; i < 3; i++) {
+		*(u32*)(0x2FFFD04) = REG_AES_RDFIFO;
+	}*/
+	/*for (int i = 0; i < 4; i++) {
+		*(u8*)(0x2FFFD04+i) = *(u8*)(0x40044EC+i);
+	}*/
 
 	fifoSendValue32(FIFO_USER_03, *SCFG_EXT);
 	fifoSendValue32(FIFO_USER_07, *(u16*)(0x4004700));
