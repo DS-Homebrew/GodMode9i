@@ -371,25 +371,18 @@ void driveMenu (void) {
 			dmTextPrinted = false;
 			if (isDSiMode() && sdMountedDone) {
 				if (sdMounted) {
-					if (currentDrive == 0) {
-						sdUnmount();
-					} else {
-						consoleSelect(&bottomConsole);
-						consoleClear();
-						printf ("\x1B[47m");		// Print foreground white color
-						printf ("Please open and exit SDCARD\n");
-						printf ("before unmounting.\n");
-						for (int i = 0; i < 60*2; i++) {
-							swiWaitForVBlank();
-						}
-					}
+					currentDrive = 0;
+					chdir("sd:/");
+					sdUnmount();
 				} else if (isRegularDS) {
 					sdMounted = sdMount();
 				}
 			} else {
-				if (flashcardMounted && currentDrive == 1) {
+				if (flashcardMounted) {
+					currentDrive = 1;
+					chdir("fat:/");
 					flashcardUnmount();
-				} else if (!flashcardMounted)  {
+				} else {
 					flashcardMounted = flashcardMount();
 				}
 			}
