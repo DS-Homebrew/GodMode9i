@@ -52,6 +52,7 @@ static int dmMaxCursors = -1;
 
 static u8 gbaFixedValue = 0;
 
+extern bool arm7SCFGLocked;
 extern bool expansionPakFound;
 
 extern PrintConsole topConsole, bottomConsole;
@@ -244,7 +245,7 @@ void driveMenu (void) {
 		}
 		if (expansionPakFound
 		|| (io_dldi_data->ioInterface.features & FEATURE_SLOT_GBA)
-		|| (isDSiMode() && !(REG_SCFG_MC & BIT(0)))) {
+		|| (isDSiMode() && !arm7SCFGLocked && !(REG_SCFG_MC & BIT(0)))) {
 			dmMaxCursors++;
 			dmAssignedOp[dmMaxCursors] = 4;
 		}
