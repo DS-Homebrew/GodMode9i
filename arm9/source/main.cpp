@@ -283,7 +283,8 @@ int main(int argc, char **argv) {
 				argarray.push_back(strdup(filename.c_str()));
 			}
 
-			if (extention(filename, ".dsi") || extention(filename, ".nds")) {
+			if (extention(filename, ".nds") || extention(filename, ".dsi")
+			 || extention(filename, ".ids") || extention(filename, ".app")) {
 				char *name = argarray.at(0);
 				strcpy (filePath + pathLen, name);
 				free(argarray.at(0));
