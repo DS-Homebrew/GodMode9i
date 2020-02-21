@@ -41,6 +41,7 @@ extern bool flashcardMount(void);
 extern void flashcardUnmount(void);
 extern void ramdrive1Mount(void);
 extern void ramdrive2Mount(void);
+extern void nitroUnmount(void);
 extern bool imgMount(const char* imgName);
 extern void imgUnmount(void);
 

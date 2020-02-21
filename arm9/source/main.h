@@ -5,6 +5,7 @@
 #define POWERTEXT		"POWER - Reboot/[+held] Poweroff"
 #define POWERTEXT_3DS	"POWER - Sleep Mode screen"
 #define HOMETEXT 		"HOME - HOME Menu prompt"
+#define IMAGETEXT 		"R+X - Unmount image"
 #define SCREENSHOTTEXT 	"R+L - Make a screenshot"
 
 extern char titleName[32];

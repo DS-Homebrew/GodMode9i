@@ -165,6 +165,10 @@ void dm_drawBottomScreen(void) {
 	printf ("\x1B[47m");		// Print foreground white color
 	printf ("\x1b[23;0H");
 	printf (titleName);
+	if (nitroMounted || imgMounted) {
+		printf ("\n");
+		printf (IMAGETEXT);
+	}
 	if (isDSiMode() && sdMountedDone) {
 		if (isRegularDS || sdMounted) {
 			printf ("\n");
@@ -406,6 +410,20 @@ void driveMenu (void) {
 					screenMode = 1;
 					break;
 				}
+			}
+		}
+
+		// Unmount/Remount FAT image
+		if ((held & KEY_R) && (pressed & KEY_X)) {
+			dmTextPrinted = false;
+			if (nitroMounted) {
+				currentDrive = 5;
+				chdir("nitro:/");
+				nitroUnmount();
+			} else if (imgMounted) {
+				currentDrive = 6;
+				chdir("img:/");
+				imgUnmount();
 			}
 		}
 

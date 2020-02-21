@@ -344,6 +344,11 @@ TWL_CODE void ramdrive2Mount(void) {
 	ramdrive2Mounted = (access("ram2:/", F_OK) == 0);
 }
 
+void nitroUnmount(void) {
+	fatUnmount("nitro");
+	nitroMounted = false;
+}
+
 bool imgMount(const char* imgName) {
 	extern const char* currentImgName;
 
