@@ -234,6 +234,16 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 			assignedOp[maxCursors] = 3;
 			printf("   Mount NitroFS\n");
 		}
+		else
+		if((entry->name.substr(entry->name.find_last_of(".") + 1) == "img")
+		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "IMG")
+		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "sd")
+		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "SD"))
+		{
+			maxCursors++;
+			assignedOp[maxCursors] = 5;
+			printf("   Mount as FAT image\n");
+		}
 	}
 	maxCursors++;
 	assignedOp[maxCursors] = 4;
@@ -328,9 +338,17 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 				if (nitroMounted) {
 					chdir("nitro:/");
 					nitroCurrentDrive = currentDrive;
+					currentDrive = 5;
 				}
 			} else if (assignedOp[optionOffset] == 4) {
 				changeFileAttribs(entry);
+			} else if (assignedOp[optionOffset] == 5) {
+				imgMounted = imgMount(entry->name.c_str());
+				if (imgMounted) {
+					chdir("img:/");
+					imgCurrentDrive = currentDrive;
+					currentDrive = 6;
+				}
 			}
 			return assignedOp[optionOffset];
 		}
@@ -550,8 +568,7 @@ string browseForFile (void) {
 
 		if ((!(held & KEY_R) && (pressed & KEY_A))
 		|| (!entry->isDirectory && (held & KEY_R) && (pressed & KEY_A))) {
-			if (((strcmp (entry->name.c_str(), "..") == 0) && (strcmp (path, getDrivePath()) == 0))
-			|| ((strcmp (entry->name.c_str(), "..") == 0) && (strcmp (path, "nitro:/") == 0)))
+			if ((strcmp (entry->name.c_str(), "..") == 0) && (strcmp (path, getDrivePath()) == 0))
 			{
 				screenMode = 0;
 				return "null";
@@ -567,9 +584,9 @@ string browseForFile (void) {
 				if (getOp == 0) {
 					// Return the chosen file
 					return entry->name;
-				} else if (getOp == 1 || getOp == 2 || (getOp == 3 && nitroMounted)) {
+				} else if (getOp == 1 || getOp == 2 || (getOp == 3 && nitroMounted) || (getOp == 5 && imgMounted)) {
 					getDirectoryContents (dirContents);		// Refresh directory listing
-					if (getOp == 3 && nitroMounted) {
+					if ((getOp == 3 && nitroMounted) || (getOp == 5 && imgMounted)) {
 						screenOffset = 0;
 						fileOffset = 0;
 					}
@@ -599,7 +616,7 @@ string browseForFile (void) {
 		}
 
 		if (pressed & KEY_B) {
-			if ((strcmp (path, getDrivePath()) == 0) || (strcmp (path, "nitro:/") == 0)) {
+			if (strcmp (path, getDrivePath()) == 0) {
 				screenMode = 0;
 				return "null";
 			}

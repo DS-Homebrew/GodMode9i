@@ -11,6 +11,7 @@
 #include "ramd.h"
 #include "ramdrive-include.h"
 #include "nandio.h"
+#include "imgio.h"
 #include "tonccpy.h"
 
 static sNDSHeader nds;
@@ -20,23 +21,26 @@ u8 stored_SCFG_MC = 0;
 static bool slot1Enabled = true;
 
 bool nandMounted = false;
-bool nandMountedDone = false;
 bool sdMounted = false;
 bool sdMountedDone = false;				// true if SD mount is successful once
 bool flashcardMounted = false;
 bool ramdrive1Mounted = false;
 bool ramdrive2Mounted = false;
+bool imgMounted = false;
 bool nitroMounted = false;
 
-int currentDrive = 0;						// 0 == SD card, 1 == Flashcard, 2 == RAMdrive 1, 3 == RAMdrive 2, 4 == NAND
+int currentDrive = 0;						// 0 == SD card, 1 == Flashcard, 2 == RAMdrive 1, 3 == RAMdrive 2, 4 == NAND, 5 == NitroFS, 6 == FAT IMG
 int nitroCurrentDrive = 0;
+int imgCurrentDrive = 0;
 
 char sdLabel[12];
 char fatLabel[12];
+char imgLabel[12];
 
 u32 nandSize = 0;
 u64 sdSize = 0;
 u64 fatSize = 0;
+u64 imgSize = 0;
 
 static int getGbNumber(u64 bytes) {
 	int gbNumber = 0;
@@ -87,28 +91,21 @@ const char* getDrivePath(void) {
 			return "ram2:/";
 		case 4:
 			return "nand:/";
+		case 5:
+			return "nitro:/";
+		case 6:
+			return "img:/";
 	}
 	return "";
 }
 
-void fixLabel(bool fat) {
-	if (fat) {
-		for (int i = 0; i < 12; i++) {
-			if (((fatLabel[i] == ' ') && (fatLabel[i+1] == ' ') && (fatLabel[i+2] == ' '))
-			|| ((fatLabel[i] == ' ') && (fatLabel[i+1] == ' '))
-			|| (fatLabel[i] == ' ')) {
-				fatLabel[i] = '\0';
-				break;
-			}
-		}
-	} else {
-		for (int i = 0; i < 12; i++) {
-			if (((sdLabel[i] == ' ') && (sdLabel[i+1] == ' ') && (sdLabel[i+2] == ' '))
-			|| ((sdLabel[i] == ' ') && (sdLabel[i+1] == ' '))
-			|| (sdLabel[i] == ' ')) {
-				sdLabel[i] = '\0';
-				break;
-			}
+void fixLabel(char* label) {
+	for (int i = 0; i < 12; i++) {
+		if (((label[i] == ' ') && (label[i+1] == ' ') && (label[i+2] == ' '))
+		|| ((label[i] == ' ') && (label[i+1] == ' '))
+		|| (label[i] == ' ')) {
+			label[i] = '\0';
+			break;
 		}
 	}
 }
@@ -133,10 +130,13 @@ bool bothSDandFlashcard(void) {
 	}
 }
 
+bool imgFound(void) {
+	return (access("img:/", F_OK) == 0);
+}
+
 TWL_CODE bool nandMount(void) {
 	fatMountSimple("nand", &io_dsi_nand);
 	if (nandFound()) {
-		nandMountedDone = true;
 		struct statvfs st;
 		if (statvfs("nand:/", &st) == 0) {
 			nandSize = st.f_bsize * st.f_blocks;
@@ -157,7 +157,7 @@ TWL_CODE bool sdMount(void) {
 	if (sdFound()) {
 		sdMountedDone = true;
 		fatGetVolumeLabel("sd", sdLabel);
-		fixLabel(false);
+		fixLabel(&sdLabel[0]);
 		struct statvfs st;
 		if (statvfs("sd:/", &st) == 0) {
 			sdSize = st.f_bsize * st.f_blocks;
@@ -296,7 +296,7 @@ TWL_CODE bool twl_flashcardMount(void) {
 
 		if (flashcardFound()) {
 			fatGetVolumeLabel("fat", fatLabel);
-			fixLabel(true);
+			fixLabel(&fatLabel[0]);
 			struct statvfs st;
 			if (statvfs("fat:/", &st) == 0) {
 				fatSize = st.f_bsize * st.f_blocks;
@@ -312,7 +312,7 @@ bool flashcardMount(void) {
 		fatInitDefault();
 		if (flashcardFound()) {
 			fatGetVolumeLabel("fat", fatLabel);
-			fixLabel(true);
+			fixLabel(&fatLabel[0]);
 			struct statvfs st;
 			if (statvfs("fat:/", &st) == 0) {
 				fatSize = st.f_bsize * st.f_blocks;
@@ -342,4 +342,28 @@ TWL_CODE void ramdrive2Mount(void) {
 	LZ77_Decompress((u8*)__16MB_lz77, (u8*)0x0D000000);
 	fatMountSimple("ram2", &io_ram_drive2);
 	ramdrive2Mounted = (access("ram2:/", F_OK) == 0);
+}
+
+bool imgMount(const char* imgName) {
+	extern const char* currentImgName;
+
+	currentImgName = imgName;
+	fatMountSimple("img", &io_img);
+	if (imgFound()) {
+		fatGetVolumeLabel("img", imgLabel);
+		fixLabel(&imgLabel[0]);
+		struct statvfs st;
+		if (statvfs("img:/", &st) == 0) {
+			imgSize = st.f_bsize * st.f_blocks;
+		}
+		return true;
+	}
+	return false;
+}
+
+void imgUnmount(void) {
+	fatUnmount("img");
+	imgLabel[0] = '\0';
+	imgSize = 0;
+	imgMounted = false;
 }

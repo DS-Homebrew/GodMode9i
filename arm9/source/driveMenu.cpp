@@ -39,6 +39,8 @@
 #define ENTRIES_START_ROW 1
 #define ENTRY_PAGE_LENGTH 10
 
+#define sizeOfdmAssignedOp 8
+
 using namespace std;
 
 //static bool ramDumped = false;
@@ -47,7 +49,7 @@ bool flashcardMountSkipped = true;
 static bool flashcardMountRan = true;
 static bool dmTextPrinted = false;
 static int dmCursorPosition = 0;
-static int dmAssignedOp[7] = {-1};
+static int dmAssignedOp[sizeOfdmAssignedOp] = {-1};
 static int dmMaxCursors = -1;
 
 static u8 gbaFixedValue = 0;
@@ -118,7 +120,8 @@ void dm_drawTopScreen(void) {
 			|| (flashcardMounted && nitroCurrentDrive==1)
 			|| (ramdrive1Mounted && nitroCurrentDrive==2)
 			|| (ramdrive2Mounted && nitroCurrentDrive==3)
-			|| (nandMounted && nitroCurrentDrive==4))
+			|| (nandMounted && nitroCurrentDrive==4)
+			|| (imgMounted && nitroCurrentDrive==6))
 			{
 				// Do nothing
 			}
@@ -135,6 +138,23 @@ void dm_drawTopScreen(void) {
 			printf ("[ram2:] RAMDRIVE");
 		} else if (dmAssignedOp[i] == 7) {
 			printf ("[nand:] SYSNAND");
+		} else if (dmAssignedOp[i] == 8) {
+			printf ("[img:] FAT IMAGE");
+			if ((sdMounted && imgCurrentDrive==0)
+			|| (flashcardMounted && imgCurrentDrive==1)
+			|| (ramdrive1Mounted && imgCurrentDrive==2)
+			|| (ramdrive2Mounted && imgCurrentDrive==3)
+			|| (nandMounted && imgCurrentDrive==4))
+			{
+				if (imgLabel[0] != '\0') {
+					iprintf (" (%s)", imgLabel);
+				}
+			}
+			else
+			{
+				iprintf ("\x1b[%d;29H", i + ENTRIES_START_ROW);
+				printf ("[x]");
+			}
 		}
 	}
 }
@@ -207,6 +227,11 @@ void dm_drawBottomScreen(void) {
 		printf ("\n(SysNAND FAT, ");
 		printDriveBytes(nandSize);
 		printf(")");
+	} else if (dmAssignedOp[dmCursorPosition] == 8) {
+		printf ("[img:] FAT IMAGE");
+		printf ("\n(Image FAT, ");
+		printDriveBytes(imgSize);
+		printf(")");
 	}
 }
 
@@ -219,7 +244,7 @@ void driveMenu (void) {
 			gbaFixedValue = *(u8*)(0x080000B2);
 		}
 
-		for (int i = 0; i < 6; i++) {
+		for (int i = 0; i < sizeOfdmAssignedOp; i++) {
 			dmAssignedOp[i] = -1;
 		}
 		dmMaxCursors = -1;
@@ -242,6 +267,10 @@ void driveMenu (void) {
 		if (ramdrive2Mounted) {
 			dmMaxCursors++;
 			dmAssignedOp[dmMaxCursors] = 6;
+		}
+		if (imgMounted) {
+			dmMaxCursors++;
+			dmAssignedOp[dmMaxCursors] = 8;
 		}
 		if (expansionPakFound
 		|| (io_dldi_data->ioInterface.features & FEATURE_SLOT_GBA)
@@ -334,10 +363,11 @@ void driveMenu (void) {
 				|| (flashcardMounted && nitroCurrentDrive==1)
 				|| (ramdrive1Mounted && nitroCurrentDrive==2)
 				|| (ramdrive2Mounted && nitroCurrentDrive==3)
-				|| (nandMounted && nitroCurrentDrive==4))
+				|| (nandMounted && nitroCurrentDrive==4)
+				|| (imgMounted && nitroCurrentDrive==6))
 				{
 					dmTextPrinted = false;
-					currentDrive = nitroCurrentDrive;
+					currentDrive = 5;
 					chdir("nitro:/");
 					screenMode = 1;
 					break;
@@ -363,6 +393,19 @@ void driveMenu (void) {
 				chdir("nand:/");
 				screenMode = 1;
 				break;
+			} else if (dmAssignedOp[dmCursorPosition] == 8 && imgMounted) {
+				if ((sdMounted && imgCurrentDrive==0)
+				|| (flashcardMounted && imgCurrentDrive==1)
+				|| (ramdrive1Mounted && imgCurrentDrive==2)
+				|| (ramdrive2Mounted && imgCurrentDrive==3)
+				|| (nandMounted && imgCurrentDrive==4))
+				{
+					dmTextPrinted = false;
+					currentDrive = 6;
+					chdir("img:/");
+					screenMode = 1;
+					break;
+				}
 			}
 		}
 
