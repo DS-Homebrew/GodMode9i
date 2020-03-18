@@ -77,7 +77,7 @@ void ndsCardDump(void) {
 		scanKeys();
 		pressed = keysDownRepeat();
 		swiWaitForVBlank();
-	} while (!(pressed & KEY_A) && !(pressed & KEY_Y) && !(pressed & KEY_B));
+	} while (!(pressed & KEY_A) && !(pressed & KEY_Y) && !(pressed & KEY_B) && !(pressed & KEY_X));
 
 	consoleSelect(&bottomConsole);
 	printf ("\x1B[47m");		// Print foreground white color
