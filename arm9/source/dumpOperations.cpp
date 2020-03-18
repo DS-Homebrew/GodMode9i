@@ -62,7 +62,8 @@ void ndsCardDump(void) {
 	printf ("\x1B[47m");		// Print foreground white color
 	printf("Dump NDS card ROM to\n");
 	printf("\"%s:/gm9i/out\"?\n", (sdMounted ? "sd" : "fat"));
-	printf("(<A> yes, <Y> trim, <B> no)");
+	printf("(<A> yes, <Y> trim, <B> no)\n");
+	printf("(<X> save only)");
 
 	consoleSelect(&topConsole);
 	printf ("\x1B[30m");		// Print black color
@@ -81,6 +82,36 @@ void ndsCardDump(void) {
 	consoleSelect(&bottomConsole);
 	printf ("\x1B[47m");		// Print foreground white color
 
+	if (pressed & KEY_X) {
+		consoleClear();
+		char folderPath[2][256];
+		sprintf(folderPath[0], "%s:/gm9i", (sdMounted ? "sd" : "fat"));
+		sprintf(folderPath[1], "%s:/gm9i/out", (sdMounted ? "sd" : "fat"));
+		if (access(folderPath[0], F_OK) != 0) {
+			printf("Creating directory...");
+			mkdir(folderPath[0], 0777);
+		}
+		if (access(folderPath[1], F_OK) != 0) {
+			printf ("\x1b[0;0H");
+			printf("Creating directory...");
+			mkdir(folderPath[1], 0777);
+		}
+		consoleClear();
+		if (cardInit(&ndsCardHeader) != 0) {
+			printf("Unable to dump the save.\n");
+			for (int i = 0; i < 60*2; i++) {
+				swiWaitForVBlank();
+			}
+			return;
+		}
+		char gameTitle[13] = {0};
+		tonccpy(gameTitle, ndsCardHeader.gameTitle, 12);
+		char gameCode[7] = {0};
+		tonccpy(gameCode, ndsCardHeader.gameCode, 6);
+		char destSavPath[256];
+		sprintf(destSavPath, "%s:/gm9i/out/%s_%s_%x.sav", (sdMounted ? "sd" : "fat"), gameTitle, gameCode, ndsCardHeader.romversion);
+		ndsCardSaveDump(destSavPath);
+	} else
 	if ((pressed & KEY_A) || (pressed & KEY_Y)) {
 		consoleClear();
 		char folderPath[2][256];
