@@ -62,8 +62,8 @@ void ndsCardDump(void) {
 	printf ("\x1B[47m");		// Print foreground white color
 	printf("Dump NDS card ROM to\n");
 	printf("\"%s:/gm9i/out\"?\n", (sdMounted ? "sd" : "fat"));
-	printf("(<A> yes, <Y> trim, <B> no)\n");
-	printf("(<X> save only)");
+	printf("(<A> yes, <Y> trim, <B> no,\n");
+	printf(" <X> save only)");
 
 	consoleSelect(&topConsole);
 	printf ("\x1B[30m");		// Print black color
