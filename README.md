@@ -45,5 +45,6 @@ Once everything is downloaded and installed, `git clone` this repository, naviga
 * [zacchi4k](https://github.com/zacchi4k): Creator of the GodMode9i logo used in v1.3.1 and onwards.
 * [Edo9300](https://github.com/edo9300): Save reading code from his save manager tool.
 * [JimmyZ](https://github.com/JimmyZ): NAND code from twlnf (with writing code stripped for safety reasons).
+* [zoogie](https://github.com/zoogie): Code from dumpTool to get ConsoleID.
 * [devkitPro](https://github.com/devkitPro): devkitARM, libnds, original nds-hb-menu code, and screenshot code.
 * [d0k3](https://github.com/d0k3): Original GM9 app and name for the Nintendo 3DS, which this is inspired by.

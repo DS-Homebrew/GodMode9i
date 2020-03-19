@@ -28,8 +28,7 @@
 
 ---------------------------------------------------------------------------------*/
 #include <nds.h>
-
-//static u8 aesIvValues[0x10] = {0x80,0x6B,0xCF,0x4F,0x93,0xEE,0x6F,0x21,0xF9,0x86,0xDF,0x98,0x7D,0xE7,0xFD,0x07};
+#include <string.h>
 
 unsigned int * SCFG_EXT=(unsigned int*)0x4004008;
 
@@ -60,6 +59,32 @@ volatile bool exitflag = false;
 void powerButtonCB() {
 //---------------------------------------------------------------------------------
 	exitflag = true;
+}
+
+void set_ctr(u32* ctr){
+	for (int i = 0; i < 4; i++) REG_AES_IV[i] = ctr[3-i];
+}
+
+// 10 11  22 23 24 25
+void aes(void* in, void* out, void* iv, u32 method){ //this is sort of a bodged together dsi aes function adapted from this 3ds function
+	REG_AES_CNT = ( AES_CNT_MODE(method) |           //https://github.com/TiniVi/AHPCFW/blob/master/source/aes.c#L42
+					AES_WRFIFO_FLUSH |				 //as long as the output changes when keyslot values change, it's good enough.
+					AES_RDFIFO_FLUSH | 
+					AES_CNT_KEY_APPLY | 
+					AES_CNT_KEYSLOT(3) |
+					AES_CNT_DMA_WRITE_SIZE(2) |
+					AES_CNT_DMA_READ_SIZE(1)
+					);
+					
+    if (iv != NULL) set_ctr((u32*)iv);
+	REG_AES_BLKCNT = (1 << 16);
+	REG_AES_CNT |= 0x80000000;
+	
+	for (int j = 0; j < 0x10; j+=4) REG_AES_WRFIFO = *((u32*)(in+j));
+	while(((REG_AES_CNT >> 0x5) & 0x1F) < 0x4); //wait for every word to get processed
+	for (int j = 0; j < 0x10; j+=4) *((u32*)(out+j)) = REG_AES_RDFIFO;
+	//REG_AES_CNT &= ~0x80000000;
+	//if (method & (AES_CTR_DECRYPT | AES_CTR_ENCRYPT)) add_ctr((u8*)iv);
 }
 
 //---------------------------------------------------------------------------------
@@ -96,37 +121,36 @@ int main() {
 
 	setPowerButtonCB(powerButtonCB);
 
-	for (int i = 0; i < 8; i++) {
-		*(u8*)(0x2FFFD00+i) = *(u8*)(0x4004D07-i);	// Get ConsoleID
-	}
-	// Get ConsoleID
-	/*for (int i = 0; i < 0x10; i++) {
-		REG_AES_IV[i] = aesIvValues[i];
-	}
-	*(vu16*)0x4004406 = 1;*/
+	if (isDSiMode()) {
+		/*for (int i = 0; i < 8; i++) {
+			*(u8*)(0x2FFFD00+i) = *(u8*)(0x4004D07-i);	// Get ConsoleID
+		}*/
 
-	/* *(u32*)(0x4004104+(0*0x1C)) = REG_AES_RDFIFO;
-	*(u32*)(0x4004108+(0*0x1C)) = 0x2FFFD00;
-	
-	*(u32*)(0x4004110+(0*0x1C)) = 2;	
-	
-    *(u32*)(0x4004114+(0*0x1C)) = 0x1;
-	
-	*(u32*)(0x400411C+(0*0x1C)) = (1<<19 | 11<<28); */
+		// For getting ConsoleID without reading from 0x4004D00...
 
-	/*REG_AES_WRFIFO = 0xFFFFFFFF;
-	REG_AES_WRFIFO = 0xEEEEEEEE;
-	REG_AES_WRFIFO = 0xDDDDDDDD;
-	REG_AES_WRFIFO = 0xCCCCCCCC;
-	REG_AES_CNT = (AES_RDFIFO_FLUSH | AES_CNT_DMA_READ_SIZE(1) | AES_CNT_KEY_APPLY | AES_CNT_KEYSLOT(3) | AES_CNT_MODE(0) | AES_CNT_IRQ | AES_CNT_ENABLE);
-	*/
-	/* *(u32*)(0x2FFFD00) = REG_AES_RDFIFO;
-	for (int i = 0; i < 3; i++) {
-		*(u32*)(0x2FFFD04) = REG_AES_RDFIFO;
-	}*/
-	/*for (int i = 0; i < 4; i++) {
-		*(u8*)(0x2FFFD04+i) = *(u8*)(0x40044EC+i);
-	}*/
+		u8 base[16]={0};
+		u8 in[16]={0};
+		u8 iv[16]={0};
+		u8 *scratch=(u8*)0x02300200; 
+		u8 *out=(u8*)0x02300000;
+		u8 *key3=(u8*)0x40044D0;
+		
+		aes(in, base, iv, 2);
+
+		//write consecutive 0-255 values to any byte in key3 until we get the same aes output as "base" above - this reveals the hidden byte. this way we can uncover all 16 bytes of the key3 normalkey pretty easily.
+		//greets to Martin Korth for this trick https://problemkaputt.de/gbatek.htm#dsiaesioports (Reading Write-Only Values)
+		for(int i=0;i<16;i++){  
+			for(int j=0;j<256;j++){
+				*(key3+i)=j & 0xFF;
+				aes(in, scratch, iv, 2);
+				if(!memcmp(scratch, base, 16)){
+					out[i]=j;
+					//hit++;
+					break;
+				}
+			}
+		}
+	}
 
 	fifoSendValue32(FIFO_USER_03, *SCFG_EXT);
 	fifoSendValue32(FIFO_USER_07, *(u16*)(0x4004700));
