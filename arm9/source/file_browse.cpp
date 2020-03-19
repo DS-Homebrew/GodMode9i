@@ -83,8 +83,8 @@ void getDirectoryContents (vector<DirEntry>& dirContents) {
 
 	dirContents.clear();
 
-	DIR *pdir = opendir ("."); 
-	
+	DIR *pdir = opendir (".");
+
 	if (pdir == NULL) {
 		iprintf ("Unable to open the directory.\n");
 	} else {
@@ -128,10 +128,10 @@ void getDirectoryContents (vector<DirEntry>& dirContents) {
 			}
 
 		}
-		
+
 		closedir(pdir);
-	}	
-	
+	}
+
 	sort(dirContents.begin(), dirContents.end(), dirEntryPredicate);
 
 	DirEntry dirEntry;
@@ -143,9 +143,9 @@ void getDirectoryContents (vector<DirEntry>& dirContents) {
 
 void showDirectoryContents (const vector<DirEntry>& dirContents, int fileOffset, int startRow) {
 	getcwd(path, PATH_MAX);
-	
+
 	consoleClear();
-	
+
 	// Print the path
 	printf ("\x1B[30m");		// Print black color
 	// Print time
@@ -158,10 +158,10 @@ void showDirectoryContents (const vector<DirEntry>& dirContents, int fileOffset,
 	} else {
 		iprintf ("%s", path + strlen(path) - SCREEN_COLS);
 	}
-	
+
 	// Move to 2nd row
 	iprintf ("\x1b[1;0H");
-	
+
 	// Print directory listing
 	for (int i = 0; i < ((int)dirContents.size() - startRow) && i < ENTRIES_PER_SCREEN; i++) {
 		const DirEntry* entry = &dirContents.at(i + startRow);
@@ -290,7 +290,7 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 
 		if (pressed & KEY_UP) 		optionOffset -= 1;
 		if (pressed & KEY_DOWN) 	optionOffset += 1;
-		
+
 		if (optionOffset < 0) 				optionOffset = maxCursors;		// Wrap around to bottom of list
 		if (optionOffset > maxCursors)		optionOffset = 0;		// Wrap around to top of list
 
@@ -315,7 +315,10 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 				iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
 				printf("Copying...           ");
 				remove(destPath);
-				fcopy(entry->name.c_str(), destPath);
+				char sourcePath[PATH_MAX];
+				getcwd(sourcePath, PATH_MAX);
+				snprintf(sourcePath, sizeof(sourcePath), "%s%s", sourcePath, entry->name.c_str());
+				fcopy(sourcePath, destPath);
 			} else if (assignedOp[optionOffset] == 2) {
 				if (access("fat:/gm9i", F_OK) != 0) {
 					iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
@@ -332,7 +335,10 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 				iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
 				printf("Copying...           ");
 				remove(destPath);
-				fcopy(entry->name.c_str(), destPath);
+				char sourcePath[PATH_MAX];
+				getcwd(sourcePath, PATH_MAX);
+				snprintf(sourcePath, sizeof(sourcePath), "%s%s", sourcePath, entry->name.c_str());
+				fcopy(sourcePath, destPath);
 			} else if (assignedOp[optionOffset] == 3) {
 				nitroMounted = nitroFSInit(entry->name.c_str());
 				if (nitroMounted) {
@@ -407,7 +413,7 @@ bool fileBrowse_paste(char destPath[256]) {
 
 		if (pressed & KEY_UP) 		optionOffset -= 1;
 		if (pressed & KEY_DOWN) 	optionOffset += 1;
-		
+
 		if (optionOffset < 0) 				optionOffset = maxCursors;		// Wrap around to bottom of list
 		if (optionOffset > maxCursors)		optionOffset = 0;		// Wrap around to top of list
 
@@ -498,7 +504,7 @@ string browseForFile (void) {
 	int screenOffset = 0;
 	int fileOffset = 0;
 	vector<DirEntry> dirContents;
-	
+
 	getDirectoryContents (dirContents);
 
 	while (true) {
@@ -535,7 +541,7 @@ string browseForFile (void) {
 		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN) && !(pressed & KEY_LEFT) && !(pressed & KEY_RIGHT)
 				&& !(pressed & KEY_A) && !(pressed & KEY_B) && !(pressed & KEY_X) && !(pressed & KEY_Y)
 				&& !(pressed & KEY_SELECT));
-	
+
 		printf ("\x1B[47m");		// Print foreground white color
 		iprintf ("\x1b[%d;0H", fileOffset - screenOffset + ENTRIES_START_ROW);
 
@@ -549,7 +555,7 @@ string browseForFile (void) {
 		if (pressed & KEY_DOWN) {	fileOffset += 1; bigJump = false; }
 		if (pressed & KEY_LEFT) {	fileOffset -= ENTRY_PAGE_LENGTH; bigJump = true; }
 		if (pressed & KEY_RIGHT) {	fileOffset += ENTRY_PAGE_LENGTH; bigJump = true; }
-		
+
 		if ((fileOffset < 0) & (bigJump == false))	fileOffset = dirContents.size() - 1;	// Wrap around to bottom of list (UP press)
 		else if ((fileOffset < 0) & (bigJump == true))	fileOffset = 0;		// Move to bottom of list (RIGHT press)
 		if ((fileOffset > ((int)dirContents.size() - 1)) & (bigJump == false))	fileOffset = 0;		// Wrap around to top of list (DOWN press)
@@ -633,7 +639,7 @@ string browseForFile (void) {
 			printf ("     ");	// Clear time
 			pressed = 0;
 			consoleDemoInit();
-			Keyboard *kbd = keyboardDemoInit(); 
+			Keyboard *kbd = keyboardDemoInit();
 			char newName[256];
 			kbd->OnKeyPressed = OnKeyPressed;
 
@@ -743,7 +749,7 @@ string browseForFile (void) {
 			printf ("     ");	// Clear time
 			pressed = 0;
 			consoleDemoInit();
-			Keyboard *kbd = keyboardDemoInit(); 
+			Keyboard *kbd = keyboardDemoInit();
 			char newName[256];
 			kbd->OnKeyPressed = OnKeyPressed;
 
