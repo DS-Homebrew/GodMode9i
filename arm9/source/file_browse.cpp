@@ -315,7 +315,10 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 				iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
 				printf("Copying...           ");
 				remove(destPath);
-				fcopy(entry->name.c_str(), destPath);
+				char sourcePath[PATH_MAX];
+				getcwd(sourcePath, PATH_MAX);
+				snprintf(sourcePath, sizeof(sourcePath), "%s%s", sourcePath, entry->name.c_str());
+				fcopy(sourcePath, destPath);
 			} else if (assignedOp[optionOffset] == 2) {
 				if (access("fat:/gm9i", F_OK) != 0) {
 					iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
@@ -332,7 +335,10 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 				iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
 				printf("Copying...           ");
 				remove(destPath);
-				fcopy(entry->name.c_str(), destPath);
+				char sourcePath[PATH_MAX];
+				getcwd(sourcePath, PATH_MAX);
+				snprintf(sourcePath, sizeof(sourcePath), "%s%s", sourcePath, entry->name.c_str());
+				fcopy(sourcePath, destPath);
 			} else if (assignedOp[optionOffset] == 3) {
 				nitroMounted = nitroFSInit(entry->name.c_str());
 				if (nitroMounted) {
