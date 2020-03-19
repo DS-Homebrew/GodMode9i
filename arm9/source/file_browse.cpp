@@ -315,10 +315,12 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 				iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
 				printf("Copying...           ");
 				remove(destPath);
+				char sourceFolder[PATH_MAX];
+				getcwd(sourceFolder, PATH_MAX);
 				char sourcePath[PATH_MAX];
-				getcwd(sourcePath, PATH_MAX);
-				snprintf(sourcePath, sizeof(sourcePath), "%s%s", sourcePath, entry->name.c_str());
+				snprintf(sourcePath, sizeof(sourcePath), "%s%s", sourceFolder, entry->name.c_str());
 				fcopy(sourcePath, destPath);
+				chdir(sourceFolder);	// For after copying a folder
 			} else if (assignedOp[optionOffset] == 2) {
 				if (access("fat:/gm9i", F_OK) != 0) {
 					iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
@@ -335,10 +337,12 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 				iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
 				printf("Copying...           ");
 				remove(destPath);
+				char sourceFolder[PATH_MAX];
+				getcwd(sourceFolder, PATH_MAX);
 				char sourcePath[PATH_MAX];
-				getcwd(sourcePath, PATH_MAX);
-				snprintf(sourcePath, sizeof(sourcePath), "%s%s", sourcePath, entry->name.c_str());
+				snprintf(sourcePath, sizeof(sourcePath), "%s%s", sourceFolder, entry->name.c_str());
 				fcopy(sourcePath, destPath);
+				chdir(sourceFolder);	// For after copying a folder
 			} else if (assignedOp[optionOffset] == 3) {
 				nitroMounted = nitroFSInit(entry->name.c_str());
 				if (nitroMounted) {
