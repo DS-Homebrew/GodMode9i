@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
 	
 	bool yHeld = false;
 
-	sprintf(titleName, "GodMode9i v%i.%i.%i", 2, 3, 0);
+	sprintf(titleName, "GodMode9i v%i.%i.%i", 2, 3, 1);
 
 	// initialize video mode
 	videoSetMode(MODE_4_2D);
@@ -170,8 +170,10 @@ int main(int argc, char **argv) {
 	printf ("\x1b[4;11H");
 	printf ("RocketRobz/GodMode9i");
 	if (isDSiMode()) {
-		printf ("\x1b[22;1H");
+		printf ("\x1b[21;1H");
 		printf ("Y Held - Disable cart access");
+		printf ("\x1b[22;5H");
+		printf ("Do this if it crashes here");
 	}
 
 	// Display for 2 seconds
@@ -186,8 +188,10 @@ int main(int argc, char **argv) {
 	fifoSendValue32(FIFO_USER_07, 0);
 
 	if (isDSiMode()) {
-		printf ("\x1b[22;1H");
-		printf ("                            ");	// Clear "Y Held" text
+		printf ("\x1b[21;1H");
+		printf ("                            ");
+		printf ("\x1b[22;5H");
+		printf ("                          ");	// Clear "Y Held" text
 	}
 	printf ("\x1b[22;11H");
 	printf ("mounting drive(s)...");
