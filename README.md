@@ -15,7 +15,9 @@
 
 GodMode9i is a full access file browser for the Nintendo DS, Nintendo DSi and the Nintendo 3DS's TWL_FIRM.
 
-![](https://gbatemp.b-cdn.net/attachments/snap_191051-png.195366/) ![](https://gbatemp.b-cdn.net/attachments/snap_191132-png.195368/) ![](https://gbatemp.b-cdn.net/attachments/file-options-v2-1-0-png.195367/)
+<div align="center">
+	![](https://gbatemp.b-cdn.net/attachments/snap_191051-png.195366/) ![](https://gbatemp.b-cdn.net/attachments/snap_191132-png.195368/) ![](https://gbatemp.b-cdn.net/attachments/file-options-v2-1-0-png.195367/)
+</div>
 
 ## Features
 
