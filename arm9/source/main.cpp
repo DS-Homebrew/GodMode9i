@@ -170,10 +170,12 @@ int main(int argc, char **argv) {
 	printf ("\x1b[4;11H");
 	printf ("RocketRobz/GodMode9i");
 	if (isDSiMode()) {
+		printf ("\x1b[20;1H");
+		printf ("X Held - Disable NAND access");
 		printf ("\x1b[21;1H");
 		printf ("Y Held - Disable cart access");
 		printf ("\x1b[22;5H");
-		printf ("Do this if it crashes here");
+		printf ("Do these if it crashes here");
 	}
 
 	// Display for 2 seconds
@@ -212,7 +214,9 @@ int main(int argc, char **argv) {
 		if (*(vu32*)(0x0DFFFE0C) == 0x474D3969) {
 			ramdrive2Mount();
 		}
-		nandMounted = nandMount();
+		if (!(keysHeld() & KEY_X)) {
+			nandMounted = nandMount();
+		}
 		//is3DS = ((access("sd:/Nintendo 3DS", F_OK) == 0) && (*(vu32*)(0x0DFFFE0C) == 0x474D3969));
 		/*FILE* cidFile = fopen("sd:/gm9i/CID.bin", "wb");
 		fwrite((void*)0x2FFD7BC, 1, 16, cidFile);
