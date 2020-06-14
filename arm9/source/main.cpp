@@ -174,7 +174,7 @@ int main(int argc, char **argv) {
 		printf ("X Held - Disable NAND access");
 		printf ("\x1b[21;1H");
 		printf ("Y Held - Disable cart access");
-		printf ("\x1b[22;5H");
+		printf ("\x1b[22;4H");
 		printf ("Do these if it crashes here");
 	}
 
