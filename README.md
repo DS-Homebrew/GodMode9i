@@ -43,7 +43,6 @@ Once everything is downloaded and installed, `git clone` this repository, naviga
 ## Credits
 * [RocketRobz](https://github.com/RocketRobz): Main Developer.
 * [Evie/Pk11](https://github.com/Epicpkmn11): Contributor.
-* [ahezard](https://github.com/ahezard): SD code from nds-bootstrap.
 * [zacchi4k](https://github.com/zacchi4k): Logo designer.
 * [Edo9300](https://github.com/edo9300): Save reading code from his save manager tool.
 * [JimmyZ](https://github.com/JimmyZ): NAND code from twlnf (with writing code stripped for safety reasons).
