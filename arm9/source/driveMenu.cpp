@@ -169,7 +169,7 @@ void dm_drawBottomScreen(void) {
 		printf ("\n");
 		printf (IMAGETEXT);
 	}
-	if (isDSiMode() && sdMountedDone) {
+	if (sdMountedDone) {
 		if (isRegularDS || sdMounted) {
 			printf ("\n");
 			printf (sdMounted ? "R+B - Unmount SD card" : "R+B - Remount SD card");
@@ -347,7 +347,7 @@ void driveMenu (void) {
 		if (dmCursorPosition > dmMaxCursors)	dmCursorPosition = 0;		// Wrap around to top of list
 
 		if (pressed & KEY_A) {
-			if (dmAssignedOp[dmCursorPosition] == 0 && isDSiMode() && sdMounted) {
+			if (dmAssignedOp[dmCursorPosition] == 0 && sdMounted) {
 				dmTextPrinted = false;
 				currentDrive = 0;
 				chdir("sd:/");
