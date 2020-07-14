@@ -30,6 +30,8 @@
 #include <nds.h>
 #include <string.h>
 
+void my_installSystemFIFO(void);
+
 unsigned int * SCFG_EXT=(unsigned int*)0x4004008;
 
 //---------------------------------------------------------------------------------
@@ -112,7 +114,7 @@ int main() {
 	
 	SetYtrigger(80);
 	
-	installSystemFIFO();
+	my_installSystemFIFO();
 
 	irqSet(IRQ_VCOUNT, VcountHandler);
 	irqSet(IRQ_VBLANK, VblankHandler);
@@ -162,7 +164,7 @@ int main() {
 			exitflag = true;
 		}
 		if (*(u32*)(0x2FFFD0C) == 0x454D4D43) {
-			sdmmc_nand_cid((u32*)0x2FFD7BC);	// Get eMMC CID
+			my_sdmmc_get_cid(true, (u32*)0x2FFD7BC);	// Get eMMC CID
 			*(u32*)(0x2FFFD0C) = 0;
 		}
 		*(u8*)(0x2FFFD08) = ((*(vu32*)(0x400481C) & BIT(3)) || !(*(vu32*)(0x400481C) & BIT(5)));	// Set if there's no SD inserted
