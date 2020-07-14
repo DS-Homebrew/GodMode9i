@@ -1125,7 +1125,7 @@ void my_sdmmcValueHandler(u32 value, void* user_data) {
         } else {
 			sdmmc_init();
             //result = (sdflag == 1 ) ? sdmmc_startup() : sdmmc_nand_startup();
-            SD_Init();
+            result = SD_Init();
         }
         break;
 

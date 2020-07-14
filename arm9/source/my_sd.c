@@ -3,10 +3,13 @@
 #include <nds/fifomessages.h>
 #include <nds/system.h>
 #include <nds/arm9/cache.h>
+#include <stdio.h>
 
 //---------------------------------------------------------------------------------
 bool my_sdio_Startup() {
 //---------------------------------------------------------------------------------
+	consoleClear();
+	printf("my_sdio_Startup\n");
 	fifoSendValue32(FIFO_SDMMC,SDMMC_HAVE_SD);
 	while(!fifoCheckValue32(FIFO_SDMMC));
 	int result = fifoGetValue32(FIFO_SDMMC);
@@ -25,6 +28,7 @@ bool my_sdio_Startup() {
 //---------------------------------------------------------------------------------
 bool my_sdio_IsInserted() {
 //---------------------------------------------------------------------------------
+	printf("my_sdio_IsInserted\n");
 	fifoSendValue32(FIFO_SDMMC,SDMMC_SD_IS_INSERTED);
 
 	fifoWaitValue32(FIFO_SDMMC);
@@ -37,6 +41,7 @@ bool my_sdio_IsInserted() {
 //---------------------------------------------------------------------------------
 bool my_sdio_ReadSectors(sec_t sector, sec_t numSectors,void* buffer) {
 //---------------------------------------------------------------------------------
+	printf("my_sdio_ReadSectors\n");
 	FifoMessage msg;
 
 	DC_FlushRange(buffer,numSectors * 512);
@@ -58,6 +63,7 @@ bool my_sdio_ReadSectors(sec_t sector, sec_t numSectors,void* buffer) {
 //---------------------------------------------------------------------------------
 bool my_sdio_WriteSectors(sec_t sector, sec_t numSectors,const void* buffer) {
 //---------------------------------------------------------------------------------
+	printf("my_sdio_WriteSectors\n");
 	FifoMessage msg;
 
 	DC_FlushRange(buffer,numSectors * 512);
@@ -80,12 +86,14 @@ bool my_sdio_WriteSectors(sec_t sector, sec_t numSectors,const void* buffer) {
 //---------------------------------------------------------------------------------
 bool my_sdio_ClearStatus() {
 //---------------------------------------------------------------------------------
+	printf("my_sdio_ClearStatus\n");
 	return true;
 }
 
 //---------------------------------------------------------------------------------
 bool my_sdio_Shutdown() {
 //---------------------------------------------------------------------------------
+	printf("my_sdio_Shutdown\n");
 	return true;
 }
 
