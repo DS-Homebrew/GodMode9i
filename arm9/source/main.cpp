@@ -201,13 +201,13 @@ int main(int argc, char **argv) {
 
 	sysSetCartOwner (BUS_OWNER_ARM9);	// Allow arm9 to access GBA ROM
 
+	if (*(u8*)(0x2FFFD08) == 0) {
+		sdMounted = sdMount();
+	}
 	if (isDSiMode()) {
 		scanKeys();
 		if (keysHeld() & KEY_Y) {
 			yHeld = true;
-		}
-		if (*(u8*)(0x2FFFD08) == 0) {
-			sdMounted = sdMount();
 		}
 		ramdrive1Mount();
 		*(vu32*)(0x0DFFFE0C) = 0x474D3969;		// Check for 32MB of RAM

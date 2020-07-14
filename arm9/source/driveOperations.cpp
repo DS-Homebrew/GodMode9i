@@ -152,7 +152,7 @@ TWL_CODE void nandUnmount(void) {
 	nandMounted = false;
 }
 
-TWL_CODE bool sdMount(void) {
+bool sdMount(void) {
 	fatMountSimple("sd", get_io_dsisd());
 	if (sdFound()) {
 		sdMountedDone = true;
@@ -167,7 +167,7 @@ TWL_CODE bool sdMount(void) {
 	return false;
 }
 
-TWL_CODE void sdUnmount(void) {
+void sdUnmount(void) {
 	fatUnmount("sd");
 	sdLabel[0] = '\0';
 	sdSize = 0;
