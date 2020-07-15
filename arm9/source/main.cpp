@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
 	
 	bool yHeld = false;
 
-	sprintf(titleName, "GodMode9i v%i.%i.%i", 2, 3, 1);
+	sprintf(titleName, "GodMode9i v%i.%i.%i", 2, 4, 0);
 
 	// initialize video mode
 	videoSetMode(MODE_4_2D);
