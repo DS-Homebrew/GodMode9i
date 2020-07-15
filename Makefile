@@ -131,8 +131,8 @@ dist:	all
 $(TARGET).nds:	$(TARGET).arm7 $(TARGET).arm9
 	ndstool	-c $(TARGET).nds -7 $(TARGET).arm7.elf -9 $(TARGET).arm9.elf \
 			-b icon.bmp "GodMode9i;RocketRobz" \
-			-g HGMA 01 "GODMODE9I" -z 80040000 -u 00030004 
-	python fix_ndsheader.py $(CURDIR)/$(TARGET).nds
+			-g HGMA 00 "GODMODE9I" -z 80040000 -u 00030004
+	python27 fix_ndsheader.py $(CURDIR)/$(TARGET).nds
 
 $(TARGET).arm7: arm7/$(TARGET).elf
 	cp arm7/$(TARGET).elf $(TARGET).arm7.elf
