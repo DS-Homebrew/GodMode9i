@@ -39,7 +39,7 @@ jobs:
           7z a GodMode9i.7z GodMode9i/
           
           mkdir -p ~/artifacts
-          cp GodMode9i.7z ~/artifaces
+          cp GodMode9i.7z ~/artifacts
       - name: "Publish build to GH Actions"
         uses: actions/upload-artifact@v2
         with:
