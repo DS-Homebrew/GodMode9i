@@ -153,9 +153,9 @@ TWL_CODE void nandUnmount(void) {
 }
 
 bool sdMount(void) {
-	extern const DISC_INTERFACE __io_dsisd;
+	extern const DISC_INTERFACE __my_io_dsisd;
 
-	fatMountSimple("sd", &__io_dsisd);
+	fatMountSimple("sd", &__my_io_dsisd);
 	if (sdFound()) {
 		sdMountedDone = true;
 		fatGetVolumeLabel("sd", sdLabel);
