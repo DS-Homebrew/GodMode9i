@@ -42,7 +42,7 @@ void my_installSystemFIFO(void) {
 //---------------------------------------------------------------------------------
 
 	fifoSetValue32Handler(FIFO_PM, powerValueHandler, 0);
-	//if (isDSiMode()) {
+	//if (isDSiMode() || (REG_SCFG_EXT & BIT(18))) {
 		fifoSetValue32Handler(FIFO_SDMMC, my_sdmmcValueHandler, 0);
 		fifoSetDatamsgHandler(FIFO_SDMMC, my_sdmmcMsgHandler, 0);
 	//}

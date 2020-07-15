@@ -31,8 +31,7 @@
 #include <string.h>
 
 void my_installSystemFIFO(void);
-
-unsigned int * SCFG_EXT=(unsigned int*)0x4004008;
+void my_sdmmc_get_cid(int devicenumber, u32 *cid);
 
 //---------------------------------------------------------------------------------
 void ReturntoDSiMenu() {
@@ -123,7 +122,7 @@ int main() {
 
 	setPowerButtonCB(powerButtonCB);
 
-	if (isDSiMode()) {
+	if (isDSiMode() /*|| ((REG_SCFG_EXT & BIT(17)) && (REG_SCFG_EXT & BIT(18)))*/) {
 		/*for (int i = 0; i < 8; i++) {
 			*(u8*)(0x2FFFD00+i) = *(u8*)(0x4004D07-i);	// Get ConsoleID
 		}*/
@@ -154,7 +153,7 @@ int main() {
 		}
 	}
 
-	fifoSendValue32(FIFO_USER_03, *SCFG_EXT);
+	fifoSendValue32(FIFO_USER_03, REG_SCFG_EXT);
 	fifoSendValue32(FIFO_USER_07, *(u16*)(0x4004700));
 	fifoSendValue32(FIFO_USER_06, 1);
 

@@ -169,19 +169,6 @@ int main(int argc, char **argv) {
 	printf ("https:/github.com/");
 	printf ("\x1b[4;11H");
 	printf ("RocketRobz/GodMode9i");
-	if (isDSiMode()) {
-		printf ("\x1b[20;1H");
-		printf ("X Held - Disable NAND access");
-		printf ("\x1b[21;1H");
-		printf ("Y Held - Disable cart access");
-		printf ("\x1b[22;4H");
-		printf ("Do these if it crashes here");
-	}
-
-	// Display for 2 seconds
-	for (int i = 0; i < 60*2; i++) {
-		swiWaitForVBlank();
-	}
 
 	fifoWaitValue32(FIFO_USER_06);
 	if (fifoGetValue32(FIFO_USER_03) == 0) arm7SCFGLocked = true;
@@ -190,10 +177,33 @@ int main(int argc, char **argv) {
 	fifoSendValue32(FIFO_USER_07, 0);
 
 	if (isDSiMode()) {
+		if (!arm7SCFGLocked) {
+			printf ("\x1b[20;1H");
+			printf ("X Held - Disable NAND access");
+			printf ("\x1b[21;1H");
+			printf ("Y Held - Disable cart access");
+			printf ("\x1b[22;4H");
+			printf ("Do these if it crashes here");
+		} else {
+			printf ("\x1b[21;1H");
+			printf ("X Held - Disable NAND access");
+			printf ("\x1b[22;5H");
+			printf ("Do this if it crashes here");
+		}
+	}
+
+	// Display for 2 seconds
+	for (int i = 0; i < 60*2; i++) {
+		swiWaitForVBlank();
+	}
+
+	if (isDSiMode()) {
+		printf ("\x1b[20;1H");
+		printf ("                            ");
 		printf ("\x1b[21;1H");
 		printf ("                            ");
-		printf ("\x1b[22;5H");
-		printf ("                          ");	// Clear "Y Held" text
+		printf ("\x1b[22;4H");
+		printf ("                           ");	// Clear "Y Held" text
 	}
 	printf ("\x1b[22;11H");
 	printf ("mounting drive(s)...");
@@ -201,14 +211,14 @@ int main(int argc, char **argv) {
 
 	sysSetCartOwner (BUS_OWNER_ARM9);	// Allow arm9 to access GBA ROM
 
-	if (*(u8*)(0x2FFFD08) == 0) {
-		sdMounted = sdMount();
+	if (isDSiMode() || !isRegularDS) {
+		if (*(u8*)(0x2FFFD08) == 0) {
+			sdMounted = sdMount();
+		}
 	}
 	if (isDSiMode()) {
 		scanKeys();
-		if (keysHeld() & KEY_Y) {
-			yHeld = true;
-		}
+		yHeld = (keysHeld() & KEY_Y);
 		ramdrive1Mount();
 		*(vu32*)(0x0DFFFE0C) = 0x474D3969;		// Check for 32MB of RAM
 		if (*(vu32*)(0x0DFFFE0C) == 0x474D3969) {
