@@ -5,13 +5,19 @@
 #ifndef FILE_COPY
 #define FILE_COPY
 
-extern char clipboard[256];
-extern char clipboardFilename[256];
-extern bool clipboardFolder;
+struct ClipboardFile {
+    char path[256];
+    char name[256];
+    bool folder;
+    int drive; // 0 == SD card, 1 == Flashcard, 2 == RAMdrive 1, 3 == RAMdrive 2
+    bool nitro;
+
+    ClipboardFile(const char *path, const char *name, bool folder, int drive, bool nitro);
+};
+
+extern vector<ClipboardFile> clipboard;
 extern bool clipboardOn;
 extern bool clipboardUsed;
-extern int clipboardDrive;	// 0 == SD card, 1 == Flashcard, 2 == RAMdrive 1, 3 == RAMdrive 2
-extern bool clipboardInNitro;
 
 extern void printBytes(int bytes);
 extern void printBytesAlign(int bytes);
