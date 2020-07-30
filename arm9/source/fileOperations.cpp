@@ -16,13 +16,15 @@ u32 copyBuf[copyBufSize];
 
 extern PrintConsole topConsole, bottomConsole;
 
-char clipboard[256];
-char clipboardFilename[256];
-bool clipboardFolder = false;
+vector<ClipboardFile> clipboard;
 bool clipboardOn = false;
 bool clipboardUsed = false;
-int clipboardDrive = false;	// 0 == SD card, 1 == Flashcard, 2 == RAMdrive 1, 3 == RAMdrive 2
-bool clipboardInNitro = false;
+
+ClipboardFile::ClipboardFile(const char *iPath, const char *iName, bool folder, int drive, bool nitro) : folder(folder), drive(drive), nitro(nitro)
+{
+	strncpy(path, iPath, 256);
+	strncpy(name, iName, 256);
+}
 
 void printBytes(int bytes)
 {
@@ -62,11 +64,11 @@ void printBytesAlign(int bytes)
 
 off_t getFileSize(const char *fileName)
 {
-    FILE* fp = fopen(fileName, "rb");
-    off_t fsize = 0;
-    if (fp) {
-        fseek(fp, 0, SEEK_END);
-        fsize = ftell(fp);			// Get source file's size
+	FILE* fp = fopen(fileName, "rb");
+	off_t fsize = 0;
+	if (fp) {
+		fseek(fp, 0, SEEK_END);
+		fsize = ftell(fp);			// Get source file's size
 		fseek(fp, 0, SEEK_SET);
 	}
 	fclose(fp);
@@ -94,7 +96,7 @@ int fcopy(const char *sourcePath, const char *destinationPath)
 		chdir(sourcePath);
 		vector<DirEntry> dirContents;
 		getDirectoryContents(dirContents);
-		DirEntry* entry = &dirContents.at(1);
+		DirEntry* entry = NULL;
 
 		mkdir(destinationPath, 0777);
 		for (int i = 1; i < ((int)dirContents.size()); i++) {
@@ -110,18 +112,18 @@ int fcopy(const char *sourcePath, const char *destinationPath)
 		closedir(isDir);
 
 		// Source path is a file
-	    FILE* sourceFile = fopen(sourcePath, "rb");
-	    off_t fsize = 0;
-	    if (sourceFile) {
-	        fseek(sourceFile, 0, SEEK_END);
-	        fsize = ftell(sourceFile);			// Get source file's size
+		FILE* sourceFile = fopen(sourcePath, "rb");
+		off_t fsize = 0;
+		if (sourceFile) {
+			fseek(sourceFile, 0, SEEK_END);
+			fsize = ftell(sourceFile);			// Get source file's size
 			fseek(sourceFile, 0, SEEK_SET);
 		} else {
 			fclose(sourceFile);
 			return -1;
 		}
 
-	    FILE* destinationFile = fopen(destinationPath, "wb");
+		FILE* destinationFile = fopen(destinationPath, "wb");
 		//if (destinationFile) {
 			fseek(destinationFile, 0, SEEK_SET);
 		/*} else {
@@ -165,7 +167,7 @@ int fcopy(const char *sourcePath, const char *destinationPath)
 				fclose(destinationFile);
 
 				printf ("\x1b[17;0H");
-				printf ("%i/%i Bytes                       ", (int)fsize, (int)fsize);
+				printf ("%i/%i Bytes           	           ", (int)fsize, (int)fsize);
 				for (int i = 0; i < 30; i++) swiWaitForVBlank();
 
 				return 1;
@@ -204,7 +206,7 @@ void changeFileAttribs(DirEntry* entry) {
 	printf ("\x1b[%i;0H", 5+cursorScreenPos);
 	printf ("[ ] U read-only  [ ] D hidden");
 	printf ("\x1b[%i;0H", 6+cursorScreenPos);
-	printf ("[ ] R system     [ ] L archive");
+	printf ("[ ] R system	  [ ] L archive");
 	printf ("\x1b[%i;0H", 7+cursorScreenPos);
 	printf ("[ ]   virtual");
 	printf ("\x1b[%i;1H", 7+cursorScreenPos);
@@ -223,7 +225,7 @@ void changeFileAttribs(DirEntry* entry) {
 		printf ("\x1b[%i;18H", 6+cursorScreenPos);
 		printf ((newAttribs & ATTR_ARCHIVE) ? "X" : " ");
 		printf ("\x1b[%i;0H", 11+cursorScreenPos);
-		printf ((currentAttribs==newAttribs) ? "(<A> to continue)            " : "(<A> to apply, <B> to cancel)");
+		printf ((currentAttribs==newAttribs) ? "(<A> to continue)			 " : "(<A> to apply, <B> to cancel)");
 
 		consoleSelect(&topConsole);
 		printf ("\x1B[30m");		// Print black color
