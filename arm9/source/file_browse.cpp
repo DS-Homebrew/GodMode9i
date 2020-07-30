@@ -507,9 +507,14 @@ void fileBrowse_drawBottomScreen(DirEntry* entry) {
 		printf ("\x1b[9;0H");
 		printf ("\x1B[47m");		// Print foreground white color
 		printf ("[CLIPBOARD]\n");
-		for (auto it = clipboard.begin(); it != clipboard.end(); ++it) {
-			printf (it->folder ? "\x1B[37m" : "\x1B[40m");		// Print custom blue color or foreground black color
-			printf ("%s\n", it->name);
+		for (size_t i = 0; i < clipboard.size(); ++i) {
+			printf (clipboard[i].folder ? "\x1B[37m" : "\x1B[40m");		// Print custom blue color or foreground black color
+			if (i < 5) {
+				printf ("%s\n", clipboard[i].name);
+			} else {
+				printf ("%d more files...\n", clipboard.size() - 5);
+				break;
+			}
 		}
 	}
 }
