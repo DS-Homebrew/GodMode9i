@@ -16,7 +16,7 @@
 
  You should have received a copy of the GNU General Public License
  along with this program; if not, write to the Free Software
- Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA	02110-1301, USA.
 
 ------------------------------------------------------------------*/
 
@@ -247,7 +247,7 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 	}
 	maxCursors++;
 	assignedOp[maxCursors] = 4;
-	printf(entry->isDirectory ? "   Show directory info\n" : "   Show file info\n");
+	printf(entry->isDirectory ? "	Show directory info\n" : "	 Show file info\n");
 	if (sdMounted && (strcmp (path, "sd:/gm9i/out/") != 0)) {
 		maxCursors++;
 		assignedOp[maxCursors] = 1;
@@ -288,10 +288,10 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 		consoleSelect(&bottomConsole);
 		printf ("\x1B[47m");		// Print foreground white color
 
-		if (pressed & KEY_UP) 		optionOffset -= 1;
-		if (pressed & KEY_DOWN) 	optionOffset += 1;
+		if (pressed & KEY_UP)		optionOffset -= 1;
+		if (pressed & KEY_DOWN)		optionOffset += 1;
 
-		if (optionOffset < 0) 				optionOffset = maxCursors;		// Wrap around to bottom of list
+		if (optionOffset < 0)				optionOffset = maxCursors;		// Wrap around to bottom of list
 		if (optionOffset > maxCursors)		optionOffset = 0;		// Wrap around to top of list
 
 		if (pressed & KEY_A) {
@@ -313,7 +313,7 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 				char destPath[256];
 				snprintf(destPath, sizeof(destPath), "sd:/gm9i/out/%s", entry->name.c_str());
 				iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
-				printf("Copying...           ");
+				printf("Copying...			 ");
 				remove(destPath);
 				char sourceFolder[PATH_MAX];
 				getcwd(sourceFolder, PATH_MAX);
@@ -335,7 +335,7 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 				char destPath[256];
 				snprintf(destPath, sizeof(destPath), "fat:/gm9i/out/%s", entry->name.c_str());
 				iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
-				printf("Copying...           ");
+				printf("Copying...			 ");
 				remove(destPath);
 				char sourceFolder[PATH_MAX];
 				getcwd(sourceFolder, PATH_MAX);
@@ -381,13 +381,13 @@ bool fileBrowse_paste(char dest[256]) {
 	iprintf ("\x1b[%d;0H", OPTIONS_ENTRIES_START_ROW);
 	maxCursors++;
 	printf("   Copy files\n");
-    for (auto it = clipboard.begin(); it != clipboard.end(); ++it) {
-        if (it->nitro)
-            continue;
-        maxCursors++;
+	for (auto it = clipboard.begin(); it != clipboard.end(); ++it) {
+		if (it->nitro)
+			continue;
+		maxCursors++;
 		printf("   Move files\n");
-        break;
-    }
+		break;
+	}
 	printf("\n");
 	printf("(<A> select, <B> cancel)");
 	consoleSelect(&bottomConsole);
@@ -418,34 +418,34 @@ bool fileBrowse_paste(char dest[256]) {
 		consoleSelect(&bottomConsole);
 		printf ("\x1B[47m");		// Print foreground white color
 
-		if (pressed & KEY_UP) 		optionOffset -= 1;
-		if (pressed & KEY_DOWN) 	optionOffset += 1;
+		if (pressed & KEY_UP)		optionOffset -= 1;
+		if (pressed & KEY_DOWN)		optionOffset += 1;
 
-		if (optionOffset < 0) 				optionOffset = maxCursors;		// Wrap around to bottom of list
+		if (optionOffset < 0)				optionOffset = maxCursors;		// Wrap around to bottom of list
 		if (optionOffset > maxCursors)		optionOffset = 0;		// Wrap around to top of list
 
 		if (pressed & KEY_A) {
-            char destPath[256];
+			char destPath[256];
 			iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW);
-		    printf(optionOffset ? "Moving..." : "Copying...");
-            for (auto it = clipboard.begin(); it != clipboard.end(); ++it) {
-                snprintf(destPath, sizeof(destPath), "%s%s", dest, it->name);
-                if (!strcmp (it->path, destPath))
-                    continue;   // If the source and destination for the clipped file is the same skip it
+			printf(optionOffset ? "Moving..." : "Copying...");
+			for (auto it = clipboard.begin(); it != clipboard.end(); ++it) {
+				snprintf(destPath, sizeof(destPath), "%s%s", dest, it->name);
+				if (!strcmp (it->path, destPath))
+					continue;	// If the source and destination for the clipped file is the same skip it
 
-                if (optionOffset && !it->nitro ) {   // Don't remove if from nitro
-			    	if (currentDrive == it->drive) {
-			    		rename(it->path, destPath);
-			    	} else {
-			    		fcopy(it->path, destPath);		// Copy file to destination, since renaming won't work
-			    		remove(it->path);				// Delete source file after copying
-			    	}
-			    	clipboardUsed = false;		// Disable clipboard restore
-                } else {
-			    	remove(destPath);
-			    	fcopy(it->path, destPath);
-			    }
-            }
+				if (optionOffset && !it->nitro ) {	 // Don't remove if from nitro
+					if (currentDrive == it->drive) {
+						rename(it->path, destPath);
+					} else {
+						fcopy(it->path, destPath);		// Copy file to destination, since renaming won't work
+						remove(it->path);				// Delete source file after copying
+					}
+					clipboardUsed = false;		// Disable clipboard restore
+				} else {
+					remove(destPath);
+					fcopy(it->path, destPath);
+				}
+			}
 			clipboardOn = false;	// Clear clipboard after copying or moving
 			return true;
 		}
@@ -476,7 +476,7 @@ void fileBrowse_drawBottomScreen(DirEntry* entry) {
 	printf ("\x1b[22;0H");
 	printf ("%s\n", titleName);
 	printf ("X - DELETE/[+R] RENAME file\n");
-    printf ("L - COPY file\n");
+	printf ("L - COPY file\n");
 	printf ("Y - PASTE file/[+R] CREATE entry");
 	printf ("R+A - Directory options\n");
 	if (sdMounted || flashcardMounted) {
@@ -507,10 +507,10 @@ void fileBrowse_drawBottomScreen(DirEntry* entry) {
 		printf ("\x1b[9;0H");
 		printf ("\x1B[47m");		// Print foreground white color
 		printf ("[CLIPBOARD]\n");
-        for (auto it = clipboard.begin(); it != clipboard.end(); ++it) {
-		    printf (it->folder ? "\x1B[37m" : "\x1B[40m");		// Print custom blue color or foreground black color
-		    printf ("%s\n", it->name);
-        }
+		for (auto it = clipboard.begin(); it != clipboard.end(); ++it) {
+			printf (it->folder ? "\x1B[37m" : "\x1B[40m");		// Print custom blue color or foreground black color
+			printf ("%s\n", it->name);
+		}
 	}
 }
 
@@ -579,7 +579,7 @@ string browseForFile (void) {
 
 
 		// Scroll screen if needed
-		if (fileOffset < screenOffset) 	{
+		if (fileOffset < screenOffset)	{
 			screenOffset = fileOffset;
 		}
 		if (fileOffset > screenOffset + ENTRIES_PER_SCREEN - 1) {
@@ -652,7 +652,7 @@ string browseForFile (void) {
 		// Rename file/folder
 		if ((held & KEY_R) && (pressed & KEY_X) && (strcmp (entry->name.c_str(), "..") != 0) && (strncmp (path, "nitro:/", 7) != 0)) {
 			printf ("\x1b[0;27H");
-			printf ("     ");	// Clear time
+			printf ("	  ");	// Clear time
 			pressed = 0;
 			consoleDemoInit();
 			Keyboard *kbd = keyboardDemoInit();
@@ -742,15 +742,15 @@ string browseForFile (void) {
 						}
 						char filePath[256];
 						snprintf(filePath, sizeof(filePath), "%s%s", path, entry->name.c_str());
-                        auto it = clipboard.begin();
-                        while (it != clipboard.end()) {
-                            if (!strcmp(filePath, it->path))
-                                it = clipboard.erase(it); // Remove deleted file from clipboard if it was in it
-                            else
-                                ++it;
-                        }
-                        if (clipboard.empty())
-                            clipboardUsed = false;
+						auto it = clipboard.begin();
+						while (it != clipboard.end()) {
+							if (!strcmp(filePath, it->path))
+								it = clipboard.erase(it); // Remove deleted file from clipboard if it was in it
+							else
+								++it;
+						}
+						if (clipboard.empty())
+							clipboardUsed = false;
 						getDirectoryContents (dirContents);
 						fileOffset--;
 					}
@@ -767,7 +767,7 @@ string browseForFile (void) {
 		// Create new folder
 		if ((held & KEY_R) && (pressed & KEY_Y) && (strncmp (path, "nitro:/", 7) != 0)) {
 			printf ("\x1b[0;27H");
-			printf ("     ");	// Clear time
+			printf ("	  ");	// Clear time
 			pressed = 0;
 			consoleDemoInit();
 			Keyboard *kbd = keyboardDemoInit();
@@ -805,29 +805,29 @@ string browseForFile (void) {
 			}
 		}
 
-        // Copy
-        if (pressed & KEY_L && strcmp (entry->name.c_str(), "..") != 0) {
-            if (!clipboardOn)
-                clipboard.clear();
-            char file[256];
+		// Copy
+		if (pressed & KEY_L && strcmp (entry->name.c_str(), "..") != 0) {
+			if (!clipboardOn)
+				clipboard.clear();
+			char file[256];
 			snprintf(file, sizeof(file), "%s%s", path, entry->name.c_str());
-            bool exists = false;
-            for (auto it = clipboard.begin(); it != clipboard.end(); ++it) {
-                if (strcmp (it->path, file)) // Check if file already in clipboard
-                    continue;
-                exists = true;
-                break;
-            }
-            if (!exists) {
-                clipboard.emplace_back(file, entry->name.c_str(), entry->isDirectory, currentDrive, !strncmp (path, "nitro:/", 7));
-			    clipboardOn = true;
-			    clipboardUsed = true;
-            }
-        }
+			bool exists = false;
+			for (auto it = clipboard.begin(); it != clipboard.end(); ++it) {
+				if (strcmp (it->path, file)) // Check if file already in clipboard
+					continue;
+				exists = true;
+				break;
+			}
+			if (!exists) {
+				clipboard.emplace_back(file, entry->name.c_str(), entry->isDirectory, currentDrive, !strncmp (path, "nitro:/", 7));
+				clipboardOn = true;
+				clipboardUsed = true;
+			}
+		}
 
 		// Paste
 		if (pressed & KEY_Y && clipboardOn && strncmp (path, "nitro:/", 7) != 0 && fileBrowse_paste(path)) {
-		    getDirectoryContents (dirContents);
+			getDirectoryContents (dirContents);
 		}
 
 		if ((pressed & KEY_SELECT) && clipboardUsed) {
