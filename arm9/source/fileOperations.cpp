@@ -96,7 +96,7 @@ int fcopy(const char *sourcePath, const char *destinationPath)
 		chdir(sourcePath);
 		vector<DirEntry> dirContents;
 		getDirectoryContents(dirContents);
-		DirEntry* entry = &dirContents.at(1);
+		DirEntry* entry = NULL;
 
 		mkdir(destinationPath, 0777);
 		for (int i = 1; i < ((int)dirContents.size()); i++) {
