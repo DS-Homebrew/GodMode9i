@@ -247,7 +247,7 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 	}
 	maxCursors++;
 	assignedOp[maxCursors] = 4;
-	printf(entry->isDirectory ? "	Show directory info\n" : "	 Show file info\n");
+	printf(entry->isDirectory ? "	Show directory info\n" : "	Show file info\n");
 	if (sdMounted && (strcmp (path, "sd:/gm9i/out/") != 0)) {
 		maxCursors++;
 		assignedOp[maxCursors] = 1;
@@ -313,7 +313,7 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 				char destPath[256];
 				snprintf(destPath, sizeof(destPath), "sd:/gm9i/out/%s", entry->name.c_str());
 				iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
-				printf("Copying...			 ");
+				printf("Copying...        	 ");
 				remove(destPath);
 				char sourceFolder[PATH_MAX];
 				getcwd(sourceFolder, PATH_MAX);
@@ -335,7 +335,7 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 				char destPath[256];
 				snprintf(destPath, sizeof(destPath), "fat:/gm9i/out/%s", entry->name.c_str());
 				iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
-				printf("Copying...			 ");
+				printf("Copying...        	 ");
 				remove(destPath);
 				char sourceFolder[PATH_MAX];
 				getcwd(sourceFolder, PATH_MAX);
@@ -427,7 +427,7 @@ bool fileBrowse_paste(char dest[256]) {
 		if (pressed & KEY_A) {
 			char destPath[256];
 			iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW);
-			printf(optionOffset ? "Moving..." : "Copying...");
+			printf(optionOffset ? "Moving... " : "Copying...");
 			for (auto it = clipboard.begin(); it != clipboard.end(); ++it) {
 				snprintf(destPath, sizeof(destPath), "%s%s", dest, it->name);
 				if (!strcmp (it->path, destPath))
@@ -657,7 +657,7 @@ string browseForFile (void) {
 		// Rename file/folder
 		if ((held & KEY_R) && (pressed & KEY_X) && (strcmp (entry->name.c_str(), "..") != 0) && (strncmp (path, "nitro:/", 7) != 0)) {
 			printf ("\x1b[0;27H");
-			printf ("	  ");	// Clear time
+			printf ("     ");	// Clear time
 			pressed = 0;
 			consoleDemoInit();
 			Keyboard *kbd = keyboardDemoInit();
@@ -772,7 +772,7 @@ string browseForFile (void) {
 		// Create new folder
 		if ((held & KEY_R) && (pressed & KEY_Y) && (strncmp (path, "nitro:/", 7) != 0)) {
 			printf ("\x1b[0;27H");
-			printf ("	  ");	// Clear time
+			printf ("     ");	// Clear time
 			pressed = 0;
 			consoleDemoInit();
 			Keyboard *kbd = keyboardDemoInit();

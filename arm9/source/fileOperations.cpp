@@ -96,7 +96,7 @@ int fcopy(const char *sourcePath, const char *destinationPath)
 		chdir(sourcePath);
 		vector<DirEntry> dirContents;
 		getDirectoryContents(dirContents);
-		DirEntry* entry = &dirContents.at(1);
+		DirEntry* entry = NULL;
 
 		mkdir(destinationPath, 0777);
 		for (int i = 1; i < ((int)dirContents.size()); i++) {
@@ -155,7 +155,7 @@ int fcopy(const char *sourcePath, const char *destinationPath)
 			printf ("\x1B[47m");		// Print foreground white color
 			printf ("\x1b[16;0H");
 			printf ("Progress:\n");
-			printf ("%i/%i Bytes					   ", (int)offset, (int)fsize);
+			printf ("%i/%i Bytes                       ", (int)offset, (int)fsize);
 
 			// Copy file to destination path
 			numr = fread(copyBuf, 1, copyBufSize, sourceFile);
@@ -167,7 +167,7 @@ int fcopy(const char *sourcePath, const char *destinationPath)
 				fclose(destinationFile);
 
 				printf ("\x1b[17;0H");
-				printf ("%i/%i Bytes					   ", (int)fsize, (int)fsize);
+				printf ("%i/%i Bytes           	           ", (int)fsize, (int)fsize);
 				for (int i = 0; i < 30; i++) swiWaitForVBlank();
 
 				return 1;
@@ -225,7 +225,7 @@ void changeFileAttribs(DirEntry* entry) {
 		printf ("\x1b[%i;18H", 6+cursorScreenPos);
 		printf ((newAttribs & ATTR_ARCHIVE) ? "X" : " ");
 		printf ("\x1b[%i;0H", 11+cursorScreenPos);
-		printf ((currentAttribs==newAttribs) ? "(<A> to continue)			 " : "(<A> to apply, <B> to cancel)");
+		printf ((currentAttribs==newAttribs) ? "(<A> to continue)            " : "(<A> to apply, <B> to cancel)");
 
 		consoleSelect(&topConsole);
 		printf ("\x1B[30m");		// Print black color
