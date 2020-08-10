@@ -15,8 +15,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: devkitpro/devkitarm:20200528
-    name: "Build with Docker using devKitARM r54"
+    container: devkitpro/devkitarm:20200730
+    name: "Build with Docker using devKitARM r55"
     outputs:
       commit_tag: ${{ steps.make-cias.outputs.commit_tag }}
       commit_message: ${{ steps.make-cias.outputs.commit_message }}
@@ -93,8 +93,7 @@ jobs:
           git stage .
           git commit -m "GodMode9i | $COMMIT_TAG"
           git tag v$CURRENT_DATE
-          git push origin master
-          git tag v$CURRENT_DATE
+          git push origin v$CURRENT_DATE master
           echo "::set-output name=twlbot_commit::$(git log --format=%H -1)"
       - name: Release to TWLBot/Builds
         run: |
