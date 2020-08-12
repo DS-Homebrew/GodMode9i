@@ -98,7 +98,7 @@ void getDirectoryContents (vector<DirEntry>& dirContents) {
 			stat(pent->d_name, &st);
 			if (strcmp(pent->d_name, "..") != 0) {
 				dirEntry.name = pent->d_name;
-				dirEntry.isDirectory = (st.st_mode & S_IFDIR) ? true : false;
+				dirEntry.isDirectory = st.st_mode & S_IFDIR;
 				if (!dirEntry.isDirectory) {
 					dirEntry.size = getFileSize(dirEntry.name.c_str());
 				}
@@ -381,8 +381,8 @@ bool fileBrowse_paste(char dest[256]) {
 	iprintf ("\x1b[%d;0H", OPTIONS_ENTRIES_START_ROW);
 	maxCursors++;
 	printf("   Copy files\n");
-	for (auto it = clipboard.begin(); it != clipboard.end(); ++it) {
-		if (it->nitro)
+	for (auto &file : clipboard) {
+		if (file.nitro)
 			continue;
 		maxCursors++;
 		printf("   Move files\n");
@@ -428,22 +428,22 @@ bool fileBrowse_paste(char dest[256]) {
 			char destPath[256];
 			iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW);
 			printf(optionOffset ? "Moving... " : "Copying...");
-			for (auto it = clipboard.begin(); it != clipboard.end(); ++it) {
-				snprintf(destPath, sizeof(destPath), "%s%s", dest, it->name);
-				if (!strcmp (it->path, destPath))
+			for (auto &file : clipboard) {
+				snprintf(destPath, sizeof(destPath), "%s%s", dest, file.name);
+				if (!strcmp (file.path, destPath))
 					continue;	// If the source and destination for the clipped file is the same skip it
 
-				if (optionOffset && !it->nitro ) {	 // Don't remove if from nitro
-					if (currentDrive == it->drive) {
-						rename(it->path, destPath);
+				if (optionOffset && !file.nitro ) {	 // Don't remove if from nitro
+					if (currentDrive == file.drive) {
+						rename(file.path, destPath);
 					} else {
-						fcopy(it->path, destPath);		// Copy file to destination, since renaming won't work
-						remove(it->path);				// Delete source file after copying
+						fcopy(file.path, destPath);		// Copy file to destination, since renaming won't work
+						remove(file.path);				// Delete source file after copying
 					}
 					clipboardUsed = false;		// Disable clipboard restore
 				} else {
 					remove(destPath);
-					fcopy(it->path, destPath);
+					fcopy(file.path, destPath);
 				}
 			}
 			clipboardOn = false;	// Clear clipboard after copying or moving
@@ -455,19 +455,19 @@ bool fileBrowse_paste(char dest[256]) {
 	}
 }
 
-void recRemove(DirEntry* entry, std::vector<DirEntry> dirContents) {
-	DirEntry* startEntry = entry;
-	chdir (entry->name.c_str());
+void recRemove(const char *path, std::vector<DirEntry> dirContents) {
+	DirEntry *entry = NULL;
+	chdir (path);
 	getDirectoryContents(dirContents);
 	for (int i = 1; i < ((int)dirContents.size()); i++) {
 		entry = &dirContents.at(i);
-		if (entry->isDirectory)	recRemove(entry, dirContents);
+		if (entry->isDirectory)	recRemove(entry->name.c_str(), dirContents);
 		if (!(FAT_getAttr(entry->name.c_str()) & ATTR_READONLY)) {
 			remove(entry->name.c_str());
 		}
 	}
 	chdir ("..");
-	remove(startEntry->name.c_str());
+	remove(path);
 }
 
 void fileBrowse_drawBottomScreen(DirEntry* entry) {
@@ -509,10 +509,10 @@ void fileBrowse_drawBottomScreen(DirEntry* entry) {
 		printf ("[CLIPBOARD]\n");
 		for (size_t i = 0; i < clipboard.size(); ++i) {
 			printf (clipboard[i].folder ? "\x1B[37m" : "\x1B[40m");		// Print custom blue color or foreground black color
-			if (i < 5) {
+			if (i < 4) {
 				printf ("%s\n", clipboard[i].name);
 			} else {
-				printf ("%d more files...\n", clipboard.size() - 5);
+				printf ("%d more files...\n", clipboard.size() - 4);
 				break;
 			}
 		}
@@ -700,7 +700,10 @@ string browseForFile (void) {
 			consoleSelect(&bottomConsole);
 			consoleClear();
 			printf ("\x1B[47m");		// Print foreground white color
-			iprintf("Delete \"%s\"?\n", entry->name.c_str());
+			if (clipboardOn)
+				iprintf("Delete %d files?\n", clipboard.size());
+			else
+				iprintf("Delete \"%s\"?\n", entry->name.c_str());
 			printf ("(<A> yes, <B> no)");
 			consoleSelect(&topConsole);
 			printf ("\x1B[30m");		// Print black color for time text
@@ -717,7 +720,22 @@ string browseForFile (void) {
 					consoleSelect(&bottomConsole);
 					consoleClear();
 					printf ("\x1B[47m");		// Print foreground white color
-					if (FAT_getAttr(entry->name.c_str()) & ATTR_READONLY) {
+					if (clipboardOn) {
+						printf ("Deleting files, please wait...");
+						struct stat st;
+						for (auto &file : clipboard) {
+							if (FAT_getAttr(entry->name.c_str()) & ATTR_READONLY)
+								continue;
+							stat(file.path, &st);
+							if (st.st_mode & S_IFDIR)
+								recRemove(file.path, dirContents);
+							else
+								remove(file.path);
+						}
+						clipboard.clear();
+						clipboardOn = clipboardUsed = false;
+						fileOffset = 0;
+					} else if (FAT_getAttr(entry->name.c_str()) & ATTR_READONLY) {
 						printf ("Failed deleting:\n");
 						printf (entry->name.c_str());
 						printf ("\n");
@@ -740,25 +758,14 @@ string browseForFile (void) {
 					} else {
 						if (entry->isDirectory) {
 							printf ("Deleting folder, please wait...");
-							recRemove(entry, dirContents);
+							recRemove(entry->name.c_str(), dirContents);
 						} else {
 							printf ("Deleting file, please wait...");
 							remove(entry->name.c_str());
 						}
-						char filePath[256];
-						snprintf(filePath, sizeof(filePath), "%s%s", path, entry->name.c_str());
-						auto it = clipboard.begin();
-						while (it != clipboard.end()) {
-							if (!strcmp(filePath, it->path))
-								it = clipboard.erase(it); // Remove deleted file from clipboard if it was in it
-							else
-								++it;
-						}
-						if (clipboard.empty())
-							clipboardUsed = false;
-						getDirectoryContents (dirContents);
 						fileOffset--;
 					}
+					getDirectoryContents (dirContents);
 					pressed = 0;
 					break;
 				}
@@ -814,19 +821,18 @@ string browseForFile (void) {
 		if (pressed & KEY_L && strcmp (entry->name.c_str(), "..") != 0) {
 			if (!clipboardOn)
 				clipboard.clear();
-			char file[256];
-			snprintf(file, sizeof(file), "%s%s", path, entry->name.c_str());
+			char filePath[256];
+			snprintf(filePath, sizeof(filePath), "%s%s", path, entry->name.c_str());
 			bool exists = false;
-			for (auto it = clipboard.begin(); it != clipboard.end(); ++it) {
-				if (strcmp (it->path, file)) // Check if file already in clipboard
+			for (auto &file : clipboard) {
+				if (strcmp (file.path, filePath)) // Check if file already in clipboard
 					continue;
 				exists = true;
 				break;
 			}
 			if (!exists) {
-				clipboard.emplace_back(file, entry->name.c_str(), entry->isDirectory, currentDrive, !strncmp (path, "nitro:/", 7));
-				clipboardOn = true;
-				clipboardUsed = true;
+				clipboard.emplace_back(filePath, entry->name.c_str(), entry->isDirectory, currentDrive, !strncmp (path, "nitro:/", 7));
+				clipboardOn = clipboardUsed = true;
 			}
 		}
 
