@@ -55,11 +55,13 @@ extern void reinitConsoles(void);
 
 static char path[PATH_MAX];
 
-bool nameEndsWith (const string& name) {
+bool extension(const std::string &filename, const std::vector<std::string> &extensions) {
+	for(const std::string &ext : extensions) {
+		if(filename.length() > ext.length() && strcasecmp(filename.substr(filename.length() - ext.length()).data(), ext.data()) == 0)
+			return true;
+	}
 
-	if (name.size() == 0) return false;
-
-	return true;
+	return false;
 }
 
 void OnKeyPressed(int key) {
@@ -102,27 +104,15 @@ void getDirectoryContents (std::vector<DirEntry>& dirContents) {
 				if (!dirEntry.isDirectory) {
 					dirEntry.size = getFileSize(dirEntry.name.c_str());
 				}
-				if ((dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "nds")
-				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "NDS")
-				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "argv")
-				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "ARGV")
-				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "dsi")
-				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "DSI")
-				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "ids")
-				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "IDS")
-				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "app")
-				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "APP"))
-				{
+				if (extension(dirEntry.name, {"nds", "argv", "dsi", "ids", "app"})) {
 					dirEntry.isApp = ((currentDrive == 0 && sdMounted) || (currentDrive == 1 && flashcardMounted));
-				} else if ((dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "firm")
-						|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "FIRM"))
-				{
+				} else if (extension(dirEntry.name, {"firm"})) {
 					dirEntry.isApp = (isDSiMode() && is3DS && sdMounted);
 				} else {
 					dirEntry.isApp = false;
 				}
 
-				if (dirEntry.name.compare(".") != 0 && (dirEntry.isDirectory || nameEndsWith(dirEntry.name))) {
+				if (dirEntry.name.compare(".") != 0) {
 					dirContents.push_back (dirEntry);
 				}
 			}
@@ -221,24 +211,13 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 			assignedOp[maxCursors] = 0;
 			printf("   Boot file\n");
 		}
-		if((entry->name.substr(entry->name.find_last_of(".") + 1) == "nds")
-		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "NDS")
-		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "dsi")
-		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "DSI")
-		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "ids")
-		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "IDS")
-		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "app")
-		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "APP"))
+		if(extension(entry->name, {"nds", "dsi", "ids", "app"}))
 		{
 			maxCursors++;
 			assignedOp[maxCursors] = 3;
 			printf("   Mount NitroFS\n");
 		}
-		else
-		if((entry->name.substr(entry->name.find_last_of(".") + 1) == "img")
-		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "IMG")
-		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "sd")
-		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "SD"))
+		else if(extension(entry->name, {"img", "sd"}))
 		{
 			maxCursors++;
 			assignedOp[maxCursors] = 5;

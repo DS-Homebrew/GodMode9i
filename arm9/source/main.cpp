@@ -64,14 +64,6 @@ void stop (void) {
 
 char filePath[PATH_MAX];
 
-bool extention(const std::string& filename, const char* ext) {
-	if(strcasecmp(filename.c_str() + filename.size() - strlen(ext), ext)) {
-		return false;
-	} else {
-		return true;
-	}
-}
-
 void printBorderTop(void) {
 	consoleSelect(&topConsoleBG);
 	printf ("\x1B[42m");		// Print green color
@@ -301,8 +293,7 @@ int main(int argc, char **argv) {
 				argarray.push_back(strdup(filename.c_str()));
 			}
 
-			if (extention(filename, ".nds") || extention(filename, ".dsi")
-			 || extention(filename, ".ids") || extention(filename, ".app")) {
+			if (extension(filename, {"nds", "dsi", "ids", "app"})) {
 				char *name = argarray.at(0);
 				strcpy (filePath + pathLen, name);
 				free(argarray.at(0));
@@ -313,7 +304,7 @@ int main(int argc, char **argv) {
 				iprintf ("\x1b[31mStart failed. Error %i\n", err);
 			}
 
-			if (extention(filename, ".firm")) {
+			if (extension(filename, {"firm"})) {
 				char *name = argarray.at(0);
 				strcpy (filePath + pathLen, name);
 				free(argarray.at(0));
