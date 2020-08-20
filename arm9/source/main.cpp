@@ -54,8 +54,6 @@ static int bg3;
 
 PrintConsole topConsoleBG, topConsole, bottomConsoleBG, bottomConsole;
 
-using namespace std;
-
 //---------------------------------------------------------------------------------
 void stop (void) {
 //---------------------------------------------------------------------------------
@@ -275,7 +273,7 @@ int main(int argc, char **argv) {
 			// Construct a command line
 			getcwd (filePath, PATH_MAX);
 			pathLen = strlen (filePath);
-			vector<char*> argarray;
+			std::vector<char*> argarray;
 
 			if ((strcasecmp (filename.c_str() + filename.size() - 5, ".argv") == 0)
 			|| (strcasecmp (filename.c_str() + filename.size() - 5, ".ARGV") == 0)) {

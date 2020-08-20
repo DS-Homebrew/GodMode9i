@@ -41,8 +41,6 @@
 
 #define sizeOfdmAssignedOp 8
 
-using namespace std;
-
 //static bool ramDumped = false;
 
 bool flashcardMountSkipped = true;

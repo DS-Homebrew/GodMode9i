@@ -78,7 +78,7 @@ bool dirEntryPredicate (const DirEntry& lhs, const DirEntry& rhs) {
 	return strcasecmp(lhs.name.c_str(), rhs.name.c_str()) < 0;
 }
 
-void getDirectoryContents (vector<DirEntry>& dirContents) {
+void getDirectoryContents (std::vector<DirEntry>& dirContents) {
 	struct stat st;
 
 	dirContents.clear();
@@ -141,7 +141,7 @@ void getDirectoryContents (vector<DirEntry>& dirContents) {
 	dirContents.insert (dirContents.begin(), dirEntry);	// Add ".." to top of list
 }
 
-void showDirectoryContents (const vector<DirEntry>& dirContents, int fileOffset, int startRow) {
+void showDirectoryContents (const std::vector<DirEntry>& dirContents, int fileOffset, int startRow) {
 	getcwd(path, PATH_MAX);
 
 	consoleClear();
@@ -519,12 +519,12 @@ void fileBrowse_drawBottomScreen(DirEntry* entry) {
 	}
 }
 
-string browseForFile (void) {
+std::string browseForFile (void) {
 	int pressed = 0;
 	int held = 0;
 	int screenOffset = 0;
 	int fileOffset = 0;
-	vector<DirEntry> dirContents;
+	std::vector<DirEntry> dirContents;
 
 	getDirectoryContents (dirContents);
 
