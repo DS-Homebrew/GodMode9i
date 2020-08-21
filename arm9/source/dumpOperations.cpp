@@ -4,7 +4,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <dirent.h>
-#include <fstream>
 
 #include "auxspi.h"
 #include "date.h"
@@ -22,16 +21,16 @@ extern PrintConsole topConsole, bottomConsole;
 static sNDSHeaderExt ndsCardHeader;
 
 void ndsCardSaveDump(const char* filename) {
-	std::ofstream output(filename, std::ofstream::binary);
-	if(output.is_open()) {
-		auxspi_extra card_type = auxspi_has_extra();
+	FILE *out = fopen(filename, "wb");
+	if(out) {
 		consoleClear();
 		printf("Dumping save...\n");
 		printf("Do not remove the NDS card.\n");
-		unsigned char* buffer;
+		unsigned char *buffer;
+		auxspi_extra card_type = auxspi_has_extra();
 		if(card_type == AUXSPI_INFRARED) {
 			int size = auxspi_save_size_log_2(card_type);
-			int size_blocks = 1 << std::max(0, (int8(size) - 18));
+			int size_blocks;
 			int type = auxspi_save_type(card_type);
 			if(size < 16)
 				size_blocks = 1;
@@ -40,17 +39,136 @@ void ndsCardSaveDump(const char* filename) {
 			u32 LEN = std::min(1 << size, 1 << 16);
 			buffer = new unsigned char[LEN*size_blocks];
 			auxspi_read_data(0, buffer, LEN*size_blocks, type, card_type);
-			output.write((char*)buffer, LEN*size_blocks);
+			fwrite(buffer, 1, LEN*size_blocks, out);
 		} else {
 			int type = cardEepromGetType();
 			int size = cardEepromGetSize();
 			buffer = new unsigned char[size];
 			cardReadEeprom(0, buffer, size, type);
-			output.write((char*)buffer, size);
+			fwrite(buffer, 1, size, out);
 		}
 		delete[] buffer;
+		fclose(out);
 	}
-	output.close();
+}
+
+void ndsCardSaveRestore(const char *filename) {
+	consoleSelect(&bottomConsole);
+	consoleClear();
+	printf ("\x1B[47m"); // Print foreground white color
+	printf("Restore the selected save to the"); // Line is 32 chars
+	printf("inserted game card?\n"); // Line is 32 chars
+	printf("(<A> yes, <B> no)\n");
+
+	consoleSelect(&topConsole);
+	printf ("\x1B[30m"); // Print black color
+	// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
+	u16 pressed;
+	do {
+		// Move to right side of screen
+		printf ("\x1b[0;26H");
+		// Print time
+		printf (" %s" ,RetTime().c_str());
+
+		scanKeys();
+		pressed = keysDownRepeat();
+		swiWaitForVBlank();
+	} while (!(pressed & (KEY_A | KEY_B)));
+
+	if(pressed & KEY_A) {
+		consoleSelect(&bottomConsole);
+		consoleClear();
+
+		auxspi_extra card_type = auxspi_has_extra();
+		bool auxspi = card_type == AUXSPI_INFRARED;
+		FILE *in = fopen(filename, "rb");
+		if(in) {
+			unsigned char *buffer;
+			int size;
+			int type;
+			int length;
+			unsigned int num_blocks = 0, shift = 0, LEN = 0;
+			if(auxspi) {
+				size = auxspi_save_size_log_2(card_type);
+				type = auxspi_save_type(card_type);
+				switch(type) {
+				case 1:
+					shift = 4; // 16 bytes
+					break;
+				case 2:
+					shift = 5; // 32 bytes
+					break;
+				case 3:
+					shift = 8; // 256 bytes
+					break;
+				default:
+					return;
+				}
+				LEN = 1 << shift;
+				num_blocks = 1 << (size - shift);
+			} else {
+				type = cardEepromGetType();
+				size = cardEepromGetSize();
+			}
+			fseek(in, 0, SEEK_END);
+			length = ftell(in);
+			fseek(in, 0, SEEK_SET);
+			if(length != (auxspi ? (int)(LEN*num_blocks) : size)) {
+				fclose(in);
+				printf("\x1B[41m"); // Print foreground red color
+				printf("The size of this save doesn't\n");
+				printf("match the size of the size of\n");
+				printf("the inserted game card.\n\n");
+				printf("Write cancelled!\n");
+				printf("\x1B[47m"); // Print foreground white color
+				printf("(<A> OK)\n");
+
+				consoleSelect(&topConsole);
+				printf ("\x1B[30m"); // Print black color
+				do {
+					// Move to right side of screen
+					printf ("\x1b[0;26H");
+					// Print time
+					printf (" %s" ,RetTime().c_str());
+
+					scanKeys();
+					pressed = keysDownRepeat();
+					swiWaitForVBlank();
+				} while (!(pressed & KEY_A));
+				return;
+			}
+			printf("Restoring save...\nDo not remove the NDS card.\n\n\n\n\n\n\nProgress:");
+			if(type == 3) {
+				if(auxspi)
+					auxspi_erase(card_type);
+				else
+					cardEepromChipErase();
+			}
+			if(auxspi){
+				buffer = new unsigned char[LEN];
+				for(unsigned int i = 0; i < num_blocks; i++) {
+					printf ("\x1b[9;0H");
+					printf ("%d/%d Bytes", i * LEN, length);
+
+					fread(buffer, 1, LEN, in);
+					auxspi_write_data(i << shift, buffer, LEN, type, card_type);
+				}
+			} else {
+				int blocks = size / 32;
+				int written = 0;
+				buffer = new unsigned char[blocks];
+				for(unsigned int i = 0; i < 32; i++) {
+					printf ("\x1b[9;0H");
+					printf ("%d/%d Bytes", i * blocks, length);
+					fread(buffer, 1, blocks, in);
+					cardWriteEeprom(written, buffer, blocks, type);
+					written += blocks;
+				}
+			}
+			delete[] buffer;
+			fclose(in);
+		}
+	}
 }
 
 void ndsCardDump(void) {
@@ -77,7 +195,7 @@ void ndsCardDump(void) {
 		scanKeys();
 		pressed = keysDownRepeat();
 		swiWaitForVBlank();
-	} while (!(pressed & KEY_A) && !(pressed & KEY_Y) && !(pressed & KEY_B) && !(pressed & KEY_X));
+	} while (!(pressed & (KEY_A | KEY_Y | KEY_B | KEY_X)));
 
 	consoleSelect(&bottomConsole);
 	printf ("\x1B[47m");		// Print foreground white color
