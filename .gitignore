@@ -3,3 +3,7 @@
 *.cia
 *.elf
 data/*
+.vscode
+*.DS_Store
+
+arm9/include/version.h

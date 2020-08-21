@@ -34,6 +34,7 @@
 #include "driveOperations.h"
 #include "file_browse.h"
 #include "fileOperations.h"
+#include "version.h"
 
 #include "gm9i_logo.h"
 
@@ -129,7 +130,7 @@ int main(int argc, char **argv) {
 	
 	bool yHeld = false;
 
-	sprintf(titleName, "GodMode9i v%i.%i.%i", 2, 4, 0);
+	sprintf(titleName, "GodMode9i %s", VER_NUMBER);
 
 	// initialize video mode
 	videoSetMode(MODE_4_2D);
