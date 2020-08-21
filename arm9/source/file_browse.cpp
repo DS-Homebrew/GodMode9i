@@ -840,6 +840,8 @@ std::string browseForFile (void) {
 				clipboardOn = clipboardUsed = true;
 			} else {
 				clipboard.erase(it);
+				if(clipboard.size() == 0)
+					clipboardOn = clipboardUsed = false;
 			}
 		}
 
