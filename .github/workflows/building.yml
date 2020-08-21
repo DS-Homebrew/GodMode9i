@@ -28,7 +28,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install p7zip-full python -y
       - name: "Build & Package GodMode9i"
-      id: build
+        id: build
         run: |
           make
           chmod +x make_cia
