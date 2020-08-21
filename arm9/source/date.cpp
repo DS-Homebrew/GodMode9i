@@ -54,7 +54,7 @@ size_t GetDate(DateFormat format, char *buf, size_t size)
  * Get the current time formatted for the top bar.
  * @return std::string containing the time.
  */
-string RetTime()
+std::string RetTime()
 {
 	time_t Raw;
 	time(&Raw);
@@ -63,14 +63,14 @@ string RetTime()
 	char Tmp[8];
 	strftime(Tmp, sizeof(Tmp), "%k:%M", Time);
 
-	return string(Tmp);
+	return std::string(Tmp);
 }
 
 /**
  * Get the current time formatted for filenames.
  * @return std::string containing the time.
  */
-string RetTimeForFilename()
+std::string RetTimeForFilename()
 {
 	time_t Raw;
 	time(&Raw);
@@ -79,7 +79,7 @@ string RetTimeForFilename()
 	char Tmp[8];
 	strftime(Tmp, sizeof(Tmp), "%k%M%S", Time);
 
-	return string(Tmp);
+	return std::string(Tmp);
 }
 
 /**

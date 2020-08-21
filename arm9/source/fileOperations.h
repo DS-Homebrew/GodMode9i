@@ -15,7 +15,7 @@ struct ClipboardFile {
 	ClipboardFile(const char *path, const char *name, bool folder, int drive, bool nitro);
 };
 
-extern vector<ClipboardFile> clipboard;
+extern std::vector<ClipboardFile> clipboard;
 extern bool clipboardOn;
 extern bool clipboardUsed;
 

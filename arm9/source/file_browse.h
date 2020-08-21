@@ -25,17 +25,28 @@
 #include <string>
 #include <vector>
 
-using namespace std;
-
 struct DirEntry {
-	string name;
+	std::string name;
 	size_t size;
 	bool isDirectory;
 	bool isApp;
-} ;
+};
+
+enum class FileOperation {
+	none,
+	bootFile,
+	mountNitroFS,
+	mountImg,
+	restoreSave,
+	showInfo,
+	copySdOut,
+	copyFatOut,
+};
+
+bool extension(const std::string &filename, const std::vector<std::string> &extensions);
 
 std::string browseForFile (void);
-void getDirectoryContents (vector<DirEntry>& dirContents);
+void getDirectoryContents (std::vector<DirEntry>& dirContents);
 
 
 

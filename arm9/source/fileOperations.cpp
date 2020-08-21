@@ -8,15 +8,13 @@
 #include "date.h"
 #include "file_browse.h"
 
-using namespace std;
-
 #define copyBufSize 0x8000
 
 u32 copyBuf[copyBufSize];
 
 extern PrintConsole topConsole, bottomConsole;
 
-vector<ClipboardFile> clipboard;
+std::vector<ClipboardFile> clipboard;
 bool clipboardOn = false;
 bool clipboardUsed = false;
 
@@ -77,7 +75,7 @@ off_t getFileSize(const char *fileName)
 }
 
 void dirCopy(DirEntry* entry, int i, const char *destinationPath, const char *sourcePath) {
-	vector<DirEntry> dirContents;
+	std::vector<DirEntry> dirContents;
 	dirContents.clear();
 	if (entry->isDirectory)	chdir((sourcePath + ("/" + entry->name)).c_str());
 	getDirectoryContents(dirContents);
@@ -94,7 +92,7 @@ int fcopy(const char *sourcePath, const char *destinationPath)
 
 		// Source path is a directory
 		chdir(sourcePath);
-		vector<DirEntry> dirContents;
+		std::vector<DirEntry> dirContents;
 		getDirectoryContents(dirContents);
 		DirEntry* entry = NULL;
 

@@ -37,6 +37,7 @@
 #include "fileOperations.h"
 #include "driveMenu.h"
 #include "driveOperations.h"
+#include "dumpOperations.h"
 #include "nitrofs.h"
 
 #define SCREEN_COLS 22
@@ -55,11 +56,13 @@ extern void reinitConsoles(void);
 
 static char path[PATH_MAX];
 
-bool nameEndsWith (const string& name) {
+bool extension(const std::string &filename, const std::vector<std::string> &extensions) {
+	for(const std::string &ext : extensions) {
+		if(filename.length() > ext.length() && strcasecmp(filename.substr(filename.length() - ext.length()).data(), ext.data()) == 0)
+			return true;
+	}
 
-	if (name.size() == 0) return false;
-
-	return true;
+	return false;
 }
 
 void OnKeyPressed(int key) {
@@ -78,7 +81,7 @@ bool dirEntryPredicate (const DirEntry& lhs, const DirEntry& rhs) {
 	return strcasecmp(lhs.name.c_str(), rhs.name.c_str()) < 0;
 }
 
-void getDirectoryContents (vector<DirEntry>& dirContents) {
+void getDirectoryContents (std::vector<DirEntry>& dirContents) {
 	struct stat st;
 
 	dirContents.clear();
@@ -102,27 +105,15 @@ void getDirectoryContents (vector<DirEntry>& dirContents) {
 				if (!dirEntry.isDirectory) {
 					dirEntry.size = getFileSize(dirEntry.name.c_str());
 				}
-				if ((dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "nds")
-				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "NDS")
-				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "argv")
-				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "ARGV")
-				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "dsi")
-				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "DSI")
-				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "ids")
-				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "IDS")
-				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "app")
-				|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "APP"))
-				{
+				if (extension(dirEntry.name, {"nds", "argv", "dsi", "ids", "app"})) {
 					dirEntry.isApp = ((currentDrive == 0 && sdMounted) || (currentDrive == 1 && flashcardMounted));
-				} else if ((dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "firm")
-						|| (dirEntry.name.substr(dirEntry.name.find_last_of(".") + 1) == "FIRM"))
-				{
+				} else if (extension(dirEntry.name, {"firm"})) {
 					dirEntry.isApp = (isDSiMode() && is3DS && sdMounted);
 				} else {
 					dirEntry.isApp = false;
 				}
 
-				if (dirEntry.name.compare(".") != 0 && (dirEntry.isDirectory || nameEndsWith(dirEntry.name))) {
+				if (dirEntry.name.compare(".") != 0) {
 					dirContents.push_back (dirEntry);
 				}
 			}
@@ -141,7 +132,7 @@ void getDirectoryContents (vector<DirEntry>& dirContents) {
 	dirContents.insert (dirContents.begin(), dirEntry);	// Add ".." to top of list
 }
 
-void showDirectoryContents (const vector<DirEntry>& dirContents, int fileOffset, int startRow) {
+void showDirectoryContents (const std::vector<DirEntry>& dirContents, int fileOffset, int startRow) {
 	getcwd(path, PATH_MAX);
 
 	consoleClear();
@@ -192,9 +183,9 @@ void showDirectoryContents (const vector<DirEntry>& dirContents, int fileOffset,
 	printf ("\x1B[47m");		// Print foreground white color
 }
 
-int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
+FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 	int pressed = 0;
-	int assignedOp[4] = {0};
+	FileOperation assignedOp[4] = {FileOperation::none};
 	int optionOffset = 0;
 	int cursorScreenPos = 0;
 	int maxCursors = -1;
@@ -218,44 +209,39 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 	if (!entry->isDirectory) {
 		if (entry->isApp) {
 			maxCursors++;
-			assignedOp[maxCursors] = 0;
+			assignedOp[maxCursors] = FileOperation::bootFile;
 			printf("   Boot file\n");
 		}
-		if((entry->name.substr(entry->name.find_last_of(".") + 1) == "nds")
-		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "NDS")
-		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "dsi")
-		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "DSI")
-		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "ids")
-		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "IDS")
-		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "app")
-		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "APP"))
+		if(extension(entry->name, {"nds", "dsi", "ids", "app"}))
 		{
 			maxCursors++;
-			assignedOp[maxCursors] = 3;
+			assignedOp[maxCursors] = FileOperation::mountNitroFS;
 			printf("   Mount NitroFS\n");
 		}
-		else
-		if((entry->name.substr(entry->name.find_last_of(".") + 1) == "img")
-		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "IMG")
-		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "sd")
-		|| (entry->name.substr(entry->name.find_last_of(".") + 1) == "SD"))
+		else if(extension(entry->name, {"sav"}))
 		{
 			maxCursors++;
-			assignedOp[maxCursors] = 5;
+			assignedOp[maxCursors] = FileOperation::restoreSave;
+			printf("   Restore save\n");
+		}
+		else if(extension(entry->name, {"img", "sd"}))
+		{
+			maxCursors++;
+			assignedOp[maxCursors] = FileOperation::mountImg;
 			printf("   Mount as FAT image\n");
 		}
 	}
 	maxCursors++;
-	assignedOp[maxCursors] = 4;
+	assignedOp[maxCursors] = FileOperation::showInfo;
 	printf(entry->isDirectory ? "	Show directory info\n" : "	Show file info\n");
 	if (sdMounted && (strcmp (path, "sd:/gm9i/out/") != 0)) {
 		maxCursors++;
-		assignedOp[maxCursors] = 1;
+		assignedOp[maxCursors] = FileOperation::copySdOut;
 		printf("   Copy to sd:/gm9i/out\n");
 	}
 	if (flashcardMounted && (strcmp (path, "fat:/gm9i/out/") != 0)) {
 		maxCursors++;
-		assignedOp[maxCursors] = 2;
+		assignedOp[maxCursors] = FileOperation::copyFatOut;
 		printf("   Copy to fat:/gm9i/out\n");
 	}
 	printf("\n");
@@ -295,75 +281,88 @@ int fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 		if (optionOffset > maxCursors)		optionOffset = 0;		// Wrap around to top of list
 
 		if (pressed & KEY_A) {
-			if (assignedOp[optionOffset] == 0) {
-				applaunch = true;
-				iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
-				printf("Now loading...");
-			} else if (assignedOp[optionOffset] == 1) {
-				if (access("sd:/gm9i", F_OK) != 0) {
+			switch(assignedOp[optionOffset]) {
+				case FileOperation::bootFile: {
+					applaunch = true;
 					iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
-					printf("Creating directory...");
-					mkdir("sd:/gm9i", 0777);
-				}
-				if (access("sd:/gm9i/out", F_OK) != 0) {
+					printf("Now loading...");
+					break;
+				} case FileOperation::restoreSave: {
+					ndsCardSaveRestore(entry->name.c_str());
+					break;
+				} case FileOperation::copySdOut: {
+					if (access("sd:/gm9i", F_OK) != 0) {
+						iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
+						printf("Creating directory...");
+						mkdir("sd:/gm9i", 0777);
+					}
+					if (access("sd:/gm9i/out", F_OK) != 0) {
+						iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
+						printf("Creating directory...");
+						mkdir("sd:/gm9i/out", 0777);
+					}
+					char destPath[256];
+					snprintf(destPath, sizeof(destPath), "sd:/gm9i/out/%s", entry->name.c_str());
 					iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
-					printf("Creating directory...");
-					mkdir("sd:/gm9i/out", 0777);
-				}
-				char destPath[256];
-				snprintf(destPath, sizeof(destPath), "sd:/gm9i/out/%s", entry->name.c_str());
-				iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
-				printf("Copying...        	 ");
-				remove(destPath);
-				char sourceFolder[PATH_MAX];
-				getcwd(sourceFolder, PATH_MAX);
-				char sourcePath[PATH_MAX];
-				snprintf(sourcePath, sizeof(sourcePath), "%s%s", sourceFolder, entry->name.c_str());
-				fcopy(sourcePath, destPath);
-				chdir(sourceFolder);	// For after copying a folder
-			} else if (assignedOp[optionOffset] == 2) {
-				if (access("fat:/gm9i", F_OK) != 0) {
+					printf("Copying...        	 ");
+					remove(destPath);
+					char sourceFolder[PATH_MAX];
+					getcwd(sourceFolder, PATH_MAX);
+					char sourcePath[PATH_MAX];
+					snprintf(sourcePath, sizeof(sourcePath), "%s%s", sourceFolder, entry->name.c_str());
+					fcopy(sourcePath, destPath);
+					chdir(sourceFolder);	// For after copying a folder
+					break;
+				} case FileOperation::copyFatOut: {
+					if (access("fat:/gm9i", F_OK) != 0) {
+						iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
+						printf("Creating directory...");
+						mkdir("fat:/gm9i", 0777);
+					}
+					if (access("fat:/gm9i/out", F_OK) != 0) {
+						iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
+						printf("Creating directory...");
+						mkdir("fat:/gm9i/out", 0777);
+					}
+					char destPath[256];
+					snprintf(destPath, sizeof(destPath), "fat:/gm9i/out/%s", entry->name.c_str());
 					iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
-					printf("Creating directory...");
-					mkdir("fat:/gm9i", 0777);
-				}
-				if (access("fat:/gm9i/out", F_OK) != 0) {
-					iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
-					printf("Creating directory...");
-					mkdir("fat:/gm9i/out", 0777);
-				}
-				char destPath[256];
-				snprintf(destPath, sizeof(destPath), "fat:/gm9i/out/%s", entry->name.c_str());
-				iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
-				printf("Copying...        	 ");
-				remove(destPath);
-				char sourceFolder[PATH_MAX];
-				getcwd(sourceFolder, PATH_MAX);
-				char sourcePath[PATH_MAX];
-				snprintf(sourcePath, sizeof(sourcePath), "%s%s", sourceFolder, entry->name.c_str());
-				fcopy(sourcePath, destPath);
-				chdir(sourceFolder);	// For after copying a folder
-			} else if (assignedOp[optionOffset] == 3) {
-				nitroMounted = nitroFSInit(entry->name.c_str());
-				if (nitroMounted) {
-					chdir("nitro:/");
-					nitroCurrentDrive = currentDrive;
-					currentDrive = 5;
-				}
-			} else if (assignedOp[optionOffset] == 4) {
-				changeFileAttribs(entry);
-			} else if (assignedOp[optionOffset] == 5) {
-				imgMounted = imgMount(entry->name.c_str());
-				if (imgMounted) {
-					chdir("img:/");
-					imgCurrentDrive = currentDrive;
-					currentDrive = 6;
+					printf("Copying...        	 ");
+					remove(destPath);
+					char sourceFolder[PATH_MAX];
+					getcwd(sourceFolder, PATH_MAX);
+					char sourcePath[PATH_MAX];
+					snprintf(sourcePath, sizeof(sourcePath), "%s%s", sourceFolder, entry->name.c_str());
+					fcopy(sourcePath, destPath);
+					chdir(sourceFolder);	// For after copying a folder
+					break;
+				} case FileOperation::mountNitroFS: {
+					nitroMounted = nitroFSInit(entry->name.c_str());
+					if (nitroMounted) {
+						chdir("nitro:/");
+						nitroCurrentDrive = currentDrive;
+						currentDrive = 5;
+					}
+					break;
+				} case FileOperation::showInfo: {
+					changeFileAttribs(entry);
+					break;
+				} case FileOperation::mountImg: {
+					imgMounted = imgMount(entry->name.c_str());
+					if (imgMounted) {
+						chdir("img:/");
+						imgCurrentDrive = currentDrive;
+						currentDrive = 6;
+					}
+					break;
+				} case FileOperation::none: {
+					break;
 				}
 			}
 			return assignedOp[optionOffset];
 		}
 		if (pressed & KEY_B) {
-			return -1;
+			return FileOperation::none;
 		}
 	}
 }
@@ -519,12 +518,12 @@ void fileBrowse_drawBottomScreen(DirEntry* entry) {
 	}
 }
 
-string browseForFile (void) {
+std::string browseForFile (void) {
 	int pressed = 0;
 	int held = 0;
 	int screenOffset = 0;
 	int fileOffset = 0;
-	vector<DirEntry> dirContents;
+	std::vector<DirEntry> dirContents;
 
 	getDirectoryContents (dirContents);
 
@@ -607,17 +606,21 @@ string browseForFile (void) {
 				screenOffset = 0;
 				fileOffset = 0;
 			} else {
-				int getOp = fileBrowse_A(entry, path);
-				if (getOp == 0) {
+				FileOperation getOp = fileBrowse_A(entry, path);
+				if(getOp == FileOperation::bootFile) {
 					// Return the chosen file
 					return entry->name;
-				} else if (getOp == 1 || getOp == 2 || (getOp == 3 && nitroMounted) || (getOp == 5 && imgMounted)) {
-					getDirectoryContents (dirContents);		// Refresh directory listing
-					if ((getOp == 3 && nitroMounted) || (getOp == 5 && imgMounted)) {
+				} else if (getOp == FileOperation::copySdOut
+						|| getOp == FileOperation::copyFatOut
+						|| (getOp == FileOperation::mountNitroFS && nitroMounted)
+						|| (getOp == FileOperation::mountImg && imgMounted)) {
+					getDirectoryContents(dirContents); // Refresh directory listing
+					if ((getOp == FileOperation::mountNitroFS && nitroMounted)
+					 || (getOp == FileOperation::mountImg && imgMounted)) {
 						screenOffset = 0;
 						fileOffset = 0;
 					}
-				} else if (getOp == 4) {
+				} else if(getOp == FileOperation::showInfo) {
 					for (int i = 0; i < 15; i++) swiWaitForVBlank();
 				}
 			}
@@ -629,14 +632,10 @@ string browseForFile (void) {
 				screenMode = 0;
 				return "null";
 			} else {
-				int getOp = fileBrowse_A(entry, path);
-				if (getOp == 1 || getOp == 2) {
+				FileOperation getOp = fileBrowse_A(entry, path);
+				if (getOp == FileOperation::copySdOut || getOp == FileOperation::copyFatOut) {
 					getDirectoryContents (dirContents);		// Refresh directory listing
-					if (getOp == 3 && nitroMounted) {
-						screenOffset = 0;
-						fileOffset = 0;
-					}
-				} else if (getOp == 4) {
+				} else if (getOp == FileOperation::showInfo) {
 					for (int i = 0; i < 15; i++) swiWaitForVBlank();
 				}
 			}
