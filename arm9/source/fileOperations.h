@@ -6,13 +6,13 @@
 #define FILE_COPY
 
 struct ClipboardFile {
-	char path[256];
-	char name[256];
+	std::string path;
+	std::string name;
 	bool folder;
 	int drive; // 0 == SD card, 1 == Flashcard, 2 == RAMdrive 1, 3 == RAMdrive 2
 	bool nitro;
 
-	ClipboardFile(const char *path, const char *name, bool folder, int drive, bool nitro);
+	ClipboardFile(std::string path, std::string name, bool folder, int drive, bool nitro) : path(path), name(name), folder(folder), drive(drive), nitro(nitro) {}
 };
 
 extern std::vector<ClipboardFile> clipboard;
