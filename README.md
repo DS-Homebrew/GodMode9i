@@ -46,6 +46,7 @@ Once everything is downloaded and installed, `git clone` this repository, naviga
 * [Evie/Pk11](https://github.com/Epicpkmn11): Contributor.
 * [zacchi4k](https://github.com/zacchi4k): Logo designer.
 * [Edo9300](https://github.com/edo9300): Save reading code from his save manager tool.
+* [endrift](https://github.com/endrift): GBA ROM dumping code from [duplo](https://github.com/endrift/duplo), used for 64MB ROMs.
 * [JimmyZ](https://github.com/JimmyZ): NAND code from twlnf (with writing code stripped for safety reasons).
 * [zoogie](https://github.com/zoogie): ConsoleID code (originating from dumpTool).
 * [devkitPro](https://github.com/devkitPro): devkitARM, libnds, original nds-hb-menu code, and screenshot code.
