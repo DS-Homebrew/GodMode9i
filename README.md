@@ -5,7 +5,7 @@
 	<a href="https://dev.azure.com/DS-Homebrew/Builds/_build?definitionId=14" style="padding-right: 5px;">
 		<img src="https://dev.azure.com/DS-Homebrew/Builds/_apis/build/status/RocketRobz.GodMode9i?branchName=master" height="20">
 	</a>
-	<a href="https://discord.gg/yqSut8c" style="padding-left: 5px; padding-right: 5px;">
+	<a href="https://discord.gg/yD3spjv" style="padding-left: 5px; padding-right: 5px;">
 		<img src="https://img.shields.io/badge/Discord%20Server-%23GodMode9i-green.svg">
 	</a>
 	<a href="https://gbatemp.net/threads/release-godmode9i-all-access-file-browser-for-the-ds-i-and-3ds.520096/" style="padding-left: 5px;">
