@@ -34,6 +34,7 @@
 #include "driveOperations.h"
 #include "file_browse.h"
 #include "fileOperations.h"
+#include "tonccpy.h"
 
 #include "gm9i_logo.h"
 
@@ -147,9 +148,9 @@ int main(int argc, char **argv) {
 	consoleInit(&bottomConsole, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
 
 	// Display GM9i logo
-	bg3 = bgInit(3, BgType_Bmp16, BgSize_B16_256x256, 1, 0);
-	bgSetScroll(bg3, 0, 0);
+	bg3 = bgInit(3, BgType_Bmp8, BgSize_B8_256x256, 1, 0);
 	decompress(gm9i_logoBitmap, bgGetGfxPtr(bg3), LZ77Vram);
+	tonccpy(BG_PALETTE, gm9i_logoPal, gm9i_logoPalLen);
 
 	printf ("\x1b[1;1H");
 	printf(titleName);
