@@ -567,12 +567,21 @@ void gbaCartDump(void) {
 		}
 		// Dump!
 		remove(destPath);
+		// Reset data at virtual address
+		u32 rstCmd[4] = {
+			0x11, // Command
+			0x1000, // ROM address
+			0x08001000, // Virtual address
+			0x8, // Size (in 0x200 byte blocks)
+		};
+		writeChange(rstCmd);
 		FILE* destinationFile = fopen(destPath, "wb");
 		fwrite(GBAROM, 1, romSize, destinationFile);
 		fclose(destinationFile);
 		// Check for 64MB GBA Video ROM
 		if (strncmp((char*)0x080000AC, "MSAE", 4)==0	// Shark Tale
 		|| strncmp((char*)0x080000AC, "MSKE", 4)==0	// Shrek
+		|| strncmp((char*)0x080000AC, "MSTE", 4)==0	// Shrek & Shark Tale
 		|| strncmp((char*)0x080000AC, "M2SE", 4)==0	// Shrek 2
 		) {
 			// Dump last 32MB
