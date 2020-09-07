@@ -577,7 +577,6 @@ void gbaCartDump(void) {
 		writeChange(rstCmd);
 		FILE* destinationFile = fopen(destPath, "wb");
 		fwrite(GBAROM, 1, romSize, destinationFile);
-		fclose(destinationFile);
 		// Check for 64MB GBA Video ROM
 		if (strncmp((char*)0x080000AC, "MSAE", 4)==0	// Shark Tale
 		|| strncmp((char*)0x080000AC, "MSKE", 4)==0	// Shrek
@@ -600,6 +599,7 @@ void gbaCartDump(void) {
 				fwrite(GBAROM + (0x1000 >> 1), 0x1000, 1, destinationFile);
 			}
 		}
+		fclose(destinationFile);
 		// Save file
 		remove(destSavPath);
 		destinationFile = fopen(destSavPath, "wb");
