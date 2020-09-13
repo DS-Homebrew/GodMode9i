@@ -168,7 +168,7 @@ void showDirectoryContents (const std::vector<DirEntry>& dirContents, int fileOf
 		}
 
 		printf ("%.*s", SCREEN_COLS, entry->name.c_str());
-		if (strcmp(entry->name.c_str(), "..") == 0) {
+		if (entry->name == "..") {
 			printf ("\x1b[%d;28H", i + ENTRIES_START_ROW);
 			printf ("(..)");
 		} else if (entry->isDirectory) {
@@ -234,12 +234,12 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 	maxCursors++;
 	assignedOp[maxCursors] = FileOperation::showInfo;
 	printf(entry->isDirectory ? "	Show directory info\n" : "	Show file info\n");
-	if (sdMounted && (strcmp (path, "sd:/gm9i/out/") != 0)) {
+	if (sdMounted && (strcmp(path, "sd:/gm9i/out/") != 0)) {
 		maxCursors++;
 		assignedOp[maxCursors] = FileOperation::copySdOut;
 		printf("   Copy to sd:/gm9i/out\n");
 	}
-	if (flashcardMounted && (strcmp (path, "fat:/gm9i/out/") != 0)) {
+	if (flashcardMounted && (strcmp(path, "fat:/gm9i/out/") != 0)) {
 		maxCursors++;
 		assignedOp[maxCursors] = FileOperation::copyFatOut;
 		printf("   Copy to fat:/gm9i/out\n");
@@ -424,25 +424,24 @@ bool fileBrowse_paste(char dest[256]) {
 		if (optionOffset > maxCursors)		optionOffset = 0;		// Wrap around to top of list
 
 		if (pressed & KEY_A) {
-			char destPath[256];
 			iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW);
 			printf(optionOffset ? "Moving... " : "Copying...");
 			for (auto &file : clipboard) {
-				snprintf(destPath, sizeof(destPath), "%s%s", dest, file.name);
-				if (!strcmp (file.path, destPath))
+				std::string destPath = dest + file.name;
+				if (file.path == destPath)
 					continue;	// If the source and destination for the clipped file is the same skip it
 
 				if (optionOffset && !file.nitro ) {	 // Don't remove if from nitro
 					if (currentDrive == file.drive) {
-						rename(file.path, destPath);
+						rename(file.path.c_str(), destPath.c_str());
 					} else {
-						fcopy(file.path, destPath);		// Copy file to destination, since renaming won't work
-						remove(file.path);				// Delete source file after copying
+						fcopy(file.path.c_str(), destPath.c_str());		// Copy file to destination, since renaming won't work
+						remove(file.path.c_str());				// Delete source file after copying
 					}
 					clipboardUsed = false;		// Disable clipboard restore
 				} else {
-					remove(destPath);
-					fcopy(file.path, destPath);
+					remove(destPath.c_str());
+					fcopy(file.path.c_str(), destPath.c_str());
 				}
 			}
 			clipboardOn = false;	// Clear clipboard after copying or moving
@@ -475,7 +474,17 @@ void fileBrowse_drawBottomScreen(DirEntry* entry) {
 	printf ("\x1b[22;0H");
 	printf ("%s\n", titleName);
 	printf ("X - DELETE/[+R] RENAME file\n");
-	printf ("L - COPY file\n");
+	bool inClipboard = false;
+	if(clipboardOn) {
+		std::string fullPath(path + entry->name);
+		for (const auto &file : clipboard) {
+			if(file.path == fullPath) {
+				inClipboard = true;
+				break;
+			}
+		}
+	}
+	printf ("L - %s file\n", inClipboard ? "DESELECT" : "SELECT");
 	printf ("Y - PASTE file/[+R] CREATE entry");
 	printf ("R+A - Directory options\n");
 	if (sdMounted || flashcardMounted) {
@@ -493,7 +502,7 @@ void fileBrowse_drawBottomScreen(DirEntry* entry) {
 	printf (entry->isDirectory ? "\x1B[37m" : "\x1B[40m");		// Print custom blue color or foreground black color
 	printf ("\x1b[0;0H");
 	printf ("%s\n", entry->name.c_str());
-	if (strcmp(entry->name.c_str(), "..") != 0) {
+	if (entry->name != "..") {
 		if (entry->isDirectory) {
 			printf ("(dir)");
 		} else if (entry->size == 1) {
@@ -509,7 +518,7 @@ void fileBrowse_drawBottomScreen(DirEntry* entry) {
 		for (size_t i = 0; i < clipboard.size(); ++i) {
 			printf (clipboard[i].folder ? "\x1B[37m" : "\x1B[40m");		// Print custom blue color or foreground black color
 			if (i < 4) {
-				printf ("%s\n", clipboard[i].name);
+				printf ("%s\n", clipboard[i].name.c_str());
 			} else {
 				printf ("%d more files...\n", clipboard.size() - 4);
 				break;
@@ -594,7 +603,7 @@ std::string browseForFile (void) {
 
 		if ((!(held & KEY_R) && (pressed & KEY_A))
 		|| (!entry->isDirectory && (held & KEY_R) && (pressed & KEY_A))) {
-			if ((strcmp (entry->name.c_str(), "..") == 0) && (strcmp (path, getDrivePath()) == 0))
+			if (entry->name == ".." && strcmp(path, getDrivePath()) == 0)
 			{
 				screenMode = 0;
 				return "null";
@@ -628,7 +637,7 @@ std::string browseForFile (void) {
 
 		// Directory options
 		if (entry->isDirectory && (held & KEY_R) && (pressed & KEY_A)) {
-			if (strcmp(entry->name.c_str(), "..") == 0) {
+			if (entry->name == "..") {
 				screenMode = 0;
 				return "null";
 			} else {
@@ -642,7 +651,7 @@ std::string browseForFile (void) {
 		}
 
 		if (pressed & KEY_B) {
-			if (strcmp (path, getDrivePath()) == 0) {
+			if (strcmp(path, getDrivePath()) == 0) {
 				screenMode = 0;
 				return "null";
 			}
@@ -654,7 +663,7 @@ std::string browseForFile (void) {
 		}
 
 		// Rename file/folder
-		if ((held & KEY_R) && (pressed & KEY_X) && (strcmp (entry->name.c_str(), "..") != 0) && (strncmp (path, "nitro:/", 7) != 0)) {
+		if ((held & KEY_R) && (pressed & KEY_X) && (entry->name != ".." && strncmp(path, "nitro:/", 7) != 0)) {
 			printf ("\x1b[0;27H");
 			printf ("     ");	// Clear time
 			pressed = 0;
@@ -695,7 +704,7 @@ std::string browseForFile (void) {
 		}
 
 		// Delete file/folder
-		if ((pressed & KEY_X) && (strcmp (entry->name.c_str(), "..") != 0) && (strncmp (path, "nitro:/", 7) != 0)) {
+		if ((pressed & KEY_X) && (entry->name != ".." && strncmp(path, "nitro:/", 7) != 0)) {
 			consoleSelect(&bottomConsole);
 			consoleClear();
 			printf ("\x1B[47m");		// Print foreground white color
@@ -725,11 +734,11 @@ std::string browseForFile (void) {
 						for (auto &file : clipboard) {
 							if (FAT_getAttr(entry->name.c_str()) & ATTR_READONLY)
 								continue;
-							stat(file.path, &st);
+							stat(file.path.c_str(), &st);
 							if (st.st_mode & S_IFDIR)
-								recRemove(file.path, dirContents);
+								recRemove(file.path.c_str(), dirContents);
 							else
-								remove(file.path);
+								remove(file.path.c_str());
 						}
 						clipboard.clear();
 						clipboardOn = clipboardUsed = false;
@@ -776,7 +785,7 @@ std::string browseForFile (void) {
 		}
 
 		// Create new folder
-		if ((held & KEY_R) && (pressed & KEY_Y) && (strncmp (path, "nitro:/", 7) != 0)) {
+		if ((held & KEY_R) && (pressed & KEY_Y) && (strncmp(path, "nitro:/", 7) != 0)) {
 			printf ("\x1b[0;27H");
 			printf ("     ");	// Clear time
 			pressed = 0;
@@ -816,27 +825,28 @@ std::string browseForFile (void) {
 			}
 		}
 
-		// Copy
-		if (pressed & KEY_L && strcmp (entry->name.c_str(), "..") != 0) {
+		// Add to clipboard
+		if (pressed & KEY_L && entry->name != "..") {
 			if (!clipboardOn)
 				clipboard.clear();
-			char filePath[256];
-			snprintf(filePath, sizeof(filePath), "%s%s", path, entry->name.c_str());
-			bool exists = false;
-			for (auto &file : clipboard) {
-				if (strcmp (file.path, filePath)) // Check if file already in clipboard
-					continue;
-				exists = true;
-				break;
+			std::string fullPath(path + entry->name);
+			auto it = clipboard.begin();
+			for (; it != clipboard.end(); ++it) {
+				if(it->path == fullPath)
+					break;
 			}
-			if (!exists) {
-				clipboard.emplace_back(filePath, entry->name.c_str(), entry->isDirectory, currentDrive, !strncmp (path, "nitro:/", 7));
+			if (it == clipboard.end()) {
+				clipboard.emplace_back(fullPath, entry->name, entry->isDirectory, currentDrive, !strncmp(path, "nitro:/", 7));
 				clipboardOn = clipboardUsed = true;
+			} else {
+				clipboard.erase(it);
+				if(clipboard.size() == 0)
+					clipboardOn = clipboardUsed = false;
 			}
 		}
 
 		// Paste
-		if (pressed & KEY_Y && clipboardOn && strncmp (path, "nitro:/", 7) != 0 && fileBrowse_paste(path)) {
+		if (pressed & KEY_Y && clipboardOn && strncmp(path, "nitro:/", 7) != 0 && fileBrowse_paste(path)) {
 			getDirectoryContents (dirContents);
 		}
 
@@ -849,13 +859,13 @@ std::string browseForFile (void) {
 		  if (sdMounted || flashcardMounted) {
 			if (access((sdMounted ? "sd:/gm9i" : "fat:/gm9i"), F_OK) != 0) {
 				mkdir((sdMounted ? "sd:/gm9i" : "fat:/gm9i"), 0777);
-				if (strcmp (path, (sdMounted ? "sd:/" : "fat:/")) == 0) {
+				if (strcmp(path, (sdMounted ? "sd:/" : "fat:/")) == 0) {
 					getDirectoryContents (dirContents);
 				}
 			}
 			if (access((sdMounted ? "sd:/gm9i/out" : "fat:/gm9i/out"), F_OK) != 0) {
 				mkdir((sdMounted ? "sd:/gm9i/out" : "fat:/gm9i/out"), 0777);
-				if (strcmp (path, (sdMounted ? "sd:/gm9i/" : "fat:/gm9i/")) == 0) {
+				if (strcmp(path, (sdMounted ? "sd:/gm9i/" : "fat:/gm9i/")) == 0) {
 					getDirectoryContents (dirContents);
 				}
 			}
@@ -881,7 +891,7 @@ std::string browseForFile (void) {
 			// Take bottom screenshot
 			snprintf(snapPath, sizeof(snapPath), "%s:/gm9i/out/snap_%s_bot.bmp", (sdMounted ? "sd" : "fat"), fileTimeText);
 			screenshotbmp(snapPath);
-			if (strcmp (path, (sdMounted ? "sd:/gm9i/out/" : "fat:/gm9i/out/")) == 0) {
+			if (strcmp(path, (sdMounted ? "sd:/gm9i/out/" : "fat:/gm9i/out/")) == 0) {
 				getDirectoryContents (dirContents);
 			}
 			lcdMainOnTop();

@@ -8,6 +8,24 @@ endif
 
 include $(DEVKITARM)/ds_rules
 
+# If on a tagged commit, use the tag instead of the commit
+ifneq ($(shell echo $(shell git tag -l --points-at HEAD) | head -c 1),)
+GIT_VER := $(shell git tag -l --points-at HEAD)
+else
+GIT_VER := $(shell git describe --abbrev=0 --tags)-$(shell git rev-parse --short HEAD)
+endif
+
+# Ensure version.hpp exists
+ifeq (,$(wildcard include/version.h))
+$(shell mkdir -p include)
+$(shell touch include/version.h)
+endif
+
+# Print new version if changed
+ifeq (,$(findstring $(GIT_VER), $(shell cat include/version.h)))
+$(shell printf "#ifndef VERSION_HPP\n#define VERSION_HPP\n\n#define VER_NUMBER \"$(GIT_VER)\"\n\n#endif\n" > include/version.h)
+endif
+
 #---------------------------------------------------------------------------------
 # TARGET is the name of the output
 # BUILD is the directory where object files & intermediate files will be placed
@@ -113,7 +131,7 @@ $(BUILD):
 #---------------------------------------------------------------------------------
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) $(TARGET).elf $(TARGET).nds *.bin 
+	@rm -fr $(BUILD) $(TARGET).elf $(TARGET).nds *.bin include/version.h
 
 #---------------------------------------------------------------------------------
 else

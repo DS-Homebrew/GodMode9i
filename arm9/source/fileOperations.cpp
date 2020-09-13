@@ -18,12 +18,6 @@ std::vector<ClipboardFile> clipboard;
 bool clipboardOn = false;
 bool clipboardUsed = false;
 
-ClipboardFile::ClipboardFile(const char *iPath, const char *iName, bool folder, int drive, bool nitro) : folder(folder), drive(drive), nitro(nitro)
-{
-	strncpy(path, iPath, 256);
-	strncpy(name, iName, 256);
-}
-
 void printBytes(int bytes)
 {
 	if (bytes == 1)
