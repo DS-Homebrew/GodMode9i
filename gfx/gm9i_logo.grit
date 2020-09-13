@@ -5,5 +5,5 @@
 # use lz77 compression
 -gzl
 
-# 16 bit bitmap
--gB16
+# 8 bit bitmap
+-gB8
