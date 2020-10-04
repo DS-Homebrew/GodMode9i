@@ -65,13 +65,26 @@ void my_sdmmc_send_command(struct mmcdevice *ctx, uint32_t cmd, uint32_t args) {
 
 	u32 size = ctx->size;
 	const u16 blkSize = sdmmc_read16(REG_SDBLKLEN32);
+#ifdef DATA32_SUPPORT
 	u32 *rDataPtr32 = (u32*)ctx->rData;
+#else
+	u16 *rDataPtr16 = (u16*)ctx->rData;
+#endif
 	u8  *rDataPtr8  = ctx->rData;
+#ifdef DATA32_SUPPORT
 	const u32 *tDataPtr32 = (u32*)ctx->tData;
+#else
+	const u16 *tDataPtr16 = (u16*)ctx->tData;
+#endif
 	const u8  *tDataPtr8  = ctx->tData;
 
+#ifdef DATA32_SUPPORT
 	bool rUseBuf = ( NULL != rDataPtr32 );
 	bool tUseBuf = ( NULL != tDataPtr32 );
+#else
+	bool rUseBuf = ( NULL != rDataPtr16 );
+	bool tUseBuf = ( NULL != tDataPtr16 );
+#endif
 
 	u16 status0 = 0;
 	while(1)
@@ -111,16 +124,16 @@ void my_sdmmc_send_command(struct mmcdevice *ctx, uint32_t cmd, uint32_t args) {
 							}
 						}
 						#else
-						if(!((u32)rDataPtr16 & 1))
+						if(!((u16)rDataPtr16 & 1))
 						{
-							for(u32 i = 0; i < blkSize; i += 4)
+							for(u16 i = 0; i < blkSize; i += 2)
 							{
 								*rDataPtr16++ = sdmmc_read16(REG_SDFIFO);
 							}
 						}
 						else
 						{
-							for(u32 i = 0; i < blkSize; i += 4)
+							for(u16 i = 0; i < blkSize; i += 2)
 							{
 								u16 data = sdmmc_read16(REG_SDFIFO);
 								*rDataPtr8++ = data;
@@ -168,16 +181,16 @@ void my_sdmmc_send_command(struct mmcdevice *ctx, uint32_t cmd, uint32_t args) {
 							}
 						}
 						#else
-						if(!((u32)tDataPtr16 & 1))
+						if(!((u16)tDataPtr16 & 1))
 						{
-							for(u32 i = 0; i < blkSize; i += 2)
+							for(u16 i = 0; i < blkSize; i += 2)
 							{
 								sdmmc_write16(REG_SDFIFO, *tDataPtr16++);
 							}
 						}
 						else
 						{
-							for(u32 i = 0; i < blkSize; i += 2)
+							for(u16 i = 0; i < blkSize; i += 2)
 							{
 								u16 data = *tDataPtr8++;
 								data |= (u16)(*tDataPtr8++ << 8);
