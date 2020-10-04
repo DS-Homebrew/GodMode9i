@@ -91,8 +91,6 @@ void aes(void* in, void* out, void* iv, u32 method){ //this is sort of a bodged 
 //---------------------------------------------------------------------------------
 int main() {
 //---------------------------------------------------------------------------------
-    nocashMessage("ARM7 main.c main");
-	
 	// clear sound registers
 	dmaFillWords(0, (void*)0x04000400, 0x100);
 
