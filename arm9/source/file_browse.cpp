@@ -298,7 +298,7 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					// TODO Something less hacky lol
 					chdir("/_nds");
 					// TODO Read header and check for homebrew flag, based on that runNdsFile nds-bootstrap(-hb)-release
-					entry->name = "nds-bootstrap-release.nds";
+					entry->name = isDSiMode() ? "nds-bootstrap-release.nds" : "b4ds-release.nds";
 					applaunch = true;
 					return FileOperation::bootFile;
 					break;
