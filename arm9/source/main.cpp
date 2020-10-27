@@ -295,7 +295,7 @@ int main(int argc, char **argv) {
 				argarray.push_back(strdup(filename.c_str()));
 			}
 
-			if (extension(filename, {"nds", "dsi", "ids", "app"})) {
+			if (extension(filename, {"nds", "dsi", "ids", "app", "srl"})) {
 				char *name = argarray.at(0);
 				strcpy (filePath + pathLen, name);
 				free(argarray.at(0));

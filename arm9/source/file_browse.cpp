@@ -39,6 +39,8 @@
 #include "driveOperations.h"
 #include "dumpOperations.h"
 #include "nitrofs.h"
+#include "inifile.h"
+#include "nds_loader_arm9.h"
 
 #define SCREEN_COLS 22
 #define ENTRIES_PER_SCREEN 23
@@ -105,7 +107,7 @@ void getDirectoryContents (std::vector<DirEntry>& dirContents) {
 				if (!dirEntry.isDirectory) {
 					dirEntry.size = getFileSize(dirEntry.name.c_str());
 				}
-				if (extension(dirEntry.name, {"nds", "argv", "dsi", "ids", "app"})) {
+				if (extension(dirEntry.name, {"nds", "argv", "dsi", "ids", "app", "srl"})) {
 					dirEntry.isApp = ((currentDrive == 0 && sdMounted) || (currentDrive == 1 && flashcardMounted));
 				} else if (extension(dirEntry.name, {"firm"})) {
 					dirEntry.isApp = (isDSiMode() && is3DS && sdMounted);
@@ -208,40 +210,35 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 	iprintf ("\x1b[%d;0H", cursorScreenPos + OPTIONS_ENTRIES_START_ROW);
 	if (!entry->isDirectory) {
 		if (entry->isApp) {
-			maxCursors++;
-			assignedOp[maxCursors] = FileOperation::bootFile;
-			printf("   Boot file\n");
+			assignedOp[++maxCursors] = FileOperation::bootstrapFile;
+			printf("   Bootstrap file\n");
+			assignedOp[++maxCursors] = FileOperation::bootFile;
+			printf("   Boot file (Direct)\n");
 		}
 		if(extension(entry->name, {"nds", "dsi", "ids", "app"}))
 		{
-			maxCursors++;
-			assignedOp[maxCursors] = FileOperation::mountNitroFS;
+			assignedOp[++maxCursors] = FileOperation::mountNitroFS;
 			printf("   Mount NitroFS\n");
 		}
 		else if(extension(entry->name, {"sav"}))
 		{
-			maxCursors++;
-			assignedOp[maxCursors] = FileOperation::restoreSave;
+			assignedOp[++maxCursors] = FileOperation::restoreSave;
 			printf("   Restore save\n");
 		}
 		else if(extension(entry->name, {"img", "sd"}))
 		{
-			maxCursors++;
-			assignedOp[maxCursors] = FileOperation::mountImg;
+			assignedOp[++maxCursors] = FileOperation::mountImg;
 			printf("   Mount as FAT image\n");
 		}
 	}
-	maxCursors++;
-	assignedOp[maxCursors] = FileOperation::showInfo;
+	assignedOp[++maxCursors] = FileOperation::showInfo;
 	printf(entry->isDirectory ? "	Show directory info\n" : "	Show file info\n");
 	if (sdMounted && (strcmp(path, "sd:/gm9i/out/") != 0)) {
-		maxCursors++;
-		assignedOp[maxCursors] = FileOperation::copySdOut;
+		assignedOp[++maxCursors] = FileOperation::copySdOut;
 		printf("   Copy to sd:/gm9i/out\n");
 	}
 	if (flashcardMounted && (strcmp(path, "fat:/gm9i/out/") != 0)) {
-		maxCursors++;
-		assignedOp[maxCursors] = FileOperation::copyFatOut;
+		assignedOp[++maxCursors] = FileOperation::copyFatOut;
 		printf("   Copy to fat:/gm9i/out\n");
 	}
 	printf("\n");
@@ -286,6 +283,24 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					applaunch = true;
 					iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
 					printf("Now loading...");
+					break;
+				} case FileOperation::bootstrapFile: {
+					char baseFile[256], savePath[PATH_MAX]; //, bootstrapConfigPath[32];
+					//snprintf(bootstrapConfigPath, 32, "%s:/_nds/nds-bootstrap.ini", isDSiMode() ? "sd" : "fat");
+					strncpy(baseFile, entry->name.c_str(), 256);
+					*strrchr(baseFile, '.') = 0;
+					snprintf(savePath, PATH_MAX, "%s%s%s.sav", path, !access("saves", F_OK) ? "saves/" : "", baseFile);
+					CIniFile bootstrapConfig("/_nds/nds-bootstrap.ini");
+					bootstrapConfig.SetString("NDS-BOOTSTRAP", "NDS_PATH", fullPath);
+					bootstrapConfig.SetString("NDS-BOOTSTRAP", "SAV_PATH", savePath);
+					bootstrapConfig.SetInt("NDS-BOOTSTRAP", "DSI_MODE", 0);
+					bootstrapConfig.SaveIniFile("/_nds/nds-bootstrap.ini");
+					// TODO Something less hacky lol
+					chdir("/_nds");
+					// TODO Read header and check for homebrew flag, based on that runNdsFile nds-bootstrap(-hb)-release
+					entry->name = "nds-bootstrap-release.nds";
+					applaunch = true;
+					return FileOperation::bootFile;
 					break;
 				} case FileOperation::restoreSave: {
 					ndsCardSaveRestore(entry->name.c_str());
