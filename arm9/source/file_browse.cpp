@@ -296,7 +296,7 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					bootstrapConfig.SetInt("NDS-BOOTSTRAP", "DSI_MODE", 0);
 					bootstrapConfig.SaveIniFile("/_nds/nds-bootstrap.ini");
 					// TODO Something less hacky lol
-					chdir("/_nds");
+					chdir(isDSiMode()&&sdMounted ? "sd:/_nds" : "fat:/_nds");
 					// TODO Read header and check for homebrew flag, based on that runNdsFile nds-bootstrap(-hb)-release
 					entry->name = isDSiMode() ? "nds-bootstrap-release.nds" : "b4ds-release.nds";
 					applaunch = true;
