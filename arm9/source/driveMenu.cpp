@@ -447,6 +447,14 @@ void driveMenu (void) {
 			}
 		}
 
+#ifdef SCREENSWAP
+		// Swap screens
+		if (pressed & KEY_TOUCH) {
+			screenSwapped = !screenSwapped;
+			screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
+		}
+#endif
+
 		// Make a screenshot
 		if ((held & KEY_R) && (pressed & KEY_L)) {
 			if (sdMounted || flashcardMounted) {

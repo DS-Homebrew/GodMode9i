@@ -44,6 +44,9 @@ char titleName[32] = {" "};
 int screenMode = 0;
 
 bool appInited = false;
+#ifdef SCREENSWAP
+bool screenSwapped = false;
+#endif
 
 bool arm7SCFGLocked = false;
 bool isRegularDS = true;

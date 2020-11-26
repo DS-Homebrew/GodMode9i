@@ -266,7 +266,11 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 			pressed = keysDownRepeat();
 			swiWaitForVBlank();
 		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN)
-				&& !(pressed & KEY_A) && !(pressed & KEY_B));
+				&& !(pressed & KEY_A) && !(pressed & KEY_B)
+#ifdef SCREENSWAP
+				&& !(pressed & KEY_TOUCH)
+#endif
+				);
 
 		consoleSelect(&bottomConsole);
 		printf ("\x1B[47m");		// Print foreground white color
@@ -379,6 +383,13 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 		if (pressed & KEY_B) {
 			return FileOperation::none;
 		}
+#ifdef SCREENSWAP
+		// Swap screens
+		if (pressed & KEY_TOUCH) {
+			screenSwapped = !screenSwapped;
+			screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
+		}
+#endif
 	}
 }
 
@@ -427,7 +438,12 @@ bool fileBrowse_paste(char dest[256]) {
 			pressed = keysDownRepeat();
 			swiWaitForVBlank();
 		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN)
-				&& !(pressed & KEY_A) && !(pressed & KEY_B));
+				&& !(pressed & KEY_A) && !(pressed & KEY_B)
+#ifdef SCREENSWAP
+				&& !(pressed & KEY_TOUCH)
+#endif
+				);
+
 
 		consoleSelect(&bottomConsole);
 		printf ("\x1B[47m");		// Print foreground white color
@@ -465,6 +481,13 @@ bool fileBrowse_paste(char dest[256]) {
 		if (pressed & KEY_B) {
 			return false;
 		}
+#ifdef SCREENSWAP
+		// Swap screens
+		if (pressed & KEY_TOUCH) {
+			screenSwapped = !screenSwapped;
+			screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
+		}
+#endif
 	}
 }
 
@@ -868,6 +891,14 @@ std::string browseForFile (void) {
 		if ((pressed & KEY_SELECT) && clipboardUsed) {
 			clipboardOn = !clipboardOn;
 		}
+
+#ifdef SCREENSWAP
+		// Swap screens
+		if (pressed & KEY_TOUCH) {
+			screenSwapped = !screenSwapped;
+			screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
+		}
+#endif
 
 		// Make a screenshot
 		if ((held & KEY_R) && (pressed & KEY_L)) {
