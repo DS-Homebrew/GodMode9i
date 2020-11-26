@@ -328,7 +328,11 @@ void driveMenu (void) {
 					break;
 				}
 			}
-		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN) && !(pressed & KEY_A) && !(held & KEY_R));
+		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN) && !(pressed & KEY_A) && !(held & KEY_R)
+#ifdef SCREENSWAP
+				&& !(pressed & KEY_TOUCH)
+#endif
+		);
 	
 		printf ("\x1B[47m");		// Print foreground white color
 

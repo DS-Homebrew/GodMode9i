@@ -607,7 +607,11 @@ std::string browseForFile (void) {
 			}
 		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN) && !(pressed & KEY_LEFT) && !(pressed & KEY_RIGHT)
 				&& !(pressed & KEY_A) && !(pressed & KEY_B) && !(pressed & KEY_X) && !(pressed & KEY_Y)
-				&& !(pressed & KEY_L) && !(pressed & KEY_SELECT));
+				&& !(pressed & KEY_L) && !(pressed & KEY_SELECT)
+#ifdef SCREENSWAP
+				&& !(pressed & KEY_TOUCH)
+#endif
+				);
 
 		printf ("\x1B[47m");		// Print foreground white color
 		iprintf ("\x1b[%d;0H", fileOffset - screenOffset + ENTRIES_START_ROW);
