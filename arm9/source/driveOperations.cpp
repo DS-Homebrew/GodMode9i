@@ -42,18 +42,18 @@ u64 sdSize = 0;
 u64 fatSize = 0;
 u64 imgSize = 0;
 
-static int getGbNumber(u64 bytes) {
-	int gbNumber = 0;
-	for (u64 i = 0; i <= bytes; i += 0x40000000) {
-		gbNumber++;
+static float getGbNumber(u64 bytes) {
+	float gbNumber = 0.0f;
+	for (u64 i = 0; i <= bytes; i += 0x6666666) {
+		gbNumber += 0.1f;
 	}
 	return gbNumber;
 }
 
-static int getTbNumber(u64 bytes) {
-	int tbNumber = 0;
-	for (u64 i = 0; i <= bytes; i += 0x10000000000) {
-		tbNumber++;
+static float getTbNumber(u64 bytes) {
+	float tbNumber = 0.0f;
+	for (u64 i = 0; i <= bytes; i += 0x1999999999) {
+		tbNumber += 0.01f;
 	}
 	return tbNumber;
 }
@@ -73,10 +73,10 @@ void printDriveBytes(u64 bytes)
 		printf("%d MB", (int)bytes / 1024 / 1024);
 
 	else if (bytes >= 0x40000000 && bytes < 0x10000000000)
-		printf("%d GB", getGbNumber(bytes));
+		printf("%.1f GB", getGbNumber(bytes));
 
 	else
-		printf("%d TB", getTbNumber(bytes));
+		printf("%.1f TB", getTbNumber(bytes));
 }
 
 const char* getDrivePath(void) {
