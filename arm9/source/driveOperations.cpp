@@ -169,6 +169,12 @@ bool sdMount(void) {
 	return false;
 }
 
+u64 getBytesFree(const char* drivePath) {
+    struct statvfs st;
+    statvfs(drivePath, &st);
+    return (u64)st.f_bsize * (u64)st.f_bavail;
+}
+
 void sdUnmount(void) {
 	fatUnmount("sd");
 	sdLabel[0] = '\0';

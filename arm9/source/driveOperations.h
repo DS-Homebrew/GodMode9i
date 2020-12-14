@@ -44,5 +44,6 @@ extern void ramdrive2Mount(void);
 extern void nitroUnmount(void);
 extern bool imgMount(const char* imgName);
 extern void imgUnmount(void);
+extern u64 getBytesFree(const char* drivePath);
 
 #endif //FLASHCARD_H
