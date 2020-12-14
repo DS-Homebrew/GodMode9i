@@ -60,13 +60,7 @@ static float getTbNumber(u64 bytes) {
 
 void printDriveBytes(u64 bytes)
 {
-	if (bytes == 1)
-		iprintf("%d Byte", (int)bytes);
-
-	else if (bytes >= 0 && bytes < 1024)
-		iprintf("%d Bytes", (int)bytes);
-
-	else if (bytes >= 1024 && bytes < (1024 * 1024))
+	if (bytes < (1024 * 1024))
 		printf("%d KB", (int)bytes / 1024);
 
 	else if (bytes >= (1024 * 1024) && bytes < (1024 * 1024 * 1024))
