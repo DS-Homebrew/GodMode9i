@@ -1,4 +1,5 @@
 */build
+*.dsi
 *.nds
 *.cia
 *.elf

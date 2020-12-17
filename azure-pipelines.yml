@@ -37,13 +37,14 @@ steps:
     export DEVKITPRO="/opt/devkitpro"
     export DEVKITARM="/opt/devkitpro/devkitARM"
     sudo cp libmm7.a /opt/devkitpro/libnds/lib/libmm7.a
-    make
+    make all dsi
   displayName: 'Build GodMode9i'
 
 - script: |
     chmod +x make_cia
-    ./make_cia --srl="GodMode9i.nds" --id_0=$(git rev-parse --short=7 HEAD) --tikID=$(git rev-parse --short=16 HEAD)
+    ./make_cia --srl="GodMode9i.dsi" --id_0=$(git rev-parse --short=7 HEAD) --tikID=$(git rev-parse --short=16 HEAD)
     mkdir GodMode9i/
+    cp GodMode9i.dsi GodMode9i/
     cp GodMode9i.nds GodMode9i/
     cp GodMode9i.cia GodMode9i/
     7z a GodMode9i.7z GodMode9i/
