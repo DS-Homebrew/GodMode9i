@@ -282,6 +282,12 @@ void ndsCardDump(void) {
 		tonccpy(gameTitle, ndsCardHeader.gameTitle, 12);
 		char gameCode[7] = {0};
 		tonccpy(gameCode, ndsCardHeader.gameCode, 6);
+		if (gameTitle[0] == 0 || gameTitle[0] == 0x2E || gameTitle[0] == 0xFF) {
+			sprintf(gameTitle, "NO-TITLE");
+		}
+		if (gameCode[0] == 0 || gameCode[0] == 0x23 || gameCode[0] == 0xFF) {
+			sprintf(gameCode, "NONE00");
+		}
 		bool trimRom = (pressed & KEY_Y);
 		char destPath[256];
 		sprintf(destPath, "%s:/gm9i/out/%s_%s_%x%s.nds", (sdMounted ? "sd" : "fat"), gameTitle, gameCode, ndsCardHeader.romversion, (trimRom ? "_trim" : ""));
@@ -441,26 +447,28 @@ void ndsCardDump(void) {
 			remove(destPath);
 			u32 currentSize = romSize;
 			FILE* destinationFile = fopen(destPath, "wb");
-			for (u32 src = 0; src < romSize; src += 0x8000) {
-				consoleSelect(&topConsole);
-				printf ("\x1B[30m");		// Print black color
-				// Move to right side of screen
-				printf ("\x1b[0;26H");
-				// Print time
-				printf (" %s" ,RetTime().c_str());
+			if (destinationFile) {
+				for (u32 src = 0; src < romSize; src += 0x8000) {
+					consoleSelect(&topConsole);
+					printf ("\x1B[30m");		// Print black color
+					// Move to right side of screen
+					printf ("\x1b[0;26H");
+					// Print time
+					printf (" %s" ,RetTime().c_str());
 
-				consoleSelect(&bottomConsole);
-				printf ("\x1B[47m");		// Print foreground white color
-				printf ("\x1b[8;0H");
-				printf ("Progress:\n");
-				printf ("%i/%i Bytes", (int)src, (int)romSize);
-				for (u32 i = 0; i < 0x8000; i += 0x200) {
-					cardRead (src+i, copyBuf+i);
+					consoleSelect(&bottomConsole);
+					printf ("\x1B[47m");		// Print foreground white color
+					printf ("\x1b[8;0H");
+					printf ("Progress:\n");
+					printf ("%i/%i Bytes", (int)src, (int)romSize);
+					for (u32 i = 0; i < 0x8000; i += 0x200) {
+						cardRead (src+i, copyBuf+i);
+					}
+					fwrite(copyBuf, 1, (currentSize>=0x8000 ? 0x8000 : currentSize), destinationFile);
+					currentSize -= 0x8000;
 				}
-				fwrite(copyBuf, 1, (currentSize>=0x8000 ? 0x8000 : currentSize), destinationFile);
-				currentSize -= 0x8000;
+				fclose(destinationFile);
 			}
-			fclose(destinationFile);
 			ndsCardSaveDump(destSavPath);
 		//}
 	}
@@ -576,30 +584,32 @@ void gbaCartDump(void) {
 		};
 		writeChange(rstCmd);
 		FILE* destinationFile = fopen(destPath, "wb");
-		fwrite(GBAROM, 1, romSize, destinationFile);
-		// Check for 64MB GBA Video ROM
-		if (strncmp((char*)0x080000AC, "MSAE", 4)==0	// Shark Tale
-		|| strncmp((char*)0x080000AC, "MSKE", 4)==0	// Shrek
-		|| strncmp((char*)0x080000AC, "MSTE", 4)==0	// Shrek & Shark Tale
-		|| strncmp((char*)0x080000AC, "M2SE", 4)==0	// Shrek 2
-		) {
-			// Dump last 32MB
-			u32 cmd[4] = {
-				0x11, // Command
-				0, // ROM address
-				0x08001000, // Virtual address
-				0x8, // Size (in 0x200 byte blocks)
-			};
+		if (destinationFile) {
+			fwrite(GBAROM, 1, romSize, destinationFile);
+			// Check for 64MB GBA Video ROM
+			if (strncmp((char*)0x080000AC, "MSAE", 4)==0	// Shark Tale
+			|| strncmp((char*)0x080000AC, "MSKE", 4)==0	// Shrek
+			|| strncmp((char*)0x080000AC, "MSTE", 4)==0	// Shrek & Shark Tale
+			|| strncmp((char*)0x080000AC, "M2SE", 4)==0	// Shrek 2
+			) {
+				// Dump last 32MB
+				u32 cmd[4] = {
+					0x11, // Command
+					0, // ROM address
+					0x08001000, // Virtual address
+					0x8, // Size (in 0x200 byte blocks)
+				};
 
-			size_t i;
-			for (i = 0x02000000; i < 0x04000000; i += 0x1000) {
-				cmd[1] = i,
-				writeChange(cmd);
-				readChange();
-				fwrite(GBAROM + (0x1000 >> 1), 0x1000, 1, destinationFile);
+				size_t i;
+				for (i = 0x02000000; i < 0x04000000; i += 0x1000) {
+					cmd[1] = i,
+					writeChange(cmd);
+					readChange();
+					fwrite(GBAROM + (0x1000 >> 1), 0x1000, 1, destinationFile);
+				}
 			}
+			fclose(destinationFile);
 		}
-		fclose(destinationFile);
 		// Save file
 		remove(destSavPath);
 		destinationFile = fopen(destSavPath, "wb");
