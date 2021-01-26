@@ -20,6 +20,86 @@ extern PrintConsole topConsole, bottomConsole;
 
 static sNDSHeaderExt ndsCardHeader;
 
+//---------------------------------------------------------------------------------
+// https://github.com/devkitPro/libnds/blob/master/source/common/cardEeprom.c#L88
+// with type 2 fixed if the first word and another % 8192 location are 0x00000000
+uint32 cardEepromGetSizeFixed() {
+//---------------------------------------------------------------------------------
+
+	int type = cardEepromGetType();
+
+	if(type == -1)
+		return 0;
+	if(type == 0)
+		return 8192;
+	if(type == 1)
+		return 512;
+	if(type == 2) {
+		u32 buf1,buf2,buf3 = 0x54536554; // "TeST"
+		// Save the first word of the EEPROM
+		cardReadEeprom(0,(u8*)&buf1,4,type);
+
+		// Write "TeST" to it
+		cardWriteEeprom(0,(u8*)&buf3,4,type);
+
+		// Loop until the EEPROM mirrors and the first word shows up again
+		int size = 8192;
+		while (1) {
+			cardReadEeprom(size,(u8*)&buf2,4,type);
+			if ( buf2 == buf3 ) break;
+			size += 8192;
+		}
+
+		// Restore the first word
+		cardWriteEeprom(0,(u8*)&buf1,4,type);
+
+		return size;
+	}
+
+	int device;
+
+	if(type == 3) {
+		int id = cardEepromReadID();
+
+		device = id & 0xffff;
+		
+		if ( ((id >> 16) & 0xff) == 0x20 ) { // ST
+			
+			switch(device) {
+
+			case 0x4014:
+				return 1024*1024;		//	8Mbit(1 meg)
+				break;
+			case 0x4013:
+			case 0x8013:				// M25PE40
+				return 512*1024;		//	4Mbit(512KByte)
+				break;
+			case 0x2017:
+				return 8*1024*1024;		//	64Mbit(8 meg)
+				break;
+			}
+		}
+
+		if ( ((id >> 16) & 0xff) == 0x62 ) { // Sanyo
+			
+			if (device == 0x1100)
+				return 512*1024;		//	4Mbit(512KByte)
+
+		}
+
+		if ( ((id >> 16) & 0xff) == 0xC2 ) { // Macronix
+			
+			if (device == 0x2211)
+				return 128*1024;		//	1Mbit(128KByte) - MX25L1021E
+		}
+		
+
+		return 256*1024;		//	2Mbit(256KByte)
+	}
+
+	return 0;
+}
+
 void ndsCardSaveDump(const char* filename) {
 	FILE *out = fopen(filename, "wb");
 	if(out) {
@@ -42,7 +122,7 @@ void ndsCardSaveDump(const char* filename) {
 			fwrite(buffer, 1, LEN*size_blocks, out);
 		} else {
 			int type = cardEepromGetType();
-			int size = cardEepromGetSize();
+			int size = cardEepromGetSizeFixed();
 			buffer = new unsigned char[size];
 			cardReadEeprom(0, buffer, size, type);
 			fwrite(buffer, 1, size, out);
@@ -108,7 +188,7 @@ void ndsCardSaveRestore(const char *filename) {
 				num_blocks = 1 << (size - shift);
 			} else {
 				type = cardEepromGetType();
-				size = cardEepromGetSize();
+				size = cardEepromGetSizeFixed();
 			}
 			fseek(in, 0, SEEK_END);
 			length = ftell(in);
