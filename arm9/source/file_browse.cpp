@@ -163,6 +163,8 @@ void showDirectoryContents (const std::vector<DirEntry>& dirContents, int fileOf
 		iprintf ("\x1b[%d;0H", i + ENTRIES_START_ROW);
 		if ((fileOffset - startRow) == i) {
 			printf ("\x1B[47m");		// Print foreground white color
+		} else if (entry->selected) {
+			printf ("\x1B[33m");		// Print custom yellow color
 		} else if (entry->isDirectory) {
 			printf ("\x1B[37m");		// Print custom blue color
 		} else {
@@ -210,10 +212,10 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 	iprintf ("\x1b[%d;0H", cursorScreenPos + OPTIONS_ENTRIES_START_ROW);
 	if (!entry->isDirectory) {
 		if (entry->isApp) {
-			assignedOp[++maxCursors] = FileOperation::bootstrapFile;
-			printf("   Bootstrap file\n");
 			assignedOp[++maxCursors] = FileOperation::bootFile;
 			printf("   Boot file (Direct)\n");
+			assignedOp[++maxCursors] = FileOperation::bootstrapFile;
+			printf("   Bootstrap file\n");
 		}
 		if(extension(entry->name, {"nds", "dsi", "ids", "app"}))
 		{
@@ -469,12 +471,12 @@ bool fileBrowse_paste(char dest[256]) {
 						fcopy(file.path.c_str(), destPath.c_str());		// Copy file to destination, since renaming won't work
 						remove(file.path.c_str());				// Delete source file after copying
 					}
-					clipboardUsed = false;		// Disable clipboard restore
 				} else {
 					remove(destPath.c_str());
 					fcopy(file.path.c_str(), destPath.c_str());
 				}
 			}
+			clipboardUsed = true;		// Disable clipboard restore
 			clipboardOn = false;	// Clear clipboard after copying or moving
 			return true;
 		}
@@ -512,18 +514,8 @@ void fileBrowse_drawBottomScreen(DirEntry* entry) {
 	printf ("\x1b[22;0H");
 	printf ("%s\n", titleName);
 	printf ("X - DELETE/[+R] RENAME file\n");
-	bool inClipboard = false;
-	if(clipboardOn) {
-		std::string fullPath(path + entry->name);
-		for (const auto &file : clipboard) {
-			if(file.path == fullPath) {
-				inClipboard = true;
-				break;
-			}
-		}
-	}
-	printf ("L - %s file\n", inClipboard ? "DESELECT" : "SELECT");
-	printf ("Y - PASTE file/[+R] CREATE entry");
+	printf ("L - %s file\n", entry->selected ? "DESELECT" : "SELECT");
+	printf ("Y - %s file/[+R] CREATE entry%s", clipboardOn ? "PASTE" : "COPY", clipboardOn ? "" : "\n");
 	printf ("R+A - Directory options\n");
 	if (sdMounted || flashcardMounted) {
 		printf ("%s\n", SCREENSHOTTEXT);
@@ -536,8 +528,7 @@ void fileBrowse_drawBottomScreen(DirEntry* entry) {
 	} else {
 		printf (POWERTEXT);
 	}
-
-	printf (entry->isDirectory ? "\x1B[37m" : "\x1B[40m");		// Print custom blue color or foreground black color
+	printf (entry->selected ? "\x1B[33m" : (entry->isDirectory ? "\x1B[37m" : "\x1B[40m"));		// Print custom blue color or foreground black color
 	printf ("\x1b[0;0H");
 	printf ("%s\n", entry->name.c_str());
 	if (entry->name != "..") {
@@ -750,10 +741,16 @@ std::string browseForFile (void) {
 			consoleSelect(&bottomConsole);
 			consoleClear();
 			printf ("\x1B[47m");		// Print foreground white color
-			if (clipboardOn)
-				iprintf("Delete %d files?\n", clipboard.size());
-			else
+			if (entry->selected) {
+				int count = 0;
+				for (const auto &item : dirContents) {
+					if (item.selected)
+						count++;
+				}
+				iprintf("Delete %d path(s)?\n", count);
+			} else {
 				iprintf("Delete \"%s\"?\n", entry->name.c_str());
+			}
 			printf ("(<A> yes, <B> no)");
 			consoleSelect(&topConsole);
 			printf ("\x1B[30m");		// Print black color for time text
@@ -770,20 +767,20 @@ std::string browseForFile (void) {
 					consoleSelect(&bottomConsole);
 					consoleClear();
 					printf ("\x1B[47m");		// Print foreground white color
-					if (clipboardOn) {
+					if (entry->selected) {
 						printf ("Deleting files, please wait...");
 						struct stat st;
-						for (auto &file : clipboard) {
-							if (FAT_getAttr(entry->name.c_str()) & ATTR_READONLY)
-								continue;
-							stat(file.path.c_str(), &st);
-							if (st.st_mode & S_IFDIR)
-								recRemove(file.path.c_str(), dirContents);
-							else
-								remove(file.path.c_str());
+						for (auto &item : dirContents) {
+							if(item.selected) {
+								if (FAT_getAttr(item.name.c_str()) & ATTR_READONLY)
+									continue;
+								stat(item.name.c_str(), &st);
+								if (st.st_mode & S_IFDIR)
+									recRemove(item.name.c_str(), dirContents);
+								else
+									remove(item.name.c_str());
+							}
 						}
-						clipboard.clear();
-						clipboardOn = clipboardUsed = false;
 						fileOffset = 0;
 					} else if (FAT_getAttr(entry->name.c_str()) & ATTR_READONLY) {
 						printf ("Failed deleting:\n");
@@ -869,30 +866,50 @@ std::string browseForFile (void) {
 
 		// Add to clipboard
 		if (pressed & KEY_L && entry->name != "..") {
-			if (!clipboardOn)
-				clipboard.clear();
-			std::string fullPath(path + entry->name);
-			auto it = clipboard.begin();
-			for (; it != clipboard.end(); ++it) {
-				if(it->path == fullPath)
-					break;
-			}
-			if (it == clipboard.end()) {
-				clipboard.emplace_back(fullPath, entry->name, entry->isDirectory, currentDrive, !strncmp(path, "nitro:/", 7));
-				clipboardOn = clipboardUsed = true;
-			} else {
-				clipboard.erase(it);
-				if(clipboard.size() == 0)
-					clipboardOn = clipboardUsed = false;
+			entry->selected = !entry->selected;
+			// if (!clipboardOn)
+			// 	clipboard.clear();
+			// std::string fullPath(path + entry->name);
+			// auto it = clipboard.begin();
+			// for (; it != clipboard.end(); ++it) {
+			// 	if(it->path == fullPath)
+			// 		break;
+			// }
+			// if (it == clipboard.end()) {
+			// 	clipboard.emplace_back(fullPath, entry->name, entry->isDirectory, currentDrive, !strncmp(path, "nitro:/", 7));
+			// 	clipboardOn = clipboardUsed = true;
+			// } else {
+			// 	clipboard.erase(it);
+			// 	if(clipboard.size() == 0)
+			// 		clipboardOn = clipboardUsed = false;
+			// }
+		}
+
+		if (pressed & KEY_Y) {
+			// Copy
+			if (!clipboardOn) {
+				if (entry->name != "..") {
+					clipboardOn = true;
+					clipboardUsed = false;
+					clipboard.clear();
+					if (entry->selected) {
+						for (auto &item : dirContents) {
+							if(item.selected) {
+								clipboard.emplace_back(path + item.name, item.name, item.isDirectory, currentDrive, !strncmp(path, "nitro:/", 7));
+								item.selected = false;
+							}
+						}
+					} else {
+						clipboard.emplace_back(path + entry->name, entry->name, entry->isDirectory, currentDrive, !strncmp(path, "nitro:/", 7));
+					}
+				}
+			// Paste
+			} else if (strncmp(path, "nitro:/", 7) != 0 && fileBrowse_paste(path)) {
+				getDirectoryContents (dirContents);
 			}
 		}
 
-		// Paste
-		if (pressed & KEY_Y && clipboardOn && strncmp(path, "nitro:/", 7) != 0 && fileBrowse_paste(path)) {
-			getDirectoryContents (dirContents);
-		}
-
-		if ((pressed & KEY_SELECT) && clipboardUsed) {
+		if ((pressed & KEY_SELECT) && !clipboardUsed) {
 			clipboardOn = !clipboardOn;
 		}
 
