@@ -743,18 +743,23 @@ std::string browseForFile (void) {
 			}
 		}
 
-		// Delete file/folder
+		// Delete action
 		if ((pressed & KEY_X) && (entry->name != ".." && strncmp(path, "nitro:/", 7) != 0)) {
 			consoleSelect(&bottomConsole);
 			consoleClear();
 			printf ("\x1B[47m");		// Print foreground white color
-			if (entry->selected) {
-				int count = 0;
-				for (const auto &item : dirContents) {
-					if (item.selected)
-						count++;
+			int selections = std::count_if(dirContents.begin(), dirContents.end(), [](const DirEntry &x){ return x.selected; });
+			if (entry->selected && selections > 1) {
+				iprintf("Delete %d paths?\n", selections);
+				for (uint i = 0, printed = 0; i < dirContents.size() && printed < 5; i++) {
+					if (dirContents[i].selected) {
+						iprintf("\x1B[41m- %s\n", dirContents[i].name.c_str());
+						printed++;
+					}
 				}
-				iprintf("Delete %d path(s)?\n", count);
+				if(selections > 5)
+					iprintf("\x1B[41m- and %d more...\n", selections - 5);
+				iprintf("\x1B[47m");
 			} else {
 				iprintf("Delete \"%s\"?\n", entry->name.c_str());
 			}
