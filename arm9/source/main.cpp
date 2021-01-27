@@ -112,6 +112,10 @@ void reinitConsoles(void) {
 	BG_PALETTE[15+(7*16)] = 0x656A;
 	BG_PALETTE_SUB[15+(7*16)] = 0x656A;
 
+	// Custom yellow color
+	BG_PALETTE[15+(3*16)] = 0x3339;
+	BG_PALETTE_SUB[15+(3*16)] = 0x3339;
+
 	// Overwrite 2nd smiley face with filled tile
 	dmaFillWords(0xFFFFFFFF, (void*)0x6000040, 8*8);	// Top screen
 	dmaFillWords(0xFFFFFFFF, (void*)0x6200040, 8*8);	// Bottom screen
@@ -247,6 +251,10 @@ int main(int argc, char **argv) {
 	// Overwrite background white color
 	BG_PALETTE[15+(7*16)] = 0x656A;
 	BG_PALETTE_SUB[15+(7*16)] = 0x656A;
+
+	// Custom yellow color
+	BG_PALETTE[15+(3*16)] = 0x3339;
+	BG_PALETTE_SUB[15+(3*16)] = 0x3339;
 
 	// Overwrite 2nd smiley face with filled tile
 	dmaFillWords(0xFFFFFFFF, (void*)0x6000040, 8*8);	// Top screen

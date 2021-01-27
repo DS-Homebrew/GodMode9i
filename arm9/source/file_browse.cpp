@@ -47,7 +47,6 @@
 #define ENTRIES_START_ROW 1
 #define OPTIONS_ENTRIES_START_ROW 2
 #define ENTRY_PAGE_LENGTH 10
-bool bigJump = false;
 extern PrintConsole topConsole, bottomConsole;
 
 extern void printBorderTop(void);
@@ -163,6 +162,8 @@ void showDirectoryContents (const std::vector<DirEntry>& dirContents, int fileOf
 		iprintf ("\x1b[%d;0H", i + ENTRIES_START_ROW);
 		if ((fileOffset - startRow) == i) {
 			printf ("\x1B[47m");		// Print foreground white color
+		} else if (entry->selected) {
+			printf ("\x1B[33m");		// Print custom yellow color
 		} else if (entry->isDirectory) {
 			printf ("\x1B[37m");		// Print custom blue color
 		} else {
@@ -210,10 +211,10 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 	iprintf ("\x1b[%d;0H", cursorScreenPos + OPTIONS_ENTRIES_START_ROW);
 	if (!entry->isDirectory) {
 		if (entry->isApp) {
-			assignedOp[++maxCursors] = FileOperation::bootstrapFile;
-			printf("   Bootstrap file\n");
 			assignedOp[++maxCursors] = FileOperation::bootFile;
 			printf("   Boot file (Direct)\n");
+			assignedOp[++maxCursors] = FileOperation::bootstrapFile;
+			printf("   Bootstrap file\n");
 		}
 		if(extension(entry->name, {"nds", "dsi", "ids", "app"}))
 		{
@@ -469,12 +470,12 @@ bool fileBrowse_paste(char dest[256]) {
 						fcopy(file.path.c_str(), destPath.c_str());		// Copy file to destination, since renaming won't work
 						remove(file.path.c_str());				// Delete source file after copying
 					}
-					clipboardUsed = false;		// Disable clipboard restore
 				} else {
 					remove(destPath.c_str());
 					fcopy(file.path.c_str(), destPath.c_str());
 				}
 			}
+			clipboardUsed = true;		// Disable clipboard restore
 			clipboardOn = false;	// Clear clipboard after copying or moving
 			return true;
 		}
@@ -512,18 +513,8 @@ void fileBrowse_drawBottomScreen(DirEntry* entry) {
 	printf ("\x1b[22;0H");
 	printf ("%s\n", titleName);
 	printf ("X - DELETE/[+R] RENAME file\n");
-	bool inClipboard = false;
-	if(clipboardOn) {
-		std::string fullPath(path + entry->name);
-		for (const auto &file : clipboard) {
-			if(file.path == fullPath) {
-				inClipboard = true;
-				break;
-			}
-		}
-	}
-	printf ("L - %s file\n", inClipboard ? "DESELECT" : "SELECT");
-	printf ("Y - PASTE file/[+R] CREATE entry");
+	printf ("L - %s files (with \x18\x19\x1A\x1B)\n", entry->selected ? "DESELECT" : "SELECT");
+	printf ("Y - %s file/[+R] CREATE entry%s", clipboardOn ? "PASTE" : "COPY", clipboardOn ? "" : "\n");
 	printf ("R+A - Directory options\n");
 	if (sdMounted || flashcardMounted) {
 		printf ("%s\n", SCREENSHOTTEXT);
@@ -536,8 +527,7 @@ void fileBrowse_drawBottomScreen(DirEntry* entry) {
 	} else {
 		printf (POWERTEXT);
 	}
-
-	printf (entry->isDirectory ? "\x1B[37m" : "\x1B[40m");		// Print custom blue color or foreground black color
+	printf (entry->selected ? "\x1B[33m" : (entry->isDirectory ? "\x1B[37m" : "\x1B[40m"));		// Print custom blue color or foreground black color
 	printf ("\x1b[0;0H");
 	printf ("%s\n", entry->name.c_str());
 	if (entry->name != "..") {
@@ -622,15 +612,23 @@ std::string browseForFile (void) {
 			return "null";
 		}
 
-		if (pressed & KEY_UP) {		fileOffset -= 1; bigJump = false;  }
-		if (pressed & KEY_DOWN) {	fileOffset += 1; bigJump = false; }
-		if (pressed & KEY_LEFT) {	fileOffset -= ENTRY_PAGE_LENGTH; bigJump = true; }
-		if (pressed & KEY_RIGHT) {	fileOffset += ENTRY_PAGE_LENGTH; bigJump = true; }
-
-		if ((fileOffset < 0) & (bigJump == false))	fileOffset = dirContents.size() - 1;	// Wrap around to bottom of list (UP press)
-		else if ((fileOffset < 0) & (bigJump == true))	fileOffset = 0;		// Move to bottom of list (RIGHT press)
-		if ((fileOffset > ((int)dirContents.size() - 1)) & (bigJump == false))	fileOffset = 0;		// Wrap around to top of list (DOWN press)
-		else if ((fileOffset > ((int)dirContents.size() - 1)) & (bigJump == true))	fileOffset = dirContents.size() - 1;	// Move to top of list (LEFT press)
+		if (pressed & KEY_UP) {
+			fileOffset--;
+			if(fileOffset < 0)
+				fileOffset = dirContents.size() - 1;
+		} else if (pressed & KEY_DOWN) {
+			fileOffset++;
+			if(fileOffset > (int)dirContents.size() - 1)
+				fileOffset = 0;
+		} else if (pressed & KEY_LEFT) {
+			fileOffset -= ENTRY_PAGE_LENGTH;
+			if(fileOffset < 0)
+				fileOffset = 0;
+		} else if (pressed & KEY_RIGHT) {
+			fileOffset += ENTRY_PAGE_LENGTH;
+			if(fileOffset > (int)dirContents.size() - 1)
+				fileOffset = dirContents.size() - 1;
+		}
 
 
 		// Scroll screen if needed
@@ -745,15 +743,26 @@ std::string browseForFile (void) {
 			}
 		}
 
-		// Delete file/folder
+		// Delete action
 		if ((pressed & KEY_X) && (entry->name != ".." && strncmp(path, "nitro:/", 7) != 0)) {
 			consoleSelect(&bottomConsole);
 			consoleClear();
 			printf ("\x1B[47m");		// Print foreground white color
-			if (clipboardOn)
-				iprintf("Delete %d files?\n", clipboard.size());
-			else
+			int selections = std::count_if(dirContents.begin(), dirContents.end(), [](const DirEntry &x){ return x.selected; });
+			if (entry->selected && selections > 1) {
+				iprintf("Delete %d paths?\n", selections);
+				for (uint i = 0, printed = 0; i < dirContents.size() && printed < 5; i++) {
+					if (dirContents[i].selected) {
+						iprintf("\x1B[41m- %s\n", dirContents[i].name.c_str());
+						printed++;
+					}
+				}
+				if(selections > 5)
+					iprintf("\x1B[41m- and %d more...\n", selections - 5);
+				iprintf("\x1B[47m");
+			} else {
 				iprintf("Delete \"%s\"?\n", entry->name.c_str());
+			}
 			printf ("(<A> yes, <B> no)");
 			consoleSelect(&topConsole);
 			printf ("\x1B[30m");		// Print black color for time text
@@ -770,20 +779,20 @@ std::string browseForFile (void) {
 					consoleSelect(&bottomConsole);
 					consoleClear();
 					printf ("\x1B[47m");		// Print foreground white color
-					if (clipboardOn) {
+					if (entry->selected) {
 						printf ("Deleting files, please wait...");
 						struct stat st;
-						for (auto &file : clipboard) {
-							if (FAT_getAttr(entry->name.c_str()) & ATTR_READONLY)
-								continue;
-							stat(file.path.c_str(), &st);
-							if (st.st_mode & S_IFDIR)
-								recRemove(file.path.c_str(), dirContents);
-							else
-								remove(file.path.c_str());
+						for (auto &item : dirContents) {
+							if(item.selected) {
+								if (FAT_getAttr(item.name.c_str()) & ATTR_READONLY)
+									continue;
+								stat(item.name.c_str(), &st);
+								if (st.st_mode & S_IFDIR)
+									recRemove(item.name.c_str(), dirContents);
+								else
+									remove(item.name.c_str());
+							}
 						}
-						clipboard.clear();
-						clipboardOn = clipboardUsed = false;
 						fileOffset = 0;
 					} else if (FAT_getAttr(entry->name.c_str()) & ATTR_READONLY) {
 						printf ("Failed deleting:\n");
@@ -867,32 +876,94 @@ std::string browseForFile (void) {
 			}
 		}
 
-		// Add to clipboard
+		// Add to selection
 		if (pressed & KEY_L && entry->name != "..") {
-			if (!clipboardOn)
-				clipboard.clear();
-			std::string fullPath(path + entry->name);
-			auto it = clipboard.begin();
-			for (; it != clipboard.end(); ++it) {
-				if(it->path == fullPath)
-					break;
-			}
-			if (it == clipboard.end()) {
-				clipboard.emplace_back(fullPath, entry->name, entry->isDirectory, currentDrive, !strncmp(path, "nitro:/", 7));
-				clipboardOn = clipboardUsed = true;
-			} else {
-				clipboard.erase(it);
-				if(clipboard.size() == 0)
-					clipboardOn = clipboardUsed = false;
+			bool select = !entry->selected;
+			entry->selected = select;
+			while(held & KEY_L) {
+				do {
+					// Move to right side of screen
+					printf ("\x1b[0;26H");
+					// Print black color for time text
+					printf ("\x1B[30m");
+					// Print time
+					printf (" %s" ,RetTime().c_str());
+
+					scanKeys();
+					pressed = keysDownRepeat();
+					held = keysHeld();
+					swiWaitForVBlank();
+				} while ((held & KEY_L) && !(pressed & (KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT)));
+
+				if(pressed & (KEY_UP | KEY_DOWN)) {
+					if (pressed & KEY_UP) {
+						fileOffset--;
+						if(fileOffset < 0) {
+							fileOffset = dirContents.size() - 1;
+						} else {
+							entry = &dirContents[fileOffset];
+							entry->selected = select;
+						}
+					} else if (pressed & KEY_DOWN) {
+						fileOffset++;
+						if(fileOffset > (int)dirContents.size() - 1) {
+							fileOffset = 0;
+						} else {
+							entry = &dirContents[fileOffset];
+							entry->selected = select;
+						}
+					}
+
+					// Scroll screen if needed
+					if (fileOffset < screenOffset)	{
+						screenOffset = fileOffset;
+					} else if (fileOffset > screenOffset + ENTRIES_PER_SCREEN - 1) {
+						screenOffset = fileOffset - ENTRIES_PER_SCREEN + 1;
+					}
+				}
+				
+				if(pressed & KEY_LEFT) {
+					for(auto &item : dirContents) {
+						item.selected = false;
+					}
+				} else if(pressed & KEY_RIGHT) {
+					for(auto &item : dirContents) {
+						item.selected = true;
+					}
+				}
+
+				consoleSelect(&bottomConsole);
+				fileBrowse_drawBottomScreen(entry);
+				consoleSelect(&topConsole);
+				showDirectoryContents (dirContents, fileOffset, screenOffset);
 			}
 		}
 
-		// Paste
-		if (pressed & KEY_Y && clipboardOn && strncmp(path, "nitro:/", 7) != 0 && fileBrowse_paste(path)) {
-			getDirectoryContents (dirContents);
+		if (pressed & KEY_Y) {
+			// Copy
+			if (!clipboardOn) {
+				if (entry->name != "..") {
+					clipboardOn = true;
+					clipboardUsed = false;
+					clipboard.clear();
+					if (entry->selected) {
+						for (auto &item : dirContents) {
+							if(item.selected) {
+								clipboard.emplace_back(path + item.name, item.name, item.isDirectory, currentDrive, !strncmp(path, "nitro:/", 7));
+								item.selected = false;
+							}
+						}
+					} else {
+						clipboard.emplace_back(path + entry->name, entry->name, entry->isDirectory, currentDrive, !strncmp(path, "nitro:/", 7));
+					}
+				}
+			// Paste
+			} else if (strncmp(path, "nitro:/", 7) != 0 && fileBrowse_paste(path)) {
+				getDirectoryContents (dirContents);
+			}
 		}
 
-		if ((pressed & KEY_SELECT) && clipboardUsed) {
+		if ((pressed & KEY_SELECT) && !clipboardUsed) {
 			clipboardOn = !clipboardOn;
 		}
 

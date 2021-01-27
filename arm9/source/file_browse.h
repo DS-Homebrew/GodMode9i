@@ -30,6 +30,7 @@ struct DirEntry {
 	size_t size;
 	bool isDirectory;
 	bool isApp;
+	bool selected = false;
 };
 
 enum class FileOperation {
