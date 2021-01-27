@@ -902,7 +902,8 @@ std::string browseForFile (void) {
 							fileOffset = dirContents.size() - 1;
 						} else {
 							entry = &dirContents[fileOffset];
-							entry->selected = select;
+							if(entry->name != "..")
+								entry->selected = select;
 						}
 					} else if (pressed & KEY_DOWN) {
 						fileOffset++;
@@ -910,7 +911,8 @@ std::string browseForFile (void) {
 							fileOffset = 0;
 						} else {
 							entry = &dirContents[fileOffset];
-							entry->selected = select;
+							if(entry->name != "..")
+								entry->selected = select;
 						}
 					}
 
@@ -924,11 +926,13 @@ std::string browseForFile (void) {
 				
 				if(pressed & KEY_LEFT) {
 					for(auto &item : dirContents) {
-						item.selected = false;
+						if(item.name != "..")
+							item.selected = false;
 					}
 				} else if(pressed & KEY_RIGHT) {
 					for(auto &item : dirContents) {
-						item.selected = true;
+						if(item.name != "..")
+							item.selected = true;
 					}
 				}
 
