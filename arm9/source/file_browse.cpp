@@ -47,7 +47,6 @@
 #define ENTRIES_START_ROW 1
 #define OPTIONS_ENTRIES_START_ROW 2
 #define ENTRY_PAGE_LENGTH 10
-bool bigJump = false;
 extern PrintConsole topConsole, bottomConsole;
 
 extern void printBorderTop(void);
@@ -514,7 +513,7 @@ void fileBrowse_drawBottomScreen(DirEntry* entry) {
 	printf ("\x1b[22;0H");
 	printf ("%s\n", titleName);
 	printf ("X - DELETE/[+R] RENAME file\n");
-	printf ("L - %s file\n", entry->selected ? "DESELECT" : "SELECT");
+	printf ("L - %s files (with \x18\x19\x1A\x1B)\n", entry->selected ? "DESELECT" : "SELECT");
 	printf ("Y - %s file/[+R] CREATE entry%s", clipboardOn ? "PASTE" : "COPY", clipboardOn ? "" : "\n");
 	printf ("R+A - Directory options\n");
 	if (sdMounted || flashcardMounted) {
@@ -613,15 +612,23 @@ std::string browseForFile (void) {
 			return "null";
 		}
 
-		if (pressed & KEY_UP) {		fileOffset -= 1; bigJump = false;  }
-		if (pressed & KEY_DOWN) {	fileOffset += 1; bigJump = false; }
-		if (pressed & KEY_LEFT) {	fileOffset -= ENTRY_PAGE_LENGTH; bigJump = true; }
-		if (pressed & KEY_RIGHT) {	fileOffset += ENTRY_PAGE_LENGTH; bigJump = true; }
-
-		if ((fileOffset < 0) & (bigJump == false))	fileOffset = dirContents.size() - 1;	// Wrap around to bottom of list (UP press)
-		else if ((fileOffset < 0) & (bigJump == true))	fileOffset = 0;		// Move to bottom of list (RIGHT press)
-		if ((fileOffset > ((int)dirContents.size() - 1)) & (bigJump == false))	fileOffset = 0;		// Wrap around to top of list (DOWN press)
-		else if ((fileOffset > ((int)dirContents.size() - 1)) & (bigJump == true))	fileOffset = dirContents.size() - 1;	// Move to top of list (LEFT press)
+		if (pressed & KEY_UP) {
+			fileOffset--;
+			if(fileOffset < 0)
+				fileOffset = dirContents.size() - 1;
+		} else if (pressed & KEY_DOWN) {
+			fileOffset++;
+			if(fileOffset > (int)dirContents.size() - 1)
+				fileOffset = 0;
+		} else if (pressed & KEY_LEFT) {
+			fileOffset -= ENTRY_PAGE_LENGTH;
+			if(fileOffset < 0)
+				fileOffset = 0;
+		} else if (pressed & KEY_RIGHT) {
+			fileOffset += ENTRY_PAGE_LENGTH;
+			if(fileOffset > (int)dirContents.size() - 1)
+				fileOffset = dirContents.size() - 1;
+		}
 
 
 		// Scroll screen if needed
@@ -864,25 +871,67 @@ std::string browseForFile (void) {
 			}
 		}
 
-		// Add to clipboard
+		// Add to selection
 		if (pressed & KEY_L && entry->name != "..") {
-			entry->selected = !entry->selected;
-			// if (!clipboardOn)
-			// 	clipboard.clear();
-			// std::string fullPath(path + entry->name);
-			// auto it = clipboard.begin();
-			// for (; it != clipboard.end(); ++it) {
-			// 	if(it->path == fullPath)
-			// 		break;
-			// }
-			// if (it == clipboard.end()) {
-			// 	clipboard.emplace_back(fullPath, entry->name, entry->isDirectory, currentDrive, !strncmp(path, "nitro:/", 7));
-			// 	clipboardOn = clipboardUsed = true;
-			// } else {
-			// 	clipboard.erase(it);
-			// 	if(clipboard.size() == 0)
-			// 		clipboardOn = clipboardUsed = false;
-			// }
+			bool select = !entry->selected;
+			entry->selected = select;
+			while(held & KEY_L) {
+				do {
+					// Move to right side of screen
+					printf ("\x1b[0;26H");
+					// Print black color for time text
+					printf ("\x1B[30m");
+					// Print time
+					printf (" %s" ,RetTime().c_str());
+
+					scanKeys();
+					pressed = keysDownRepeat();
+					held = keysHeld();
+					swiWaitForVBlank();
+				} while ((held & KEY_L) && !(pressed & (KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT)));
+
+				if(pressed & (KEY_UP | KEY_DOWN)) {
+					if (pressed & KEY_UP) {
+						fileOffset--;
+						if(fileOffset < 0) {
+							fileOffset = dirContents.size() - 1;
+						} else {
+							entry = &dirContents[fileOffset];
+							entry->selected = select;
+						}
+					} else if (pressed & KEY_DOWN) {
+						fileOffset++;
+						if(fileOffset > (int)dirContents.size() - 1) {
+							fileOffset = 0;
+						} else {
+							entry = &dirContents[fileOffset];
+							entry->selected = select;
+						}
+					}
+
+					// Scroll screen if needed
+					if (fileOffset < screenOffset)	{
+						screenOffset = fileOffset;
+					} else if (fileOffset > screenOffset + ENTRIES_PER_SCREEN - 1) {
+						screenOffset = fileOffset - ENTRIES_PER_SCREEN + 1;
+					}
+				}
+				
+				if(pressed & KEY_LEFT) {
+					for(auto &item : dirContents) {
+						item.selected = false;
+					}
+				} else if(pressed & KEY_RIGHT) {
+					for(auto &item : dirContents) {
+						item.selected = true;
+					}
+				}
+
+				consoleSelect(&bottomConsole);
+				fileBrowse_drawBottomScreen(entry);
+				consoleSelect(&topConsole);
+				showDirectoryContents (dirContents, fileOffset, screenOffset);
+			}
 		}
 
 		if (pressed & KEY_Y) {
