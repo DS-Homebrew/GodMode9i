@@ -393,7 +393,7 @@ void ndsCardDump(void) {
 		// Determine ROM size
 		u32 romSize = 0;
 		if (trimRom) {
-			romSize = ((ndsCardHeader.unitCode != 0) && (ndsCardHeader.twlRomSize > 0))
+			romSize = (isDSiMode() && (ndsCardHeader.unitCode != 0) && (ndsCardHeader.twlRomSize > 0))
 						? ndsCardHeader.twlRomSize : ndsCardHeader.romSize;
 		} else switch (ndsCardHeader.deviceSize) {
 			case 0x00:
