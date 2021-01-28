@@ -644,28 +644,34 @@ void gbaCartDump(void) {
 			mkdir("fat:/gm9i/out", 0777);
 		}
 		char gbaHeaderGameTitle[13] = "\0";
+		tonccpy((u8*)(0x080000A0), &gbaHeaderGameTitle, 12);
 		char gbaHeaderGameCode[5] = "\0";
+		tonccpy((u8*)(0x080000AC), &gbaHeaderGameCode, 4);
 		char gbaHeaderMakerCode[3] = "\0";
-		if (*(u8*)(0x080000A0) == 0 || *(u8*)(0x080000A0) == 0xFF) {
+		tonccpy((u8*)(0x080000B0), &gbaHeaderMakerCode, 2);
+		if (gbaHeaderGameTitle[0] == 0 || gbaHeaderGameTitle[0] == 0xFF) {
 			sprintf(gbaHeaderGameTitle, "NO-TITLE");
-		} else for (int i = 0; i < 12; i++) {
-			gbaHeaderGameTitle[i] = *(char*)(0x080000A0+i);
-			if (*(u8*)(0x080000A0+i) == 0) {
-				break;
+		} else {
+			for(uint i = 0; i < sizeof(gbaHeaderGameTitle); i++) {
+				switch(gbaHeaderGameTitle[i]) {
+					case '>':
+					case '<':
+					case ':':
+					case '"':
+					case '/':
+					case '\x5C':
+					case '|':
+					case '?':
+					case '*':
+						gbaHeaderGameTitle[i] = '_';
+				}
 			}
 		}
-		if (*(u8*)(0x080000AC) == 0 || *(u8*)(0x080000AC) == 0xFF) {
+		if (gbaHeaderGameCode[0] == 0 || gbaHeaderGameCode[0] == 0xFF) {
 			sprintf(gbaHeaderGameCode, "NONE");
-		} else for (int i = 0; i < 4; i++) {
-			gbaHeaderGameCode[i] = *(char*)(0x080000AC+i);
-			if (*(u8*)(0x080000AC+i) == 0) {
-				break;
-			}
 		}
-		if (*(u8*)(0x080000B0) == 0 || *(u8*)(0x080000B0) == 0xFF) {
+		if (gbaHeaderMakerCode[0] == 0 || gbaHeaderMakerCode[0] == 0xFF) {
 			sprintf(gbaHeaderMakerCode, "00");
-		} else for (int i = 0; i < 2; i++) {
-			gbaHeaderMakerCode[i] = *(char*)(0x080000B0+i);
 		}
 		u8 gbaHeaderSoftwareVersion = *(u8*)(0x080000BC);
 		char fileName[32] = {0};
