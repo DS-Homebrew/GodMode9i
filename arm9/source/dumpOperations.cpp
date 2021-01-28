@@ -570,7 +570,7 @@ void ndsCardDump(void) {
 					for (u32 i = 0; i < 0x8000; i += 0x200) {
 						cardRead (src+i, copyBuf+i);
 					}
-					if (fwrite(copyBuf, 1, (currentSize>=0x8000 ? 0x8000 : currentSize), destinationFile) < 0x8000) {
+					if (fwrite(copyBuf, 1, (currentSize>=0x8000 ? 0x8000 : currentSize), destinationFile) < 1) {
 						dumpFailMsg();
 						break;
 					}
@@ -726,7 +726,7 @@ void gbaCartDump(void) {
 					cmd[1] = i,
 					writeChange(cmd);
 					readChange();
-					if (fwrite(GBAROM + (0x1000 >> 1), 0x1000, 1, destinationFile) < 0x1000) {
+					if (fwrite(GBAROM + (0x1000 >> 1), 0x1000, 1, destinationFile) < 1) {
 						dumpFailMsg();
 						break;
 					}
