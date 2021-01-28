@@ -252,6 +252,7 @@ void ndsCardSaveRestore(const char *filename) {
 }
 
 void dumpFailMsg(void) {
+	consoleClear();
 	iprintf("Failed to dump the ROM.\n");
 	for (int i = 0; i < 60*2; i++) {
 		swiWaitForVBlank();
