@@ -390,7 +390,7 @@ void ndsCardDump(void) {
 		sprintf(destSavPath, "%s:/gm9i/out/%s.sav", (sdMounted ? "sd" : "fat"), fileName);
 
 		if (cardInited == 0) {
-			iprintf("Dumping %s.nds...\n", fileName);
+			iprintf("%s.nds...\nis dumping...\n", fileName);
 			iprintf("Do not remove the NDS card.\n");
 		} else {
 			iprintf("Unable to dump the ROM.\n");
@@ -681,7 +681,7 @@ void gbaCartDump(void) {
 		sprintf(destPath, "fat:/gm9i/out/%s.gba", fileName);
 		sprintf(destSavPath, "fat:/gm9i/out/%s.sav", fileName);
 		consoleClear();
-		iprintf("Dumping %s.gba...\n", fileName);
+		iprintf("D%s.gba\nis dumping...\n", fileName);
 		iprintf("Do not remove the GBA cart.\n");
 		// Determine ROM size
 		u32 romSize = 0x02000000;
