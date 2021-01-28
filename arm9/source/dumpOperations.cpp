@@ -366,6 +366,12 @@ void ndsCardDump(void) {
 		tonccpy(gameCode, ndsCardHeader.gameCode, 6);
 		if (gameTitle[0] == 0 || gameTitle[0] == 0x2E || gameTitle[0] == 0xFF) {
 			sprintf(gameTitle, "NO-TITLE");
+		} else {
+			for (int i = 0; i < 13; i++) {
+				if (gameTitle[i] == 0x2F || gameTitle[i] == 0x5C) {
+					gameTitle[i] = '_';
+				}
+			}
 		}
 		if (gameCode[0] == 0 || gameCode[0] == 0x23 || gameCode[0] == 0xFF) {
 			sprintf(gameCode, "NONE00");
