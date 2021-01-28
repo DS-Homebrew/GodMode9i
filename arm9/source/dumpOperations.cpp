@@ -104,8 +104,8 @@ void ndsCardSaveDump(const char* filename) {
 	FILE *out = fopen(filename, "wb");
 	if(out) {
 		consoleClear();
-		printf("Dumping save...\n");
-		printf("Do not remove the NDS card.\n");
+		iprintf("Dumping save...\n");
+		iprintf("Do not remove the NDS card.\n");
 		unsigned char *buffer;
 		auxspi_extra card_type = auxspi_has_extra();
 		if(card_type == AUXSPI_INFRARED) {
@@ -135,20 +135,20 @@ void ndsCardSaveDump(const char* filename) {
 void ndsCardSaveRestore(const char *filename) {
 	consoleSelect(&bottomConsole);
 	consoleClear();
-	printf ("\x1B[47m"); // Print foreground white color
-	printf("Restore the selected save to the"); // Line is 32 chars
-	printf("inserted game card?\n"); // Line is 32 chars
-	printf("(<A> yes, <B> no)\n");
+	iprintf("\x1B[47m"); // Print foreground white color
+	iprintf("Restore the selected save to the"); // Line is 32 chars
+	iprintf("inserted game card?\n"); // Line is 32 chars
+	iprintf("(<A> yes, <B> no)\n");
 
 	consoleSelect(&topConsole);
-	printf ("\x1B[30m"); // Print black color
+	iprintf ("\x1B[30m"); // Print black color
 	// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 	u16 pressed;
 	do {
 		// Move to right side of screen
-		printf ("\x1b[0;26H");
+		iprintf ("\x1b[0;26H");
 		// Print time
-		printf (" %s" ,RetTime().c_str());
+		iprintf (" %s" ,RetTime().c_str());
 
 		scanKeys();
 		pressed = keysDownRepeat();
@@ -195,21 +195,21 @@ void ndsCardSaveRestore(const char *filename) {
 			fseek(in, 0, SEEK_SET);
 			if(length != (auxspi ? (int)(LEN*num_blocks) : size)) {
 				fclose(in);
-				printf("\x1B[41m"); // Print foreground red color
-				printf("The size of this save doesn't\n");
-				printf("match the size of the size of\n");
-				printf("the inserted game card.\n\n");
-				printf("Write cancelled!\n");
-				printf("\x1B[47m"); // Print foreground white color
-				printf("(<A> OK)\n");
+				iprintf("\x1B[41m"); // Print foreground red color
+				iprintf("The size of this save doesn't\n");
+				iprintf("match the size of the size of\n");
+				iprintf("the inserted game card.\n\n");
+				iprintf("Write cancelled!\n");
+				iprintf("\x1B[47m"); // Print foreground white color
+				iprintf("(<A> OK)\n");
 
 				consoleSelect(&topConsole);
-				printf ("\x1B[30m"); // Print black color
+				iprintf ("\x1B[30m"); // Print black color
 				do {
 					// Move to right side of screen
-					printf ("\x1b[0;26H");
+					iprintf ("\x1b[0;26H");
 					// Print time
-					printf (" %s" ,RetTime().c_str());
+					iprintf (" %s" ,RetTime().c_str());
 
 					scanKeys();
 					pressed = keysDownRepeat();
@@ -217,7 +217,7 @@ void ndsCardSaveRestore(const char *filename) {
 				} while (!(pressed & KEY_A));
 				return;
 			}
-			printf("Restoring save...\nDo not remove the NDS card.\n\n\n\n\n\n\nProgress:");
+			iprintf("Restoring save...\nDo not remove the NDS card.\n\n\n\n\n\n\nProgress:");
 			if(type == 3) {
 				if(auxspi)
 					auxspi_erase(card_type);
@@ -227,8 +227,8 @@ void ndsCardSaveRestore(const char *filename) {
 			if(auxspi){
 				buffer = new unsigned char[LEN];
 				for(unsigned int i = 0; i < num_blocks; i++) {
-					printf ("\x1b[9;0H");
-					printf ("%d/%d Bytes", i * LEN, length);
+					iprintf ("\x1b[9;0H");
+					iprintf ("%d/%d Bytes", i * LEN, length);
 
 					fread(buffer, 1, LEN, in);
 					auxspi_write_data(i << shift, buffer, LEN, type, card_type);
@@ -238,8 +238,8 @@ void ndsCardSaveRestore(const char *filename) {
 				int written = 0;
 				buffer = new unsigned char[blocks];
 				for(unsigned int i = 0; i < 32; i++) {
-					printf ("\x1b[9;0H");
-					printf ("%d/%d Bytes", i * blocks, length);
+					iprintf ("\x1b[9;0H");
+					iprintf ("%d/%d Bytes", i * blocks, length);
 					fread(buffer, 1, blocks, in);
 					cardWriteEeprom(written, buffer, blocks, type);
 					written += blocks;
@@ -251,26 +251,33 @@ void ndsCardSaveRestore(const char *filename) {
 	}
 }
 
+void dumpFailMsg(void) {
+	iprintf("Failed to dump the ROM.\n");
+	for (int i = 0; i < 60*2; i++) {
+		swiWaitForVBlank();
+	}
+}
+
 void ndsCardDump(void) {
 	int pressed = 0;
 	//bool showGameCardMsgAgain = false;
 
 	consoleSelect(&bottomConsole);
 	consoleClear();
-	printf ("\x1B[47m");		// Print foreground white color
-	printf("Dump NDS card ROM to\n");
-	printf("\"%s:/gm9i/out\"?\n", (sdMounted ? "sd" : "fat"));
-	printf("(<A> yes, <Y> trim, <B> no,\n");
-	printf(" <X> save only)");
+	iprintf("\x1B[47m");		// Print foreground white color
+	iprintf("Dump NDS card ROM to\n");
+	iprintf("\"%s:/gm9i/out\"?\n", (sdMounted ? "sd" : "fat"));
+	iprintf("(<A> yes, <Y> trim, <B> no,\n");
+	iprintf(" <X> save only)");
 
 	consoleSelect(&topConsole);
-	printf ("\x1B[30m");		// Print black color
+	iprintf ("\x1B[30m");		// Print black color
 	// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 	do {
 		// Move to right side of screen
-		printf ("\x1b[0;26H");
+		iprintf ("\x1b[0;26H");
 		// Print time
-		printf (" %s" ,RetTime().c_str());
+		iprintf (" %s" ,RetTime().c_str());
 
 		scanKeys();
 		pressed = keysDownRepeat();
@@ -278,7 +285,7 @@ void ndsCardDump(void) {
 	} while (!(pressed & (KEY_A | KEY_Y | KEY_B | KEY_X)));
 
 	consoleSelect(&bottomConsole);
-	printf ("\x1B[47m");		// Print foreground white color
+	iprintf ("\x1B[47m");		// Print foreground white color
 
 	if (pressed & KEY_X) {
 		consoleClear();
@@ -286,17 +293,17 @@ void ndsCardDump(void) {
 		sprintf(folderPath[0], "%s:/gm9i", (sdMounted ? "sd" : "fat"));
 		sprintf(folderPath[1], "%s:/gm9i/out", (sdMounted ? "sd" : "fat"));
 		if (access(folderPath[0], F_OK) != 0) {
-			printf("Creating directory...");
+			iprintf("Creating directory...");
 			mkdir(folderPath[0], 0777);
 		}
 		if (access(folderPath[1], F_OK) != 0) {
-			printf ("\x1b[0;0H");
-			printf("Creating directory...");
+			iprintf("\x1b[0;0H");
+			iprintf("Creating directory...");
 			mkdir(folderPath[1], 0777);
 		}
 		consoleClear();
 		if (cardInit(&ndsCardHeader) != 0) {
-			printf("Unable to dump the save.\n");
+			iprintf("Unable to dump the save.\n");
 			for (int i = 0; i < 60*2; i++) {
 				swiWaitForVBlank();
 			}
@@ -312,16 +319,17 @@ void ndsCardDump(void) {
 	} else
 	if ((pressed & KEY_A) || (pressed & KEY_Y)) {
 		consoleClear();
+		bool trimRom = (pressed & KEY_Y);
 		char folderPath[2][256];
 		sprintf(folderPath[0], "%s:/gm9i", (sdMounted ? "sd" : "fat"));
 		sprintf(folderPath[1], "%s:/gm9i/out", (sdMounted ? "sd" : "fat"));
 		if (access(folderPath[0], F_OK) != 0) {
-			printf("Creating directory...");
+			iprintf("Creating directory...");
 			mkdir(folderPath[0], 0777);
 		}
 		if (access(folderPath[1], F_OK) != 0) {
-			printf ("\x1b[0;0H");
-			printf("Creating directory...");
+			iprintf("\x1b[0;0H");
+			iprintf("Creating directory...");
 			mkdir(folderPath[1], 0777);
 		}
 		/*if (expansionPakFound) {
@@ -348,19 +356,13 @@ void ndsCardDump(void) {
 			printf ("\x1B[47m");		// Print foreground white color
 		}*/
 		consoleClear();
-		if (cardInit(&ndsCardHeader) == 0) {
-			printf("Dumping...\n");
-			printf("Do not remove the NDS card.\n");
-		} else {
-			printf("Unable to dump the ROM.\n");
-			for (int i = 0; i < 60*2; i++) {
-				swiWaitForVBlank();
-			}
-			return;
-		}
+		int cardInited = cardInit(&ndsCardHeader);
 		char gameTitle[13] = {0};
-		tonccpy(gameTitle, ndsCardHeader.gameTitle, 12);
 		char gameCode[7] = {0};
+		char destPath[256] = {0};
+		char destSavPath[256] = {0};
+		char fileName[32] = {0};
+		tonccpy(gameTitle, ndsCardHeader.gameTitle, 12);
 		tonccpy(gameCode, ndsCardHeader.gameCode, 6);
 		if (gameTitle[0] == 0 || gameTitle[0] == 0x2E || gameTitle[0] == 0xFF) {
 			sprintf(gameTitle, "NO-TITLE");
@@ -368,11 +370,20 @@ void ndsCardDump(void) {
 		if (gameCode[0] == 0 || gameCode[0] == 0x23 || gameCode[0] == 0xFF) {
 			sprintf(gameCode, "NONE00");
 		}
-		bool trimRom = (pressed & KEY_Y);
-		char destPath[256];
-		sprintf(destPath, "%s:/gm9i/out/%s_%s_%x%s.nds", (sdMounted ? "sd" : "fat"), gameTitle, gameCode, ndsCardHeader.romversion, (trimRom ? "_trim" : ""));
-		char destSavPath[256];
-		sprintf(destSavPath, "%s:/gm9i/out/%s_%s_%x%s.sav", (sdMounted ? "sd" : "fat"), gameTitle, gameCode, ndsCardHeader.romversion, (trimRom ? "_trim" : ""));
+		sprintf(fileName, "%s_%s_%x%s", gameTitle, gameCode, ndsCardHeader.romversion, (trimRom ? "_trim" : ""));
+		sprintf(destPath, "%s:/gm9i/out/%s.nds", (sdMounted ? "sd" : "fat"), fileName);
+		sprintf(destSavPath, "%s:/gm9i/out/%s.sav", (sdMounted ? "sd" : "fat"), fileName);
+
+		if (cardInited == 0) {
+			iprintf("Dumping %s.nds...\n", fileName);
+			iprintf("Do not remove the NDS card.\n");
+		} else {
+			iprintf("Unable to dump the ROM.\n");
+			for (int i = 0; i < 60*2; i++) {
+				swiWaitForVBlank();
+			}
+			return;
+		}
 		// Determine ROM size
 		u32 romSize = 0;
 		if (trimRom) {
@@ -428,22 +439,22 @@ void ndsCardDump(void) {
 			bool destinationFileOpened = false;
 			while (currentSize > 0) {
 				if (showGameCardMsgAgain) {
-					printf ("\x1b[8;0H");
-					printf ("          \n");
+					iprintf ("\x1b[8;0H");
+					iprintf ("          \n");
 
-					printf ("\x1b[15;0H");
-					printf("Please switch to the\ngame card, then press A.\n");
+					iprintf("\x1b[15;0H");
+					iprintf("Please switch to the\ngame card, then press A.\n");
 					//flashcardUnmount();
 					io_dldi_data->ioInterface.shutdown();
 
 					consoleSelect(&topConsole);
-					printf ("\x1B[30m");		// Print black color
+					iprintf ("\x1B[30m");		// Print black color
 					// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 					do {
 						// Move to right side of screen
-						printf ("\x1b[0;26H");
+						iprintf ("\x1b[0;26H");
 						// Print time
-						printf (" %s" ,RetTime().c_str());
+						iprintf (" %s" ,RetTime().c_str());
 
 						scanKeys();
 						pressed = keysDownRepeat();
@@ -451,8 +462,8 @@ void ndsCardDump(void) {
 					} while (!(pressed & KEY_A));
 
 					consoleSelect(&bottomConsole);
-					printf ("\x1b[15;0H");
-					printf("                    \n                        \n");
+					iprintf ("\x1b[15;0H");
+					iprintf("                    \n                        \n");
 					cardInit(&ndsCardHeader);
 				}
 				showGameCardMsgAgain = true;
@@ -460,23 +471,23 @@ void ndsCardDump(void) {
 				// Read from game card
 				for (src = src; src < currentSize; src += 0x200) {
 					consoleSelect(&topConsole);
-					printf ("\x1B[30m");		// Print black color
+					iprintf ("\x1B[30m");		// Print black color
 					// Move to right side of screen
-					printf ("\x1b[0;26H");
+					iprintf ("\x1b[0;26H");
 					// Print time
-					printf (" %s" ,RetTime().c_str());
+					iprintf (" %s" ,RetTime().c_str());
 
 					consoleSelect(&bottomConsole);
-					printf ("\x1B[47m");		// Print foreground white color
-					printf ("\x1b[8;0H");
-					printf ("Read:\n");
-					printf ("%i/%i Bytes                       ", (int)src, (int)romSize);
+					iprintf ("\x1B[47m");		// Print foreground white color
+					iprintf ("\x1b[8;0H");
+					iprintf ("Read:\n");
+					iprintf ("%i/%i Bytes                       ", (int)src, (int)romSize);
 					cardRead (src, (void*)0x09000000+(src % 0x800000));
 				}
-				printf ("\x1b[15;0H");
-				printf("Please switch to the\nflashcard, then press A.\n");
+				iprintf("\x1b[15;0H");
+				iprintf("Please switch to the\nflashcard, then press A.\n");
 				consoleSelect(&topConsole);
-				printf ("\x1B[30m");		// Print black color
+				iprintf ("\x1B[30m");		// Print black color
 				// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 				do {
 					// Move to right side of screen
@@ -490,12 +501,12 @@ void ndsCardDump(void) {
 				} while (!(pressed & KEY_A));
 
 				consoleSelect(&bottomConsole);
-				printf ("\x1b[15;0H");
-				printf("                    \n                        \n");
+				iprintf("\x1b[15;0H");
+				iprintf("                    \n                        \n");
 
-				printf ("\x1B[47m");		// Print foreground white color
-				printf ("\x1b[11;0H");
-				printf ("Written:\n");
+				iprintf ("\x1B[47m");		// Print foreground white color
+				iprintf ("\x1b[11;0H");
+				iprintf ("Written:\n");
 
 				// Write back to flashcard
 				cardInit(&ndsCardHeader);
@@ -507,11 +518,11 @@ void ndsCardDump(void) {
 				}
 				for (writeSrc = writeSrc; writeSrc < currentSize; writeSrc += 0x200) {
 					consoleSelect(&topConsole);
-					printf ("\x1B[30m");		// Print black color
+					iprintf ("\x1B[30m");		// Print black color
 					// Move to right side of screen
-					printf ("\x1b[0;26H");
+					iprintf ("\x1b[0;26H");
 					// Print time
-					printf (" %s" ,RetTime().c_str());
+					iprintf (" %s" ,RetTime().c_str());
 
 					consoleSelect(&bottomConsole);
 					printf ("\x1B[47m");		// Print foreground white color
@@ -530,24 +541,29 @@ void ndsCardDump(void) {
 			if (destinationFile) {
 				for (u32 src = 0; src < romSize; src += 0x8000) {
 					consoleSelect(&topConsole);
-					printf ("\x1B[30m");		// Print black color
+					iprintf ("\x1B[30m");		// Print black color
 					// Move to right side of screen
-					printf ("\x1b[0;26H");
+					iprintf ("\x1b[0;26H");
 					// Print time
-					printf (" %s" ,RetTime().c_str());
+					iprintf (" %s" ,RetTime().c_str());
 
 					consoleSelect(&bottomConsole);
-					printf ("\x1B[47m");		// Print foreground white color
-					printf ("\x1b[8;0H");
-					printf ("Progress:\n");
-					printf ("%i/%i Bytes", (int)src, (int)romSize);
+					iprintf ("\x1B[47m");		// Print foreground white color
+					iprintf ("\x1b[8;0H");
+					iprintf ("Progress:\n");
+					iprintf ("%i/%i Bytes", (int)src, (int)romSize);
 					for (u32 i = 0; i < 0x8000; i += 0x200) {
 						cardRead (src+i, copyBuf+i);
 					}
-					fwrite(copyBuf, 1, (currentSize>=0x8000 ? 0x8000 : currentSize), destinationFile);
+					if (fwrite(copyBuf, 1, (currentSize>=0x8000 ? 0x8000 : currentSize), destinationFile) < 0x8000) {
+						dumpFailMsg();
+						break;
+					}
 					currentSize -= 0x8000;
 				}
 				fclose(destinationFile);
+			} else {
+				dumpFailMsg();
 			}
 			ndsCardSaveDump(destSavPath);
 		//}
@@ -574,19 +590,19 @@ void gbaCartDump(void) {
 
 	consoleSelect(&bottomConsole);
 	consoleClear();
-	printf ("\x1B[47m");		// Print foreground white color
-	printf("Dump GBA cart ROM to\n");
-	printf("\"fat:/gm9i/out\"?\n");
-	printf("(<A> yes, <B> no)");
+	iprintf("\x1B[47m");		// Print foreground white color
+	iprintf("Dump GBA cart ROM to\n");
+	iprintf("\"fat:/gm9i/out\"?\n");
+	iprintf("(<A> yes, <B> no)");
 
 	consoleSelect(&topConsole);
-	printf ("\x1B[30m");		// Print black color
+	iprintf ("\x1B[30m");		// Print black color
 	// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 	do {
 		// Move to right side of screen
-		printf ("\x1b[0;26H");
+		iprintf ("\x1b[0;26H");
 		// Print time
-		printf (" %s" ,RetTime().c_str());
+		iprintf (" %s" ,RetTime().c_str());
 
 		scanKeys();
 		pressed = keysDownRepeat();
@@ -594,8 +610,8 @@ void gbaCartDump(void) {
 	} while (!(pressed & KEY_A) && !(pressed & KEY_B));
 
 	if (pressed & KEY_A) {
-		printf ("\x1b[0;27H");
-		printf ("     ");	// Clear time
+		iprintf ("\x1b[0;27H");
+		iprintf ("     ");	// Clear time
 	}
 
 	consoleSelect(&bottomConsole);
@@ -604,12 +620,12 @@ void gbaCartDump(void) {
 	if (pressed & KEY_A) {
 		consoleClear();
 		if (access("fat:/gm9i", F_OK) != 0) {
-			printf("Creating directory...");
+			iprintf("Creating directory...");
 			mkdir("fat:/gm9i", 0777);
 		}
 		if (access("fat:/gm9i/out", F_OK) != 0) {
-			printf ("\x1b[0;0H");
-			printf("Creating directory...");
+			iprintf ("\x1b[0;0H");
+			iprintf("Creating directory...");
 			mkdir("fat:/gm9i/out", 0777);
 		}
 		char gbaHeaderGameTitle[13] = "\0";
@@ -637,13 +653,15 @@ void gbaCartDump(void) {
 			gbaHeaderMakerCode[i] = *(char*)(0x080000B0+i);
 		}
 		u8 gbaHeaderSoftwareVersion = *(u8*)(0x080000BC);
-		char destPath[256];
-		char destSavPath[256];
-		snprintf(destPath, sizeof(destPath), "fat:/gm9i/out/%s_%s%s_%x.gba", gbaHeaderGameTitle, gbaHeaderGameCode, gbaHeaderMakerCode, gbaHeaderSoftwareVersion);
-		snprintf(destSavPath, sizeof(destSavPath), "fat:/gm9i/out/%s_%s%s_%x.sav", gbaHeaderGameTitle, gbaHeaderGameCode, gbaHeaderMakerCode, gbaHeaderSoftwareVersion);
+		char fileName[32] = {0};
+		sprintf(fileName, "%s_%s%s_%x", gbaHeaderGameTitle, gbaHeaderGameCode, gbaHeaderMakerCode, gbaHeaderSoftwareVersion);
+		char destPath[256] = {0};
+		char destSavPath[256] = {0};
+		sprintf(destPath, "fat:/gm9i/out/%s.gba", fileName);
+		sprintf(destSavPath, "fat:/gm9i/out/%s.sav", fileName);
 		consoleClear();
-		printf("Dumping...\n");
-		printf("Do not remove the GBA cart.\n");
+		iprintf("Dumping %s.nds...\n", fileName);
+		iprintf("Do not remove the GBA cart.\n");
 		// Determine ROM size
 		u32 romSize = 0x02000000;
 		for (u32 i = 0x09FE0000; i > 0x08000000; i -= 0x20000) {
@@ -665,7 +683,9 @@ void gbaCartDump(void) {
 		writeChange(rstCmd);
 		FILE* destinationFile = fopen(destPath, "wb");
 		if (destinationFile) {
-			fwrite(GBAROM, 1, romSize, destinationFile);
+			if (fwrite(GBAROM, 1, romSize, destinationFile) < 1) {
+				dumpFailMsg();
+			} else
 			// Check for 64MB GBA Video ROM
 			if (strncmp((char*)0x080000AC, "MSAE", 4)==0	// Shark Tale
 			|| strncmp((char*)0x080000AC, "MSKE", 4)==0	// Shrek
@@ -685,10 +705,15 @@ void gbaCartDump(void) {
 					cmd[1] = i,
 					writeChange(cmd);
 					readChange();
-					fwrite(GBAROM + (0x1000 >> 1), 0x1000, 1, destinationFile);
+					if (fwrite(GBAROM + (0x1000 >> 1), 0x1000, 1, destinationFile) < 0x1000) {
+						dumpFailMsg();
+						break;
+					}
 				}
 			}
 			fclose(destinationFile);
+		} else {
+			dumpFailMsg();
 		}
 		// Save file
 		remove(destSavPath);
