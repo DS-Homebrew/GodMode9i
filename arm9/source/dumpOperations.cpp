@@ -390,7 +390,7 @@ void ndsCardDump(void) {
 		sprintf(destSavPath, "%s:/gm9i/out/%s.sav", (sdMounted ? "sd" : "fat"), fileName);
 
 		if (cardInited == 0) {
-			iprintf("%s.nds...\nis dumping...\n", fileName);
+			iprintf("%s.nds\nis dumping...\n", fileName);
 			iprintf("Do not remove the NDS card.\n");
 		} else {
 			iprintf("Unable to dump the ROM.\n");
