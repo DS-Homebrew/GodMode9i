@@ -166,8 +166,8 @@ int main(int argc, char **argv) {
 	printf ("------------------------------");
 	printf ("\x1b[3;1H");
 	printf ("https:/github.com/");
-	printf ("\x1b[4;11H");
-	printf ("RocketRobz/GodMode9i");
+	printf ("\x1b[4;10H");
+	printf ("DS-Homebrew/GodMode9i");
 
 	fifoWaitValue32(FIFO_USER_06);
 	if (fifoGetValue32(FIFO_USER_03) == 0) arm7SCFGLocked = true;
