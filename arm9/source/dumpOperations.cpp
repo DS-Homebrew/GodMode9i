@@ -367,9 +367,18 @@ void ndsCardDump(void) {
 		if (gameTitle[0] == 0 || gameTitle[0] == 0x2E || gameTitle[0] == 0xFF) {
 			sprintf(gameTitle, "NO-TITLE");
 		} else {
-			for (int i = 0; i < 13; i++) {
-				if (gameTitle[i] == 0x2F || gameTitle[i] == 0x5C) {
-					gameTitle[i] = '_';
+			for(uint i = 0; i < sizeof(gameTitle); i++) {
+				switch(gameTitle[i]) {
+					case '>':
+					case '<':
+					case ':':
+					case '"':
+					case '/':
+					case '\x5C':
+					case '|':
+					case '?':
+					case '*':
+						gameTitle[i] = '_';
 				}
 			}
 		}
