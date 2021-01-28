@@ -675,7 +675,7 @@ void gbaCartDump(void) {
 		sprintf(destPath, "fat:/gm9i/out/%s.gba", fileName);
 		sprintf(destSavPath, "fat:/gm9i/out/%s.sav", fileName);
 		consoleClear();
-		iprintf("Dumping %s.nds...\n", fileName);
+		iprintf("Dumping %s.gba...\n", fileName);
 		iprintf("Do not remove the GBA cart.\n");
 		// Determine ROM size
 		u32 romSize = 0x02000000;
