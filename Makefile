@@ -134,13 +134,13 @@ $(TARGET).nds:	$(TARGET).arm7 $(TARGET).arm9
 	ndstool	-c $(TARGET).nds -7 $(TARGET).arm7.elf -9 $(TARGET).arm9.elf \
 			-b icon.bmp "GodMode9i;RocketRobz" \
 			-z 80040000 -u 00030004
-	python2 fix_ndsheader.py $(CURDIR)/$(TARGET).nds
+	python fix_ndsheader.py $(CURDIR)/$(TARGET).nds
 	
 $(TARGET).dsi:	$(TARGET).arm7 $(TARGET).arm9
 	ndstool	-c $(TARGET).dsi -7 $(TARGET).arm7.elf -9 $(TARGET).arm9.elf \
 			-b icon.bmp "GodMode9i;RocketRobz" \
 			-g HGMA 00 "GODMODE9I" -z 80040000 -u 00030004
-	python2 fix_ndsheader.py $(CURDIR)/$(TARGET).dsi
+	python fix_ndsheader.py $(CURDIR)/$(TARGET).dsi
 
 $(TARGET).arm7: arm7/$(TARGET).elf
 	cp arm7/$(TARGET).elf $(TARGET).arm7.elf
