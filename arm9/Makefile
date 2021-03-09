@@ -15,7 +15,7 @@ else
 GIT_VER := $(shell git describe --abbrev=0 --tags)-$(shell git rev-parse --short HEAD)
 endif
 
-# Ensure version.hpp exists
+# Ensure version.h exists
 ifeq (,$(wildcard include/version.h))
 $(shell mkdir -p include)
 $(shell touch include/version.h)

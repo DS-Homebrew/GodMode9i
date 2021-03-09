@@ -38,6 +38,7 @@
 #include "driveMenu.h"
 #include "driveOperations.h"
 #include "dumpOperations.h"
+#include "hexEditor.h"
 #include "nitrofs.h"
 #include "inifile.h"
 #include "nds_loader_arm9.h"
@@ -231,6 +232,8 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 			assignedOp[++maxCursors] = FileOperation::mountImg;
 			printf("   Mount as FAT image\n");
 		}
+		assignedOp[++maxCursors] = FileOperation::hexEdit;
+		printf("   Open in hex editor\n");
 	}
 	assignedOp[++maxCursors] = FileOperation::showInfo;
 	printf(entry->isDirectory ? "	Show directory info\n" : "	Show file info\n");
@@ -374,6 +377,9 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 						imgCurrentDrive = currentDrive;
 						currentDrive = 6;
 					}
+					break;
+				} case FileOperation::hexEdit: {
+					hexEditor(entry->name.c_str());
 					break;
 				} case FileOperation::none: {
 					break;
