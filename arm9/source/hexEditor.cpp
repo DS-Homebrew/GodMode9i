@@ -6,7 +6,7 @@
 #include <stdio.h>
 
 
-u32 jumpToOffset(u32 offset) {
+u32 jumpToOffset(u32 offset, u32 limit) {
 	consoleClear();
 
 	u8 cursorPosition = 0;
@@ -26,9 +26,11 @@ u32 jumpToOffset(u32 offset) {
 		} while(!held);
 
 		if(held & KEY_UP) {
-			offset += 0x10 << (cursorPosition * 4);
+			if(offset + (0x10 << (cursorPosition * 4)) < limit - 8 * 23)
+				offset += 0x10 << (cursorPosition * 4);
 		} else if(held & KEY_DOWN) {
-			offset -= 0x10 << (cursorPosition * 4);
+			if(offset - (0x10 << (cursorPosition * 4)) > 0)
+				offset -= 0x10 << (cursorPosition * 4);
 		} else if(held & KEY_LEFT) {
 			if(cursorPosition < 6)
 				cursorPosition++;
@@ -65,7 +67,7 @@ void hexEditor(const char *path) {
 		printf("\x1B[0;11H\x1B[42mHex Editor");
 		printf("\x1B[0;0H\x1B[37m%04lx", offset >> 0x10);
 
-		if(mode < 2 && held & (KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT)) {
+		if(mode < 2) {
 			fseek(file, offset, SEEK_SET);
 			fread(data, 1, sizeof(data), file);
 		}
@@ -88,8 +90,12 @@ void hexEditor(const char *path) {
 		}
 
 		// Change color of selected char
-		if(mode > 0)
-			printf("\x1B[%d;%dH\x1B[%dm%c", 1 + cursorPosition / 8, 23 + cursorPosition % 8, mode > 1 ? 41 : 31, data[cursorPosition]);
+		if(mode > 0) {
+			char c = data[cursorPosition];
+			if(c < ' ' || c > 127)
+				c = ' ';
+			printf("\x1B[%d;%dH\x1B[%dm%c", 1 + cursorPosition / 8, 23 + cursorPosition % 8, mode > 1 ? 41 : 31, c);
+		}
 
 		do {
 			swiWaitForVBlank();
@@ -124,7 +130,7 @@ void hexEditor(const char *path) {
 			} else if (pressed & KEY_B) {
 				return;
 			} else if(pressed & KEY_Y) {
-				offset = jumpToOffset(offset);
+				offset = jumpToOffset(offset, fileSize);
 				consoleClear();
 			}
 		} else if(mode == 1) {
@@ -153,7 +159,7 @@ void hexEditor(const char *path) {
 			} else if (pressed & KEY_B) {
 				mode = 0;
 			} else if(pressed & KEY_Y) {
-				offset = jumpToOffset(offset);
+				offset = jumpToOffset(offset, fileSize);
 				consoleClear();
 			}
 		} else if(mode == 2) {
@@ -162,9 +168,9 @@ void hexEditor(const char *path) {
 			} else if (held & KEY_DOWN) {
 				data[cursorPosition]--;
 			} else if (held & KEY_LEFT) {
-				data[cursorPosition] += 0x10;
-			} else if (held & KEY_RIGHT) {
 				data[cursorPosition] -= 0x10;
+			} else if (held & KEY_RIGHT) {
+				data[cursorPosition] += 0x10;
 			} else if (pressed & (KEY_A | KEY_B)) {
 				mode = 1;
 				fseek(file, offset + cursorPosition, SEEK_SET);
