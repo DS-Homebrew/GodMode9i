@@ -50,17 +50,19 @@ u32 jumpToOffset(u32 offset) {
 	}
 }
 
-void hexEditor(const char *path) {
+void hexEditor(const char *path, int drive) {
 	// Custom palettes
 	BG_PALETTE_SUB[0x1F] = 0x9CF7;
 	BG_PALETTE_SUB[0x2F] = 0xB710;
 	BG_PALETTE_SUB[0x3F] = 0xAE8D;
 	BG_PALETTE_SUB[0x7F] = 0xEA2D;
 
-	FILE *file = fopen(path, "rb+");
+	FILE *file = fopen(path, drive < 4 ? "rb+" : "rb");
 
-	if(!file)
+	if(!file) {
+		nocashMessage("test");
 		return;
+	}
 
 	consoleClear();
 
@@ -179,11 +181,13 @@ void hexEditor(const char *path) {
 				if(cursorPosition < 8 * maxLines - 1)
 					cursorPosition = std::min((u8)(cursorPosition + 1), (u8)(fileSize - offset - 1));
 			} else if (pressed & KEY_A) {
-				mode = 2;
-				consoleSelect(&bottomConsoleBG);
-				printf("\x1B[%d;%dH\x1B[%dm\2\2", 1 + cursorPosition / 8, 5 + (cursorPosition % 8 * 2) + (cursorPosition % 8 / 4), 31);
-				printf("\x1B[%d;%dH\x1B[%dm\2", 1 + cursorPosition / 8, 23 + cursorPosition % 8, 31);
-				consoleSelect(&bottomConsole);
+				if(drive < 4) {
+					mode = 2;
+					consoleSelect(&bottomConsoleBG);
+					printf("\x1B[%d;%dH\x1B[%dm\2\2", 1 + cursorPosition / 8, 5 + (cursorPosition % 8 * 2) + (cursorPosition % 8 / 4), 31);
+					printf("\x1B[%d;%dH\x1B[%dm\2", 1 + cursorPosition / 8, 23 + cursorPosition % 8, 31);
+					consoleSelect(&bottomConsole);
+				}
 			} else if (pressed & KEY_B) {
 				mode = 0;
 			} else if(pressed & KEY_Y) {

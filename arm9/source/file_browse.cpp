@@ -379,7 +379,7 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					}
 					break;
 				} case FileOperation::hexEdit: {
-					hexEditor(entry->name.c_str());
+					hexEditor(entry->name.c_str(), currentDrive);
 					break;
 				} case FileOperation::none: {
 					break;
