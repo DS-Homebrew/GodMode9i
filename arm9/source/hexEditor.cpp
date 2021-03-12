@@ -59,10 +59,8 @@ void hexEditor(const char *path, int drive) {
 
 	FILE *file = fopen(path, drive < 4 ? "rb+" : "rb");
 
-	if(!file) {
-		nocashMessage("test");
+	if(!file)
 		return;
-	}
 
 	consoleClear();
 
