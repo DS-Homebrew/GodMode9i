@@ -20,8 +20,8 @@ u32 jumpToOffset(u32 offset) {
 	while(1) {
 		printf("\x1B[9;6H\x1B[47m-------------------");
 		printf("\x1B[10;8H\x1B[47mJump to Offset");
-		printf("\x1B[12;11H\x1B[37m%08lx", offset);
-		printf("\x1B[12;%dH\x1B[41m%lx", 17 - cursorPosition, (offset >> ((cursorPosition + 1) * 4)) & 0xF);
+		printf("\x1B[12;11H\x1B[37m%08lX", offset);
+		printf("\x1B[12;%dH\x1B[41m%lX", 17 - cursorPosition, (offset >> ((cursorPosition + 1) * 4)) & 0xF);
 		printf("\x1B[13;6H\x1B[47m-------------------");
 
 		consoleSelect(&topConsole);
@@ -92,7 +92,7 @@ void hexEditor(const char *path, int drive) {
 
 		printf("\x1B[0;11H\x1B[30mHex Editor");
 
-		printf("\x1B[0;0H\x1B[30m%04lx", offset >> 0x10);
+		printf("\x1B[0;0H\x1B[30m%04lX", offset >> 0x10);
 
 		if(mode < 2) {
 			fseek(file, offset, SEEK_SET);
@@ -101,11 +101,11 @@ void hexEditor(const char *path, int drive) {
 		}
 
 		for(int i = 0; i < maxLines; i++) {
-			printf("\x1B[%d;0H\x1B[37m%04lx", i + 1, (offset + i * 8) & 0xFFFF);
+			printf("\x1B[%d;0H\x1B[37m%04lX", i + 1, (offset + i * 8) & 0xFFFF);
 			for(int j = 0; j < 4; j++)
-				printf("\x1B[%d;%dH\x1B[%dm%02x", i + 1, 5 + (j * 2), (mode > 0 && i * 8 + j == cursorPosition) ? (mode > 1 ? 30 : 31) : (offset + i * 8 + j >= fileSize ? 38 : 32 + (j % 2)), data[i * 8 + j]);
+				printf("\x1B[%d;%dH\x1B[%dm%02X", i + 1, 5 + (j * 2), (mode > 0 && i * 8 + j == cursorPosition) ? (mode > 1 ? 30 : 31) : (offset + i * 8 + j >= fileSize ? 38 : 32 + (j % 2)), data[i * 8 + j]);
 			for(int j = 0; j < 4; j++)
-				printf("\x1B[%d;%dH\x1B[%dm%02x", i + 1, 14 + (j * 2), (mode > 0 && i * 8 + 4 + j == cursorPosition) ? (mode > 1 ? 30 : 31) : (offset + i * 8 + 4 + j >= fileSize ? 38 : 32 + (j % 2)), data[i * 8 + 4 + j]);
+				printf("\x1B[%d;%dH\x1B[%dm%02X", i + 1, 14 + (j * 2), (mode > 0 && i * 8 + 4 + j == cursorPosition) ? (mode > 1 ? 30 : 31) : (offset + i * 8 + 4 + j >= fileSize ? 38 : 32 + (j % 2)), data[i * 8 + 4 + j]);
 			char line[9] = {0};
 			for(int j = 0; j < 8; j++) {
 				char c = data[i * 8 + j];
