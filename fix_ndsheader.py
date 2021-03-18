@@ -46,7 +46,10 @@ def getBytes(e):
 	if (sys.version_info.major == 2):
 		return bytes(e)
 	else:
-		return bytes(e, "utf-8")
+		try:
+			return e.encode('ascii')
+		except:
+			print("ERROR: " + e) ;
 #
 # CRC16 MODULE
 #
@@ -113,7 +116,7 @@ def skipUntilAddress(f_in,f_out, caddr, taddr):
 	f_out.write(chunk)
 
 def writeBlankuntilAddress(f_out, caddr, taddr):
-	f_out.write(getBytes("\x00"*(taddr-caddr)))
+	f_out.write(bytes([0])*(taddr-caddr))
 
 fname=args.file
 
@@ -400,21 +403,21 @@ else:
 # Fix srlSignedHeader
 if not args.read:
 	srlSignedHeader=srlSignedHeader._replace(
-		arm7Sha1Hmac=				'\xff'*20,
-		arm9WithSecAreaSha1Hmac=	'\xff'*20,
-		bannerSha1Hmac=				'\xff'*20,
-		signature=					'\xff'*128
+		arm7Sha1Hmac=				bytes([255])*20,
+		arm9WithSecAreaSha1Hmac=	bytes([255])*20,
+		bannerSha1Hmac=				bytes([255])*20,
+		signature=					bytes([255])*128
 		)
 	if "dsi" in args.mode :
 		srlSignedHeader=srlSignedHeader._replace(
-			arm7Sha1Hmac=				'\xff'*20,
-			arm7iSha1Hmac=				'\xff'*20,
-			arm9Sha1Hmac=				'\xff'*20,
-			arm9WithSecAreaSha1Hmac=	'\xff'*20,
-			arm9iSha1Hmac=				'\xff'*20,
-			bannerSha1Hmac=				'\xff'*20,
-			digestMasterSha1Hmac=		'\xff'*20,
-			signature=					'\xff'*128
+			arm7Sha1Hmac=				bytes([255])*20,
+			arm7iSha1Hmac=				bytes([255])*20,
+			arm9Sha1Hmac=				bytes([255])*20,
+			arm9WithSecAreaSha1Hmac=	bytes([255])*20,
+			arm9iSha1Hmac=				bytes([255])*20,
+			bannerSha1Hmac=				bytes([255])*20,
+			digestMasterSha1Hmac=		bytes([255])*20,
+			signature=					bytes([255])*128
 			)
 if args.verbose or args.read:
 	pprint(dict(srlSignedHeader._asdict()))
@@ -479,7 +482,7 @@ if not args.read:
 	filew.write(data1)
 	filew.write(data2)
 	filew.write(data3[0:0xC80])
-	filew.write(getBytes('\xff'*16*8))
+	filew.write(bytes([255])*16*8)
 	writeBlankuntilAddress(filew,0x1000,0x4000)
 	
 	if arm9Footer.nitrocode != 0xDEC00621:
