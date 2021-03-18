@@ -68,6 +68,33 @@ off_t getFileSize(const char *fileName)
 	return fsize;
 }
 
+bool calculateSHA1(const char *fileName, u8 *sha1)
+{
+	u8 *buf = (u8*) malloc(0x80000);
+	if (!buf) {
+		iprintf("Could not allocate buffer");
+		return false;
+	}
+	FILE* fp = fopen(fileName, "rb");
+	if (!fp) {
+		iprintf("Could not open file for reading");
+		free(buf);
+		return false;
+	}
+	memset(sha1, 0, 20);
+	swiSHA1context_t ctx;
+	ctx.sha_block=0; //this is weird but it has to be done
+	swiSHA1Init(&ctx);
+	while (true) {
+		size_t ret = fread(buf, 1, 0x80000, fp);
+		if (!ret) break;
+		swiSHA1Update(&ctx, buf, ret);
+	}
+	swiSHA1Final(sha1, &ctx);
+	free(buf);
+	return true;
+}
+
 void dirCopy(DirEntry* entry, int i, const char *destinationPath, const char *sourcePath) {
 	std::vector<DirEntry> dirContents;
 	dirContents.clear();

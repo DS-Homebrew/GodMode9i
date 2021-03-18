@@ -242,7 +242,8 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 		assignedOp[++maxCursors] = FileOperation::copyFatOut;
 		printf("   Copy to fat:/gm9i/out\n");
 	}
-	printf("\n");
+	assignedOp[++maxCursors] = FileOperation::calculateSHA1;
+	printf("   Calculate SHA1 hash\n\n");
 	printf("(<A> select, <B> cancel)");
 	consoleSelect(&bottomConsole);
 	printf ("\x1B[47m");		// Print foreground white color
@@ -374,6 +375,17 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 						imgCurrentDrive = currentDrive;
 						currentDrive = 6;
 					}
+					break;
+				} case FileOperation::calculateSHA1: {
+					u8 sha1[20] = {0};
+					bool ret = calculateSHA1(strcat(getcwd(path, PATH_MAX), entry->name.c_str()), sha1);
+					if (!ret) {
+						iprintf("Something went wrong!\n");
+						break;
+					}
+					for (int i = 0; i < 19; ++i) iprintf("%02X", sha1[i]);
+					iprintf("\n");
+					while (true) swiWaitForVBlank();
 					break;
 				} case FileOperation::none: {
 					break;
