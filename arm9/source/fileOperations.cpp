@@ -9,6 +9,7 @@
 #include "file_browse.h"
 
 #define copyBufSize 0x8000
+#define shaChunkSize 0x10000
 
 u32 copyBuf[copyBufSize];
 
@@ -70,14 +71,15 @@ off_t getFileSize(const char *fileName)
 
 bool calculateSHA1(const char *fileName, u8 *sha1)
 {
-	u8 *buf = (u8*) malloc(0x80000);
+	off_t fsize = getFileSize(fileName);
+	u8 *buf = (u8*) malloc(shaChunkSize);
 	if (!buf) {
-		iprintf("Could not allocate buffer");
+		iprintf("Could not allocate buffer\n");
 		return false;
 	}
 	FILE* fp = fopen(fileName, "rb");
 	if (!fp) {
-		iprintf("Could not open file for reading");
+		iprintf("Could not open file for reading\n");
 		free(buf);
 		return false;
 	}
@@ -86,9 +88,14 @@ bool calculateSHA1(const char *fileName, u8 *sha1)
 	ctx.sha_block=0; //this is weird but it has to be done
 	swiSHA1Init(&ctx);
 	while (true) {
-		size_t ret = fread(buf, 1, 0x80000, fp);
+		size_t ret = fread(buf, 1, shaChunkSize, fp);
 		if (!ret) break;
 		swiSHA1Update(&ctx, buf, ret);
+		scanKeys();
+		int keys = keysHeld();
+		if (keys & KEY_START) return false;
+		iprintf("\x1b[1;A");
+		iprintf("%ld/%lld bytes\n", ftell(fp), fsize);
 	}
 	swiSHA1Final(sha1, &ctx);
 	free(buf);
