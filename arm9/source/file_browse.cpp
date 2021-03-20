@@ -242,8 +242,12 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 		assignedOp[++maxCursors] = FileOperation::copyFatOut;
 		printf("   Copy to fat:/gm9i/out\n");
 	}
-	printf("\n");
-	printf("(<A> select, <B> cancel)");
+	// The bios SHA1 functions are only availible on the DSi
+	// https://problemkaputt.de/gbatek.htm#biossha1functionsdsionly
+	if (isDSiMode()) {
+		assignedOp[++maxCursors] = FileOperation::calculateSHA1;
+		printf("   Calculate SHA1 hash\n");
+	}
 	consoleSelect(&bottomConsole);
 	printf ("\x1B[47m");		// Print foreground white color
 	while (true) {
@@ -374,6 +378,29 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 						imgCurrentDrive = currentDrive;
 						currentDrive = 6;
 					}
+					break;
+				} case FileOperation::calculateSHA1: {
+					iprintf("\x1b[2J");
+					iprintf("Calculating SHA1 hash of:\n%s\n", entry->name.c_str());
+					iprintf("Press <START> to cancel\n\n");
+					u8 sha1[20] = {0};
+					bool ret = calculateSHA1(strcat(getcwd(path, PATH_MAX), entry->name.c_str()), sha1);
+					if (!ret) break;
+					iprintf("SHA1 hash is: ");
+					for (int i = 0; i < 19; ++i) iprintf("%02X", sha1[i]);
+					consoleSelect(&topConsole);
+					iprintf ("\x1B[30m");           // Print black color
+					// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
+					int pressed;
+					do {
+						// Move to right side of screen
+						iprintf ("\x1b[0;26H");
+						// Print time
+						iprintf (" %s" ,RetTime().c_str());
+						scanKeys();
+						pressed = keysDownRepeat();
+						swiWaitForVBlank();
+					} while (!(pressed & (KEY_A | KEY_Y | KEY_B | KEY_X)));
 					break;
 				} case FileOperation::none: {
 					break;

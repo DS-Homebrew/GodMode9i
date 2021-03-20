@@ -43,6 +43,7 @@ enum class FileOperation {
 	showInfo,
 	copySdOut,
 	copyFatOut,
+	calculateSHA1,
 };
 
 bool extension(const std::string &filename, const std::vector<std::string> &extensions);
