@@ -95,7 +95,7 @@ bool calculateSHA1(const char *fileName, u8 *sha1)
 		int keys = keysHeld();
 		if (keys & KEY_START) return false;
 		iprintf("\x1b[1;A");
-		iprintf("%ld/%lld bytes\n", ftell(fp), fsize);
+		iprintf("%ld/%lld bytes processed\n", ftell(fp), fsize);
 	}
 	swiSHA1Final(sha1, &ctx);
 	free(buf);
