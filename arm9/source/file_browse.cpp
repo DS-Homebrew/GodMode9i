@@ -388,7 +388,7 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					bool ret = calculateSHA1(strcat(getcwd(path, PATH_MAX), entry->name.c_str()), sha1);
 					if (!ret) break;
 					iprintf("SHA1 hash is: \n");
-					for (int i = 0; i < 19; ++i) iprintf("%02X", sha1[i]);
+					for (int i = 0; i < 20; ++i) iprintf("%02X", sha1[i]);
 					consoleSelect(&topConsole);
 					iprintf ("\x1B[30m");           // Print black color
 					// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
