@@ -242,12 +242,13 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 		assignedOp[++maxCursors] = FileOperation::copyFatOut;
 		printf("   Copy to fat:/gm9i/out\n");
 	}
-	// The bios SHA1 functions are only availible on the DSi
+	// The bios SHA1 functions are only available on the DSi
 	// https://problemkaputt.de/gbatek.htm#biossha1functionsdsionly
 	if (isDSiMode()) {
 		assignedOp[++maxCursors] = FileOperation::calculateSHA1;
 		printf("   Calculate SHA1 hash\n");
 	}
+	printf("\n(<A> select, <B> cancel)");
 	consoleSelect(&bottomConsole);
 	printf ("\x1B[47m");		// Print foreground white color
 	while (true) {
@@ -307,7 +308,7 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					// TODO Something less hacky lol
 					chdir(isDSiMode()&&sdMounted ? "sd:/_nds" : "fat:/_nds");
 					// TODO Read header and check for homebrew flag, based on that runNdsFile nds-bootstrap(-hb)-release
-					entry->name = isDSiMode() ? "nds-bootstrap-release.nds" : "b4ds-release.nds";
+					entry->name = "nds-bootstrap-release.nds";
 					applaunch = true;
 					return FileOperation::bootFile;
 					break;
@@ -386,8 +387,8 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					u8 sha1[20] = {0};
 					bool ret = calculateSHA1(strcat(getcwd(path, PATH_MAX), entry->name.c_str()), sha1);
 					if (!ret) break;
-					iprintf("SHA1 hash is: ");
-					for (int i = 0; i < 19; ++i) iprintf("%02X", sha1[i]);
+					iprintf("SHA1 hash is: \n");
+					for (int i = 0; i < 20; ++i) iprintf("%02X", sha1[i]);
 					consoleSelect(&topConsole);
 					iprintf ("\x1B[30m");           // Print black color
 					// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
