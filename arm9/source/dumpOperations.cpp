@@ -21,12 +21,28 @@ extern PrintConsole topConsole, bottomConsole;
 static sNDSHeaderExt ndsCardHeader;
 
 //---------------------------------------------------------------------------------
+// https://github.com/devkitPro/libnds/blob/master/source/common/cardEeprom.c#L74
+// with Pokémon Mystery Dungeon - Explorers of Sky (128 KiB EEPROM) fixed
+int cardEepromGetTypeFixed(void) {
+//---------------------------------------------------------------------------------
+	int sr = cardEepromCommand(SPI_EEPROM_RDSR);
+	int id = cardEepromReadID();
+	
+	if (( sr == 0xff && id == 0xffffff) || ( sr == 0 && id == 0 )) return -1;
+	if ( sr == 0xf0 && id == 0xffffff ) return 1;
+	if ( sr == 0x00 && id == 0xffffff ) return 2;
+	if ( id != 0xffffff || ( sr == 0x02 && id == 0xffffff )) return 3;
+	
+	return 0;
+}
+
+//---------------------------------------------------------------------------------
 // https://github.com/devkitPro/libnds/blob/master/source/common/cardEeprom.c#L88
 // with type 2 fixed if the first word and another % 8192 location are 0x00000000
 uint32 cardEepromGetSizeFixed() {
 //---------------------------------------------------------------------------------
 
-	int type = cardEepromGetType();
+	int type = cardEepromGetTypeFixed();
 
 	if(type == -1)
 		return 0;
@@ -92,6 +108,13 @@ uint32 cardEepromGetSizeFixed() {
 			if (device == 0x2211)
 				return 128*1024;		//	1Mbit(128KByte) - MX25L1021E
 		}
+
+		if (id == 0xffffff) {
+			int sr = cardEepromCommand(SPI_EEPROM_RDSR);
+			if (sr == 2) { // Pokémon Mystery Dungeon - Explorers of Sky
+				return 128*1024; // 1Mbit (128KByte)
+			}
+		}
 		
 
 		return 256*1024;		//	2Mbit(256KByte)
@@ -121,7 +144,7 @@ void ndsCardSaveDump(const char* filename) {
 			auxspi_read_data(0, buffer, LEN*size_blocks, type, card_type);
 			fwrite(buffer, 1, LEN*size_blocks, out);
 		} else {
-			int type = cardEepromGetType();
+			int type = cardEepromGetTypeFixed();
 			int size = cardEepromGetSizeFixed();
 			buffer = new unsigned char[size];
 			cardReadEeprom(0, buffer, size, type);
@@ -187,7 +210,7 @@ void ndsCardSaveRestore(const char *filename) {
 				LEN = 1 << shift;
 				num_blocks = 1 << (size - shift);
 			} else {
-				type = cardEepromGetType();
+				type = cardEepromGetTypeFixed();
 				size = cardEepromGetSizeFixed();
 			}
 			fseek(in, 0, SEEK_END);
@@ -315,7 +338,7 @@ void ndsCardDump(void) {
 		char gameCode[7] = {0};
 		tonccpy(gameCode, ndsCardHeader.gameCode, 6);
 		char destSavPath[256];
-		sprintf(destSavPath, "%s:/gm9i/out/%s_%s_%x.sav", (sdMounted ? "sd" : "fat"), gameTitle, gameCode, ndsCardHeader.romversion);
+		sprintf(destSavPath, "%s:/gm9i/out/%s_%s_%02x.sav", (sdMounted ? "sd" : "fat"), gameTitle, gameCode, ndsCardHeader.romversion);
 		ndsCardSaveDump(destSavPath);
 	} else
 	if ((pressed & KEY_A) || (pressed & KEY_Y)) {
@@ -386,7 +409,7 @@ void ndsCardDump(void) {
 		if (gameCode[0] == 0 || gameCode[0] == 0x23 || gameCode[0] == 0xFF) {
 			sprintf(gameCode, "NONE00");
 		}
-		sprintf(fileName, "%s_%s_%x%s", gameTitle, gameCode, ndsCardHeader.romversion, (trimRom ? "_trim" : ""));
+		sprintf(fileName, "%s_%s_%02x%s", gameTitle, gameCode, ndsCardHeader.romversion, (trimRom ? "_trim" : ""));
 		sprintf(destPath, "%s:/gm9i/out/%s.nds", (sdMounted ? "sd" : "fat"), fileName);
 		sprintf(destSavPath, "%s:/gm9i/out/%s.sav", (sdMounted ? "sd" : "fat"), fileName);
 
