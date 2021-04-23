@@ -43,6 +43,7 @@ enum class FileOperation {
 	showInfo,
 	copySdOut,
 	copyFatOut,
+	calculateSHA1,
 	hexEdit,
 };
 
