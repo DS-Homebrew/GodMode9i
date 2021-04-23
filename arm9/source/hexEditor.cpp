@@ -2,12 +2,15 @@
 
 #include "date.h"
 #include "tonccpy.h"
+#include "file_browse.h"
 
 #include <algorithm>
 #include <nds.h>
 #include <stdio.h>
 
 extern PrintConsole bottomConsole, bottomConsoleBG, topConsole;
+
+extern void reinitConsoles(void);
 
 u32 jumpToOffset(u32 offset) {
 	consoleSelect(&bottomConsoleBG);
@@ -50,6 +53,172 @@ u32 jumpToOffset(u32 offset) {
 	}
 }
 
+u32 search(u32 offset, FILE *file) {
+	consoleSelect(&bottomConsoleBG);
+	consoleClear();
+	consoleSelect(&bottomConsole);
+	consoleClear();
+
+	u8 cursorPosition = 0;
+	u16 pressed = 0, held = 0;
+	while(1) {
+		printf("\x1B[9;4H\x1B[47m-----------------------");
+		printf("\x1B[10;5H%c Search for String %c", cursorPosition == 0 ? '>' : ' ', cursorPosition == 0 ? '<' : ' ');
+		printf("\x1B[11;5H%c  Search for Data  %c", cursorPosition == 1 ? '>' : ' ', cursorPosition == 1 ? '<' : ' ');
+		printf("\x1B[12;4H-----------------------");
+
+		consoleSelect(&topConsole);
+		do {
+			swiWaitForVBlank();
+			scanKeys();
+			pressed = keysDown();
+			held = keysDownRepeat();
+			printf("\x1B[30m\x1B[0;26H %s", RetTime().c_str()); // Print time
+		} while(!held);
+		consoleSelect(&bottomConsole);
+
+		if(held & (KEY_UP | KEY_DOWN)) {
+			cursorPosition ^= 1;
+		} else if(pressed & KEY_A) {
+			break;
+		} else if(pressed & KEY_B) {
+			return offset;
+		}
+	}
+
+	char str[64] = {0};
+	size_t strLen = 1;
+
+	if(cursorPosition == 0) {
+		consoleDemoInit();
+		Keyboard *kbd = keyboardDemoInit();
+		kbd->OnKeyPressed = OnKeyPressed;
+
+		// keyboardShow();
+		printf("Search for:\n");
+		fgets(str, sizeof(str), stdin);
+		keyboardHide();
+		consoleClear();
+
+		reinitConsoles();
+		consoleSelect(&bottomConsole);
+
+		BG_PALETTE_SUB[0x1F] = 0x9CF7;
+		BG_PALETTE_SUB[0x2F] = 0xB710;
+		BG_PALETTE_SUB[0x3F] = 0xAE8D;
+		BG_PALETTE_SUB[0x7F] = 0xEA2D;
+
+		strLen = strlen(str) - 1;
+		if(strLen == 0)
+			return offset;
+
+		str[strLen] = 0; // Remove ending \n that fgets has
+	} else {
+		consoleClear();
+
+		cursorPosition = 0;
+		while(1) {
+			printf("\x1B[9;6H\x1B[47m------------------");
+			printf("\x1B[10;9HEnter value:");
+			u8 pos = 15 - strLen;
+			for(size_t i = 0; i < strLen * 2; i++) {
+				printf("\x1B[12;%dH\x1B[%dm%X", pos + i, (i == cursorPosition ? 31 : ((i / 2 % 2) ? 33 : 32)), str[i / 2] >> (!(i % 2) * 4) & 0xF);
+			}
+			printf("\x1B[13;6H\x1B[47m------------------");
+
+			consoleSelect(&topConsole);
+			do {
+				swiWaitForVBlank();
+				scanKeys();
+				pressed = keysDown();
+				held = keysDownRepeat();
+				printf("\x1B[30m\x1B[0;26H %s", RetTime().c_str()); // Print time
+			} while(!held);
+			consoleSelect(&bottomConsole);
+
+			if(held & KEY_UP) {
+				char val = str[cursorPosition / 2];
+				u8 shift = !(cursorPosition % 2) * 4;
+				str[cursorPosition / 2] = (val & (0xF0 >> shift)) | ((val + (1 << shift)) & (0xF << shift));
+			} else if(held & KEY_DOWN) {
+				char val = str[cursorPosition / 2];
+				u8 shift = !(cursorPosition % 2) * 4;
+				str[cursorPosition / 2] = (val & (0xF0 >> shift)) | ((val - (1 << shift)) & (0xF << shift));
+			} else if(held & KEY_LEFT) {
+				if(cursorPosition > 0)
+					cursorPosition--;
+			} else if(held & KEY_RIGHT) {
+				if(cursorPosition < strLen * 2 - 1) {
+					cursorPosition++;
+				} else if(strLen < 8) {
+					strLen++;
+					cursorPosition++;
+				}
+			} else if(pressed & KEY_A) {
+				break;
+			} else if(pressed & KEY_B) {
+				return offset;
+			} else if(pressed & KEY_X) {
+				if(strLen > 1) {
+					str[strLen - 1] = 0;
+					strLen--;
+					if(cursorPosition > strLen * 2 - 1)
+						cursorPosition -= 2;
+					consoleClear();
+				}
+			}
+		}
+	}
+
+	consoleClear();
+	printf("\x1B[9;6H\x1B[47m---------------------");
+	printf("\x1B[10;12HSearching");
+	printf("\x1B[14;8HPress B to cancel");
+	printf("\x1B[15;6H---------------------");
+
+	size_t len = 32 << 10, pos = offset;
+	fseek(file, 0, SEEK_END);
+	size_t fileLen = ftell(file);
+	char *buf = new char[len];
+	do {
+		scanKeys();
+		if(keysDown() & KEY_B) {
+			delete[] buf;
+			return offset;
+		}
+
+		printf("\x1B[12;6H%10d/%d", pos, fileLen);
+
+		if(fseek(file, pos, SEEK_SET) != 0)
+			break;
+		len = fread(buf, 1, len, file);
+
+		for(size_t i = 0; i < len - strLen && len >= strLen; i++) {
+			if(memcmp(buf + i, str, strLen) == 0) {
+				delete[] buf;
+				return (pos + i) & ~7;
+			}
+		}
+
+		pos += len;
+	} while(len == 32 << 10);
+	delete[] buf;
+
+	consoleClear();
+	printf("\x1B[9;5H\x1B[47m---------------------");
+	printf("\x1B[10;6HReached end of file");
+	printf("\x1B[11;8Hwith no results");
+	printf("\x1B[12;5H---------------------");
+
+	do {
+		swiWaitForVBlank();
+		scanKeys();
+		printf("\x1B[30m\x1B[0;26H %s", RetTime().c_str()); // Print time
+	} while(!keysDown());
+
+	return offset;
+}
+
 void hexEditor(const char *path, int drive) {
 	// Custom palettes
 	BG_PALETTE_SUB[0x1F] = 0x9CF7;
@@ -68,7 +237,7 @@ void hexEditor(const char *path, int drive) {
 	u32 fileSize = ftell(file);
 	fseek(file, 0, SEEK_SET);
 
-	u8 maxLines = std::min(23lu, fileSize / 8);
+	u8 maxLines = std::min(23lu, fileSize / 8 + (fileSize % 8 != 0));
 	u32 maxSize = ((fileSize - 8 * maxLines) & ~7) + (fileSize & 7 ? 8 : 0);
 
 	u8 cursorPosition = 0, mode = 0;
@@ -82,10 +251,10 @@ void hexEditor(const char *path, int drive) {
 	while(1) {
 		consoleSelect(&bottomConsoleBG);
 		printf ("\x1B[0;0H\x1B[46m"); // Blue
-		for (int i = 0; i < 4; i++)
+		for(int i = 0; i < 4; i++)
 			printf ("\2");
 		printf ("\x1B[42m"); // Green
-		for (int i = 0; i < 32 - 4; i++)
+		for(int i = 0; i < 32 - 4; i++)
 			printf ("\2");
 
 		consoleSelect(&bottomConsole);
@@ -133,52 +302,55 @@ void hexEditor(const char *path, int drive) {
 
 		if(mode == 0) {
 			if(keysHeld() & KEY_R && held & (KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT)) {
-				if (held & KEY_UP) {
+				if(held & KEY_UP) {
 					offset = std::max((s64)offset - 0x1000, 0ll);
-				} else if (held & KEY_DOWN) {
+				} else if(held & KEY_DOWN) {
 					offset = std::min(offset + 0x1000, maxSize);
-				} else if (held & KEY_LEFT) {
+				} else if(held & KEY_LEFT) {
 					offset = std::max((s64)offset - 0x10000, 0ll);
-				} else if (held & KEY_RIGHT) {
+				} else if(held & KEY_RIGHT) {
 					offset = std::min(offset + 0x10000, maxSize);
 				}
-			} else if (held & KEY_UP) {
-				if(offset > 8)
+			} else if(held & KEY_UP) {
+				if(offset >= 8)
 					offset -= 8;
-			} else if (held & KEY_DOWN) {
-				if(offset < fileSize - 8 * maxLines)
+			} else if(held & KEY_DOWN) {
+				if(offset < fileSize - 8 * maxLines && fileSize > 8 * maxLines)
 					offset += 8;
-			} else if (held & KEY_LEFT) {
+			} else if(held & KEY_LEFT) {
 				offset = std::max((s64)offset - 8 * maxLines, 0ll);
-			} else if (held & KEY_RIGHT) {
+			} else if(held & KEY_RIGHT) {
 				offset = std::min(offset + 8 * maxLines, maxSize);
-			} else if (pressed & KEY_A) {
+			} else if(pressed & KEY_A) {
 				mode = 1;
-			} else if (pressed & KEY_B) {
+			} else if(pressed & KEY_B) {
 				break;
+			} else if(pressed & KEY_X) {
+				offset = std::min(search(offset, file), maxSize);
+				consoleClear();
 			} else if(pressed & KEY_Y) {
 				offset = std::min(jumpToOffset(offset), maxSize);
 				consoleClear();
 			}
 		} else if(mode == 1) {
-			if (held & KEY_UP) {
+			if(held & KEY_UP) {
 				if(cursorPosition >= 8)
 					cursorPosition -= 8;
 				else if(offset > 8)
 					offset -= 8;
-			} else if (held & KEY_DOWN) {
+			} else if(held & KEY_DOWN) {
 				if(cursorPosition < 8 * 22)
 					cursorPosition += 8;
-				else if(offset < fileSize - 8 * maxLines)
+				else if(offset < fileSize - 8 * maxLines && fileSize > 8 * maxLines)
 					offset += 8;
 				cursorPosition = std::min(cursorPosition, (u8)(fileSize - offset - 1));
-			} else if (held & KEY_LEFT) {
+			} else if(held & KEY_LEFT) {
 				if(cursorPosition > 0)
 					cursorPosition--;
-			} else if (held & KEY_RIGHT) {
+			} else if(held & KEY_RIGHT) {
 				if(cursorPosition < 8 * maxLines - 1)
 					cursorPosition = std::min((u8)(cursorPosition + 1), (u8)(fileSize - offset - 1));
-			} else if (pressed & KEY_A) {
+			} else if(pressed & KEY_A) {
 				if(drive < 4) {
 					mode = 2;
 					consoleSelect(&bottomConsoleBG);
@@ -186,22 +358,25 @@ void hexEditor(const char *path, int drive) {
 					printf("\x1B[%d;%dH\x1B[%dm\2", 1 + cursorPosition / 8, 23 + cursorPosition % 8, 31);
 					consoleSelect(&bottomConsole);
 				}
-			} else if (pressed & KEY_B) {
+			} else if(pressed & KEY_B) {
 				mode = 0;
+			} else if(pressed & KEY_X) {
+				offset = std::min(search(offset, file), maxSize);
+				consoleClear();
 			} else if(pressed & KEY_Y) {
 				offset = std::min(jumpToOffset(offset), maxSize);
 				consoleClear();
 			}
 		} else if(mode == 2) {
-			if (held & KEY_UP) {
+			if(held & KEY_UP) {
 				data[cursorPosition]++;
-			} else if (held & KEY_DOWN) {
+			} else if(held & KEY_DOWN) {
 				data[cursorPosition]--;
-			} else if (held & KEY_LEFT) {
+			} else if(held & KEY_LEFT) {
 				data[cursorPosition] -= 0x10;
-			} else if (held & KEY_RIGHT) {
+			} else if(held & KEY_RIGHT) {
 				data[cursorPosition] += 0x10;
-			} else if (pressed & (KEY_A | KEY_B)) {
+			} else if(pressed & (KEY_A | KEY_B)) {
 				mode = 1;
 				fseek(file, offset + cursorPosition, SEEK_SET);
 				fwrite(data + cursorPosition, 1, 1, file);
