@@ -44,9 +44,11 @@ enum class FileOperation {
 	copySdOut,
 	copyFatOut,
 	calculateSHA1,
+	hexEdit,
 };
 
 bool extension(const std::string &filename, const std::vector<std::string> &extensions);
+void OnKeyPressed(int key);
 
 std::string browseForFile (void);
 void getDirectoryContents (std::vector<DirEntry>& dirContents);
