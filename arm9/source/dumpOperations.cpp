@@ -51,18 +51,30 @@ uint32 cardEepromGetSizeFixed() {
 	if(type == 1)
 		return 512;
 	if(type == 2) {
-		u32 buf1,buf2,buf3 = 0x54536554; // "TeST"
+		u32 buf1,buf2,buf3 = 0x54534554; // "TEST"
 		// Save the first word of the EEPROM
 		cardReadEeprom(0,(u8*)&buf1,4,type);
 
-		// Write "TeST" to it
+		// Write "TEST" to it
 		cardWriteEeprom(0,(u8*)&buf3,4,type);
 
 		// Loop until the EEPROM mirrors and the first word shows up again
 		int size = 8192;
 		while (1) {
 			cardReadEeprom(size,(u8*)&buf2,4,type);
-			if ( buf2 == buf3 ) break;
+			// Check if it matches, if so check again with another value to ensure no false positives
+			if (buf2 == buf3) {
+				u32 buf4 = 0x74736574; // "test"
+				// Write "test" to the first word
+				cardWriteEeprom(0,(u8*)&buf4,4,type);
+
+				// Check if it still matches
+				cardReadEeprom(size,(u8*)&buf2,4,type);
+				if (buf2 == buf4) break;
+
+				// False match, write "TEST" back and keep going
+				cardWriteEeprom(0,(u8*)&buf3,4,type);
+			}
 			size += 8192;
 		}
 
