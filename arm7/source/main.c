@@ -91,6 +91,9 @@ void aes(void* in, void* out, void* iv, u32 method){ //this is sort of a bodged 
 //---------------------------------------------------------------------------------
 int main() {
 //---------------------------------------------------------------------------------
+	*(vu32*)0x400481C = 0;				// Clear SD IRQ stat register
+	*(vu32*)0x4004820 = 0;				// Clear SD IRQ mask register
+
 	// clear sound registers
 	dmaFillWords(0, (void*)0x04000400, 0x100);
 
