@@ -9,16 +9,16 @@
 		<img src="https://img.shields.io/badge/Discord%20Server-%23GodMode9i-green.svg">
 	</a>
 	<a href="https://gbatemp.net/threads/release-godmode9i-all-access-file-browser-for-the-ds-i-and-3ds.520096/" style="padding-left: 5px;">
-		<img src="https://img.shields.io/badge/GBATemp-thread-blue.svg" height="20">
+		<img src="https://img.shields.io/badge/GBAtemp-thread-blue.svg" height="20">
 	</a>
 </p>
 
 GodMode9i is a full access file browser for the Nintendo DS, Nintendo DSi and the Nintendo 3DS's TWL_FIRM.
 
 <div align="center">
-	<img src="https://gbatemp.b-cdn.net/attachments/snap_191051-png.195366/" alt="Drive menu">
-	<img src="https://gbatemp.b-cdn.net/attachments/snap_191132-png.195368/" alt="File list">
-	<img src="https://gbatemp.b-cdn.net/attachments/file-options-v2-1-0-png.195367/" alt="NDS file menu">
+	<img src="https://gbatemp.net/attachments/snap_191051-png.195366/" alt="Drive menu">
+	<img src="https://gbatemp.net/attachments/snap_191132-png.195368/" alt="File list">
+	<img src="https://gbatemp.net/attachments/file-options-v2-1-0-png.195367/" alt="NDS file menu">
 </div>
 
 ## Features
