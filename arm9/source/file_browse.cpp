@@ -39,6 +39,7 @@
 #include "driveOperations.h"
 #include "dumpOperations.h"
 #include "hexEditor.h"
+#include "ndsInfo.h"
 #include "nitrofs.h"
 #include "inifile.h"
 #include "nds_loader_arm9.h"
@@ -221,6 +222,8 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 		{
 			assignedOp[++maxCursors] = FileOperation::mountNitroFS;
 			printf("   Mount NitroFS\n");
+			assignedOp[++maxCursors] = FileOperation::ndsInfo;
+			printf("   Show NDS file info\n");
 		}
 		else if(extension(entry->name, {"sav", "sav1", "sav2", "sav3", "sav4", "sav5", "sav6", "sav7", "sav8", "sav9"}))
 		{
@@ -371,6 +374,9 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 						nitroCurrentDrive = currentDrive;
 						currentDrive = 5;
 					}
+					break;
+				} case FileOperation::ndsInfo: {
+					ndsInfo(entry->name.c_str());
 					break;
 				} case FileOperation::showInfo: {
 					changeFileAttribs(entry);
