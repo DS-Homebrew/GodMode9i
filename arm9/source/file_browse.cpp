@@ -213,9 +213,13 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 	if (!entry->isDirectory) {
 		if (entry->isApp) {
 			assignedOp[++maxCursors] = FileOperation::bootFile;
-			printf("   Boot file (Direct)\n");
-			assignedOp[++maxCursors] = FileOperation::bootstrapFile;
-			printf("   Bootstrap file\n");
+			if (extension(entry->name, {"firm"})) {
+				printf("   Boot file\n");
+			} else {
+				printf("   Boot file (Direct)\n");
+				assignedOp[++maxCursors] = FileOperation::bootstrapFile;
+				printf("   Bootstrap file\n");
+			}
 		}
 		if(extension(entry->name, {"nds", "dsi", "ids", "app"}))
 		{
