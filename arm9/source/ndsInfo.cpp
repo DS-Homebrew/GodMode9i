@@ -40,9 +40,9 @@ void ndsInfo(const char *path) {
 	u16 version;
 	fread(&version, sizeof(u16), 1, file);
 
-	u8 iconBitmap[8][0x200] = {{0}};
-	u16 iconPalette[8][0x10] = {{0}};
-	u16 iconAnimation[0x40] = {0};
+	u8 *iconBitmap = new u8[8 * 0x200];
+	u16 *iconPalette = new u16[8 * 0x10];
+	u16 *iconAnimation = new u16[0x40](); // Initialize to 0 for DS icons
 
 	if(version == 0x0103) { // DSi
 		fseek(file, 0x1240 - 2, SEEK_CUR);
@@ -53,12 +53,12 @@ void ndsInfo(const char *path) {
 		fseek(file, ofs + 0x240, SEEK_SET);
 	} else { // DS
 		fseek(file, 0x20 - 2, SEEK_CUR);
-		fread(iconBitmap[0], 1, 0x200, file);
-		fread(iconPalette[0], 2, 0x10, file);
+		fread(iconBitmap, 1, 0x200, file);
+		fread(iconPalette, 2, 0x10, file);
 	}
 
 	int languages = 5 + (version & 0x3);
-	char16_t titles[languages][0x80] = {0};
+	char16_t *titles = new char16_t[languages * 0x80];
 	fread(titles, 2, languages * 0x80, file);
 
 	fclose(file);
@@ -68,8 +68,8 @@ void ndsInfo(const char *path) {
 	u16 *iconGfx = oamAllocateGfx(&oamSub, SpriteSize_32x32, SpriteColorFormat_16Color);
 	oamSet(&oamSub, 0, 256 - 36, 4, 0, 0, SpriteSize_32x32, SpriteColorFormat_16Color, iconGfx, -1, false, false, false, false, false);
 	
-	tonccpy(iconGfx, iconBitmap[0], 0x200);
-	tonccpy(SPRITE_PALETTE_SUB, iconPalette[0], 0x20);
+	tonccpy(iconGfx, iconBitmap, 0x200);
+	tonccpy(SPRITE_PALETTE_SUB, iconPalette, 0x20);
 
 	oamUpdate(&oamSub);
 
@@ -81,11 +81,11 @@ void ndsInfo(const char *path) {
 		iprintf("Header Title: %s\n", headerTitle);
 		iprintf("Title ID: %s\n", tid);
 		iprintf("Title: (%s)\n  ", langNames[lang]);
-		for(int j = 0; j < 0x80 && titles[lang][j]; j++) {
-			if(titles[lang][j] == '\n')
+		for(int j = 0; j < 0x80 && titles[lang * 0x80 + j]; j++) {
+			if(titles[lang * 0x80 + j] == '\n')
 				iprintf("\n  ");
 			else
-				iprintf("%c", titles[lang][j]);
+				iprintf("%c", titles[lang * 0x80 + j]);
 		}
 		iprintf("\n");
 
@@ -104,8 +104,8 @@ void ndsInfo(const char *path) {
 					if(!iconAnimation[++animationFrame])
 						animationFrame = 0;
 
-					tonccpy(iconGfx, iconBitmap[(iconAnimation[animationFrame] >> 8) & 7], 0x200);
-					tonccpy(SPRITE_PALETTE_SUB, iconPalette[(iconAnimation[animationFrame] >> 0xB) & 7], 0x20);
+					tonccpy(iconGfx, iconBitmap + ((iconAnimation[animationFrame] >> 8) & 7) * 0x200, 0x200);
+					tonccpy(SPRITE_PALETTE_SUB, iconPalette + ((iconAnimation[animationFrame] >> 0xB) & 7) * 0x10, 0x20);
 					oamSetFlip(&oamSub, 0, iconAnimation[animationFrame] & BIT(14), iconAnimation[animationFrame] & BIT(15));
 					oamUpdate(&oamSub);
 				}
@@ -123,6 +123,11 @@ void ndsInfo(const char *path) {
 			break;
 		}
 	}
+
+	delete[] iconBitmap;
+	delete[] iconPalette;
+	delete[] iconAnimation;
+	delete[] titles;
 
 	oamFreeGfx(&oamSub, iconGfx);
 	oamDisable(&oamSub);
