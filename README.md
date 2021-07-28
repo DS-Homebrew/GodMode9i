@@ -25,6 +25,7 @@ GodMode9i is a full access file browser for the Nintendo DS, Nintendo DSi and th
 
 - Dump GameBoy Advance cartridges on the original Nintendo DS and Nintendo DS Lite consoles.
 - Dump Nintendo DS/DSi cartridges on Nintendo DSi and Nintendo 3DS consoles (if GodMode9i is ran on the console SD card).
+     - They can also be dumped on the original Nintendo DS and Nintendo DS Lite consoles, if running from a Slot-2 flashcard.
 - Copy, move, delete, rename files/folders and create folders.
 - Mount the NitroFS of .nds files.
 - Browse files on supported flashcards when running GM9i from the NAND or SD Card. (`AceKard 2(i)` & `R4 Ultra (r4ultra.com)`)
