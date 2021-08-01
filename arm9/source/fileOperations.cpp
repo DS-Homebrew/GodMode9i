@@ -7,6 +7,7 @@
 
 #include "date.h"
 #include "file_browse.h"
+#include "ndsheaderbanner.h"
 
 #define copyBufSize 0x8000
 #define shaChunkSize 0x10000
@@ -100,6 +101,26 @@ bool calculateSHA1(const char *fileName, u8 *sha1)
 	swiSHA1Final(sha1, &ctx);
 	free(buf);
 	return true;
+}
+
+int trimNds(const char *fileName)
+{
+	FILE *file = fopen(fileName, "rb");
+	if(file) {
+		sNDSHeaderExt ndsCardHeader;
+
+		fread(&ndsCardHeader, 1, sizeof(ndsCardHeader), file);
+		fclose(file);
+
+		u32 romSize = (isDSiMode() && (ndsCardHeader.unitCode != 0) && (ndsCardHeader.twlRomSize > 0))
+						? ndsCardHeader.twlRomSize : ndsCardHeader.romSize + 0x88;
+
+		truncate(fileName, romSize);
+
+		return romSize;
+	}
+
+	return -1;
 }
 
 void dirCopy(DirEntry* entry, int i, const char *destinationPath, const char *sourcePath) {

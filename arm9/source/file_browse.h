@@ -38,6 +38,8 @@ enum class FileOperation {
 	bootFile,
 	bootstrapFile,
 	mountNitroFS,
+	ndsInfo,
+	trimNds,
 	mountImg,
 	restoreSave,
 	showInfo,
@@ -45,7 +47,6 @@ enum class FileOperation {
 	copyFatOut,
 	calculateSHA1,
 	hexEdit,
-	ndsInfo,
 };
 
 bool extension(const std::string &filename, const std::vector<std::string> &extensions);

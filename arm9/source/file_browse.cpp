@@ -228,6 +228,8 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 			printf("   Mount NitroFS\n");
 			assignedOp[++maxCursors] = FileOperation::ndsInfo;
 			printf("   Show NDS file info\n");
+			assignedOp[++maxCursors] = FileOperation::trimNds;
+			printf("   Trim NDS file\n");
 		}
 		else if(extension(entry->name, {"sav", "sav1", "sav2", "sav3", "sav4", "sav5", "sav6", "sav7", "sav8", "sav9"}))
 		{
@@ -381,6 +383,9 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					break;
 				} case FileOperation::ndsInfo: {
 					ndsInfo(entry->name.c_str());
+					break;
+				} case FileOperation::trimNds: {
+					entry->size = trimNds(entry->name.c_str());
 					break;
 				} case FileOperation::showInfo: {
 					changeFileAttribs(entry);
