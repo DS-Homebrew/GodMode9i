@@ -112,7 +112,7 @@ int trimNds(const char *fileName)
 		fread(&ndsCardHeader, 1, sizeof(ndsCardHeader), file);
 		fclose(file);
 
-		u32 romSize = (isDSiMode() && (ndsCardHeader.unitCode != 0) && (ndsCardHeader.twlRomSize > 0))
+		u32 romSize = ((ndsCardHeader.unitCode != 0) && (ndsCardHeader.twlRomSize > 0))
 						? ndsCardHeader.twlRomSize : ndsCardHeader.romSize + 0x88;
 
 		truncate(fileName, romSize);
