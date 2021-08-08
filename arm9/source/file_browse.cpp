@@ -191,6 +191,7 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 		if(extension(entry->name, {"nds", "dsi", "ids", "app"})) {
 			operations.push_back(FileOperation::mountNitroFS);
 			operations.push_back(FileOperation::ndsInfo);
+			operations.push_back(FileOperation::trimNds);
 		} else if(extension(entry->name, {"sav", "sav1", "sav2", "sav3", "sav4", "sav5", "sav6", "sav7", "sav8", "sav9"})) {
 			operations.push_back(FileOperation::restoreSave);
 		} else if(extension(entry->name, {"img", "sd"})) {
@@ -235,6 +236,9 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					break;
 				case FileOperation::ndsInfo:
 					font->print(3, row++, false, "Show NDS file info");
+					break;
+				case FileOperation::trimNds:
+					font->print(3, row++, false, "Trim NDS file");
 					break;
 				case FileOperation::restoreSave:
 					font->print(3, row++, false, "Restore save");
@@ -379,6 +383,9 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					break;
 				} case FileOperation::ndsInfo: {
 					ndsInfo(entry->name.c_str());
+					break;
+				} case FileOperation::trimNds: {
+					entry->size = trimNds(entry->name.c_str());
 					break;
 				} case FileOperation::showInfo: {
 					changeFileAttribs(entry);
