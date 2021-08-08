@@ -3,7 +3,7 @@
 *.nds
 *.cia
 *.elf
-data/*
+data/*.bin
 .vscode
 *.DS_Store
 

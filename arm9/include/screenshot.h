@@ -1,2 +1,6 @@
-void screenshot(const char* filename);
-void screenshotbmp(const char* filename);
+#ifndef SCREENSHOT_H
+#define SCREENSHOT_H
+
+bool screenshot(void);
+
+#endif // SCREENSHOT_H

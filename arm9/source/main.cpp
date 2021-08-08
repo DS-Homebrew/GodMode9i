@@ -34,6 +34,7 @@
 #include "driveOperations.h"
 #include "file_browse.h"
 #include "fileOperations.h"
+#include "font.h"
 #include "tonccpy.h"
 #include "version.h"
 
@@ -57,8 +58,6 @@ bool applaunch = false;
 
 static int bg3;
 
-PrintConsole topConsoleBG, topConsole, bottomConsoleBG, bottomConsole;
-
 //---------------------------------------------------------------------------------
 void stop (void) {
 //---------------------------------------------------------------------------------
@@ -68,60 +67,6 @@ void stop (void) {
 }
 
 char filePath[PATH_MAX];
-
-void printBorderTop(void) {
-	consoleSelect(&topConsoleBG);
-	printf ("\x1B[42m");		// Print green color
-	for (int i = 0; i < 32; i++) {
-		printf ("\x02");	// Print top border
-	}
-}
-
-void printBorderBottom(void) {
-	consoleSelect(&bottomConsoleBG);
-	printf ("\x1B[42m");		// Print green color
-	for (int i = 0; i < 32; i++) {
-		printf ("\x02");	// Print top border
-	}
-}
-
-void clearBorderTop(void) {
-	consoleSelect(&topConsoleBG);
-	consoleClear();
-}
-
-void clearBorderBottom(void) {
-	consoleSelect(&bottomConsoleBG);
-	consoleClear();
-}
-
-void reinitConsoles(void) {
-	// Subscreen as a console
-	videoSetModeSub(MODE_0_2D);
-	vramSetBankH(VRAM_H_SUB_BG);
-	consoleInit(&bottomConsoleBG, 1, BgType_Text4bpp, BgSize_T_256x256, 7, 0, false, true);
-	consoleInit(&bottomConsole, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
-
-	// Top screen as a console
-	videoSetMode(MODE_0_2D);
-	vramSetBankG(VRAM_G_MAIN_BG);
-	consoleInit(&topConsoleBG, 1, BgType_Text4bpp, BgSize_T_256x256, 7, 0, true, true);
-	consoleInit(&topConsole, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
-
-	// Overwrite background white color
-	BG_PALETTE[15+(7*16)] = 0x656A;
-	BG_PALETTE_SUB[15+(7*16)] = 0x656A;
-
-	// Custom yellow color
-	BG_PALETTE[15+(3*16)] = 0x3339;
-	BG_PALETTE_SUB[15+(3*16)] = 0x3339;
-
-	// Overwrite 2nd smiley face with filled tile
-	dmaFillWords(0xFFFFFFFF, (void*)0x6000040, 8*8);	// Top screen
-	dmaFillWords(0xFFFFFFFF, (void*)0x6200040, 8*8);	// Bottom screen
-
-	printBorderTop();
-}
 
 //---------------------------------------------------------------------------------
 int main(int argc, char **argv) {
@@ -141,34 +86,29 @@ int main(int argc, char **argv) {
 	sprintf(titleName, "GodMode9i %s", VER_NUMBER);
 
 	// initialize video mode
-	videoSetMode(MODE_4_2D);
+	videoSetMode(MODE_5_2D);
+	videoSetModeSub(MODE_5_2D);
 
 	// initialize VRAM banks
 	vramSetPrimaryBanks(VRAM_A_MAIN_BG,
 	                    VRAM_B_MAIN_SPRITE,
-	                    VRAM_C_LCD,
+	                    VRAM_C_SUB_BG,
 	                    VRAM_D_LCD);
-
-	// Subscreen as a console
-	videoSetModeSub(MODE_0_2D);
-	vramSetBankH(VRAM_H_SUB_BG);
 	vramSetBankI(VRAM_I_SUB_SPRITE);
-	consoleInit(&bottomConsoleBG, 1, BgType_Text4bpp, BgSize_T_256x256, 7, 0, false, true);
-	consoleInit(&bottomConsole, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+
+	// Init built-in font
+	font = new Font("/font.frf");
 
 	// Display GM9i logo
-	bg3 = bgInit(3, BgType_Bmp8, BgSize_B8_256x256, 1, 0);
+	bg3 = bgInit(3, BgType_Bmp8, BgSize_B8_256x256, 0, 0);
+	bgInit(2, BgType_Bmp8, BgSize_B8_256x256, 3, 0);
+	bgInitSub(2, BgType_Bmp8, BgSize_B8_256x256, 3, 0);
 	decompress(gm9i_logoBitmap, bgGetGfxPtr(bg3), LZ77Vram);
 	tonccpy(BG_PALETTE, gm9i_logoPal, gm9i_logoPalLen);
 
-	printf ("\x1b[1;1H");
-	printf(titleName);
-	printf ("\x1b[2;1H");
-	printf ("------------------------------");
-	printf ("\x1b[3;1H");
-	printf ("https:/github.com/");
-	printf ("\x1b[4;10H");
-	printf ("DS-Homebrew/GodMode9i");
+	font->print(1, 1, false, titleName);
+	font->print(1, 2, false, "---------------------------------------");
+	font->print(1, 3, false, "https:/github.com/DS-Homebrew/GodMode9i");
 
 	fifoWaitValue32(FIFO_USER_06);
 	if (fifoGetValue32(FIFO_USER_03) == 0) arm7SCFGLocked = true;
@@ -178,36 +118,27 @@ int main(int argc, char **argv) {
 
 	if (isDSiMode()) {
 		if (!arm7SCFGLocked) {
-			printf ("\x1b[20;1H");
-			printf ("X Held - Disable NAND access");
-			printf ("\x1b[21;1H");
-			printf ("Y Held - Disable cart access");
-			printf ("\x1b[22;4H");
-			printf ("Do these if it crashes here");
+			font->print(-2, -4, false, "X Held - Disable NAND access", Alignment::right);
+			font->print(-2, -3, false, "Y Held - Disable cart access", Alignment::right);
+			font->print(-2, -2, false, "Do these if it crashes here", Alignment::right);
 		} else {
-			printf ("\x1b[21;1H");
-			printf ("X Held - Disable NAND access");
-			printf ("\x1b[22;5H");
-			printf ("Do this if it crashes here");
+			font->print(-2, -3, false, "X Held - Disable NAND access", Alignment::right);
+			font->print(-2, -2, false, "Do this if it crashes here", Alignment::right);
 		}
 	}
 
 	// Display for 2 seconds
+	font->update(false);
 	for (int i = 0; i < 60*2; i++) {
 		swiWaitForVBlank();
 	}
 
-	if (isDSiMode()) {
-		printf ("\x1b[20;1H");
-		printf ("                            ");
-		printf ("\x1b[21;1H");
-		printf ("                            ");
-		printf ("\x1b[22;4H");
-		printf ("                           ");	// Clear "Y Held" text
-	}
-	printf ("\x1b[22;11H");
-	printf ("mounting drive(s)...");
-	//printf ("%X %X", *(u32*)0x2FFFD00, *(u32*)0x2FFFD04);
+	font->clear(false);
+	font->print(1, 1, false, titleName);
+	font->print(1, 2, false, "---------------------------------------");
+	font->print(1, 3, false, "https:/github.com/DS-Homebrew/GodMode9i");
+	font->print(-2, -2, false, "Mounting drive(s)...", Alignment::right);
+	font->update(false);
 
 	sysSetCartOwner (BUS_OWNER_ARM9);	// Allow arm9 to access GBA ROM
 
@@ -243,11 +174,11 @@ int main(int argc, char **argv) {
 		flashcardMountSkipped = false;
 	}
 
-	// Top screen as a console
-	videoSetMode(MODE_0_2D);
-	vramSetBankG(VRAM_G_MAIN_BG);
-	consoleInit(&topConsoleBG, 1, BgType_Text4bpp, BgSize_T_256x256, 7, 0, true, true);
-	consoleInit(&topConsole, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
+	bgHide(bg3);
+
+	// TODO: better
+	delete font;
+	font = new Font("/font.frf");
 
 	// Overwrite background white color
 	BG_PALETTE[15+(7*16)] = 0x656A;
@@ -260,8 +191,6 @@ int main(int argc, char **argv) {
 	// Overwrite 2nd smiley face with filled tile
 	dmaFillWords(0xFFFFFFFF, (void*)0x6000040, 8*8);	// Top screen
 	dmaFillWords(0xFFFFFFFF, (void*)0x6200040, 8*8);	// Bottom screen
-
-	printBorderTop();
 
 	keysSetRepeat(25,5);
 
@@ -302,34 +231,34 @@ int main(int argc, char **argv) {
 					}
 				}
 				fclose(argfile);
-				filename = argarray.at(0);
+				filename = argarray[0];
 			} else {
 				argarray.push_back(strdup(filename.c_str()));
 			}
 
 			if (extension(filename, {"nds", "dsi", "ids", "app", "srl"})) {
-				char *name = argarray.at(0);
+				char *name = argarray[0];
 				strcpy (filePath + pathLen, name);
-				free(argarray.at(0));
-				argarray.at(0) = filePath;
-				consoleClear();
-				iprintf ("Running %s with %d parameters\n", argarray[0], argarray.size());
-				int err = runNdsFile (argarray[0], argarray.size(), (const char **)&argarray[0]);
-				iprintf ("\x1b[31mStart failed. Error %i\n", err);
+				free(argarray[0]);
+				argarray[0] = filePath;
+				font->clear(false);
+				font->printf(0, 0, false, Alignment::left, Palette::white, "Running %s with %d parameters\n", argarray[0], argarray.size());
+				int err = runNdsFile(argarray[0], argarray.size(), (const char **)&argarray[0]);
+				font->printf(0, 1, false, Alignment::left, Palette::white, "Start failed. Error %i\n", err);
 			}
 
 			if (extension(filename, {"firm"})) {
-				char *name = argarray.at(0);
+				char *name = argarray[0];
 				strcpy (filePath + pathLen, name);
-				free(argarray.at(0));
-				argarray.at(0) = filePath;
+				free(argarray[0]);
+				argarray[0] = filePath;
 				fcopy(argarray[0], "sd:/bootonce.firm");
 				fifoSendValue32(FIFO_USER_02, 1);	// Reboot into selected .firm payload
 				swiWaitForVBlank();
 			}
 
 			while(argarray.size() !=0 ) {
-				free(argarray.at(0));
+				free(argarray[0]);
 				argarray.erase(argarray.begin());
 			}
 

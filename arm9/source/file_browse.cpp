@@ -38,24 +38,16 @@
 #include "driveMenu.h"
 #include "driveOperations.h"
 #include "dumpOperations.h"
+#include "font.h"
 #include "hexEditor.h"
 #include "ndsInfo.h"
 #include "nitrofs.h"
 #include "inifile.h"
 #include "nds_loader_arm9.h"
 
-#define SCREEN_COLS 22
-#define ENTRIES_PER_SCREEN 23
 #define ENTRIES_START_ROW 1
 #define OPTIONS_ENTRIES_START_ROW 2
 #define ENTRY_PAGE_LENGTH 10
-extern PrintConsole topConsole, bottomConsole;
-
-extern void printBorderTop(void);
-extern void printBorderBottom(void);
-extern void clearBorderTop(void);
-extern void clearBorderBottom(void);
-extern void reinitConsoles(void);
 
 static char path[PATH_MAX];
 
@@ -84,7 +76,7 @@ bool dirEntryPredicate (const DirEntry& lhs, const DirEntry& rhs) {
 	return strcasecmp(lhs.name.c_str(), rhs.name.c_str()) < 0;
 }
 
-void getDirectoryContents (std::vector<DirEntry>& dirContents) {
+void getDirectoryContents(std::vector<DirEntry>& dirContents) {
 	struct stat st;
 
 	dirContents.clear();
@@ -92,7 +84,8 @@ void getDirectoryContents (std::vector<DirEntry>& dirContents) {
 	DIR *pdir = opendir (".");
 
 	if (pdir == NULL) {
-		iprintf ("Unable to open the directory.\n");
+		font->print(0, 0, true, "Unable to open the directory.");
+		font->update(true);
 	} else {
 
 		while(true) {
@@ -138,145 +131,150 @@ void getDirectoryContents (std::vector<DirEntry>& dirContents) {
 void showDirectoryContents (const std::vector<DirEntry>& dirContents, int fileOffset, int startRow) {
 	getcwd(path, PATH_MAX);
 
-	consoleClear();
+	font->clear(true);
+
+	// Top bar
+	font->printf(0, 0, true, Alignment::left, Palette::blackGreen, "%*c", 256 / font->width(), ' ');
+
+	// Print time
+	font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
 
 	// Print the path
-	printf ("\x1B[30m");		// Print black color
-	// Print time
-	printf ("\x1b[0;27H");
-	printf (RetTime().c_str());
-
-	printf ("\x1b[0;0H");
-	if (strlen(path) < SCREEN_COLS) {
-		iprintf ("%s", path);
-	} else {
-		iprintf ("%s", path + strlen(path) - SCREEN_COLS);
-	}
-
-	// Move to 2nd row
-	iprintf ("\x1b[1;0H");
+	if(font->calcWidth(path) > SCREEN_COLS - 6)
+		font->print(-6 - 1, 0, true, path, Alignment::right, Palette::blackGreen);
+	else
+		font->print(0, 0, true, path, Alignment::left, Palette::blackGreen);
 
 	// Print directory listing
 	for (int i = 0; i < ((int)dirContents.size() - startRow) && i < ENTRIES_PER_SCREEN; i++) {
-		const DirEntry* entry = &dirContents.at(i + startRow);
+		const DirEntry *entry = &dirContents[i + startRow];
 
-		// Set row
-		iprintf ("\x1b[%d;0H", i + ENTRIES_START_ROW);
+		Palette pal;
 		if ((fileOffset - startRow) == i) {
-			printf ("\x1B[47m");		// Print foreground white color
+			pal = Palette::white;
 		} else if (entry->selected) {
-			printf ("\x1B[33m");		// Print custom yellow color
+			pal = Palette::yellow;
 		} else if (entry->isDirectory) {
-			printf ("\x1B[37m");		// Print custom blue color
+			pal = Palette::blue;
 		} else {
-			printf ("\x1B[40m");		// Print foreground black color
+			pal = Palette::gray;
 		}
 
-		printf ("%.*s", SCREEN_COLS, entry->name.c_str());
+		font->print(0, i + 1, true, entry->name, Alignment::left, pal);
 		if (entry->name == "..") {
-			printf ("\x1b[%d;28H", i + ENTRIES_START_ROW);
-			printf ("(..)");
+			font->print(-1, i + 1, true, "(..)", Alignment::right, pal);
 		} else if (entry->isDirectory) {
-			printf ("\x1b[%d;27H", i + ENTRIES_START_ROW);
-			printf ("(dir)");
+			font->print(-1, i + 1, true, "(dir)", Alignment::right, pal);
 		} else {
-			printf ("\x1b[%d;23H", i + ENTRIES_START_ROW);
-			printBytesAlign((int)entry->size);
+			font->printf(-1, i + 1, true, Alignment::right, pal, "(%s)", getBytes(entry->size).c_str());
 		}
 	}
 
-	printf ("\x1B[47m");		// Print foreground white color
+	font->update(true);
 }
 
 FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 	int pressed = 0;
-	FileOperation assignedOp[4] = {FileOperation::none};
+	std::vector<FileOperation> operations;
 	int optionOffset = 0;
-	int cursorScreenPos = 0;
-	int maxCursors = -1;
+	std::string fullPath = path + entry->name;
+	int y = font->calcHeight(fullPath) + 1;
 
-	consoleSelect(&bottomConsole);
-	consoleClear();
-	printf ("\x1B[47m");		// Print foreground white color
-	char fullPath[256];
-	snprintf(fullPath, sizeof(fullPath), "%s%s", path, entry->name.c_str());
-	printf(fullPath);
-	// Position cursor, depending on how long the full file path is
-	for (int i = 0; i < 256; i++) {
-		if (i == 33 || i == 65 || i == 97 || i == 129 || i == 161 || i == 193 || i == 225) {
-			cursorScreenPos++;
-		}
-		if (fullPath[i] == '\0') {
-			break;
-		}
-	}
-	iprintf ("\x1b[%d;0H", cursorScreenPos + OPTIONS_ENTRIES_START_ROW);
 	if (!entry->isDirectory) {
 		if (entry->isApp) {
-			assignedOp[++maxCursors] = FileOperation::bootFile;
-			if (extension(entry->name, {"firm"})) {
-				printf("   Boot file\n");
-			} else {
-				printf("   Boot file (Direct)\n");
-				assignedOp[++maxCursors] = FileOperation::bootstrapFile;
-				printf("   Bootstrap file\n");
+			operations.push_back(FileOperation::bootFile);
+			if (!extension(entry->name, {"firm"})) {
+				operations.push_back(FileOperation::bootstrapFile);
 			}
 		}
-		if(extension(entry->name, {"nds", "dsi", "ids", "app"}))
-		{
-			assignedOp[++maxCursors] = FileOperation::mountNitroFS;
-			printf("   Mount NitroFS\n");
-			assignedOp[++maxCursors] = FileOperation::ndsInfo;
-			printf("   Show NDS file info\n");
-		}
-		else if(extension(entry->name, {"sav", "sav1", "sav2", "sav3", "sav4", "sav5", "sav6", "sav7", "sav8", "sav9"}))
-		{
-			assignedOp[++maxCursors] = FileOperation::restoreSave;
-			printf("   Restore save\n");
-		}
-		else if(extension(entry->name, {"img", "sd"}))
-		{
-			assignedOp[++maxCursors] = FileOperation::mountImg;
-			printf("   Mount as FAT image\n");
-		}
-		assignedOp[++maxCursors] = FileOperation::hexEdit;
-		printf("   Open in hex editor\n");
-	}
-	assignedOp[++maxCursors] = FileOperation::showInfo;
-	printf(entry->isDirectory ? "	Show directory info\n" : "	Show file info\n");
-	if (sdMounted && (strcmp(path, "sd:/gm9i/out/") != 0)) {
-		assignedOp[++maxCursors] = FileOperation::copySdOut;
-		printf("   Copy to sd:/gm9i/out\n");
-	}
-	if (flashcardMounted && (strcmp(path, "fat:/gm9i/out/") != 0)) {
-		assignedOp[++maxCursors] = FileOperation::copyFatOut;
-		printf("   Copy to fat:/gm9i/out\n");
-	}
-	// The bios SHA1 functions are only available on the DSi
-	// https://problemkaputt.de/gbatek.htm#biossha1functionsdsionly
-	if (isDSiMode()) {
-		assignedOp[++maxCursors] = FileOperation::calculateSHA1;
-		printf("   Calculate SHA1 hash\n");
-	}
-	printf("\n(<A> select, <B> cancel)");
-	consoleSelect(&bottomConsole);
-	printf ("\x1B[47m");		// Print foreground white color
-	while (true) {
-		// Clear old cursors
-		for (int i = OPTIONS_ENTRIES_START_ROW+cursorScreenPos; i < (maxCursors+1) + OPTIONS_ENTRIES_START_ROW+cursorScreenPos; i++) {
-			iprintf ("\x1b[%d;0H  ", i);
-		}
-		// Show cursor
-		iprintf ("\x1b[%d;0H->", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
 
-		consoleSelect(&topConsole);
-		printf ("\x1B[30m");		// Print black color for time text
+		if(extension(entry->name, {"nds", "dsi", "ids", "app"})) {
+			operations.push_back(FileOperation::mountNitroFS);
+			operations.push_back(FileOperation::ndsInfo);
+		} else if(extension(entry->name, {"sav", "sav1", "sav2", "sav3", "sav4", "sav5", "sav6", "sav7", "sav8", "sav9"})) {
+			operations.push_back(FileOperation::restoreSave);
+		} else if(extension(entry->name, {"img", "sd"})) {
+			operations.push_back(FileOperation::mountImg);
+		}
+
+		operations.push_back(FileOperation::hexEdit);
+
+		// The bios SHA1 functions are only available on the DSi
+		// https://problemkaputt.de/gbatek.htm#biossha1functionsdsionly
+		if (isDSiMode()) {
+			operations.push_back(FileOperation::calculateSHA1);
+		}
+	}
+
+	operations.push_back(FileOperation::showInfo);
+
+	if (sdMounted && (strcmp(path, "sd:/gm9i/out/") != 0)) {
+		operations.push_back(FileOperation::copySdOut);
+	}
+
+	if (flashcardMounted && (strcmp(path, "fat:/gm9i/out/") != 0)) {
+		operations.push_back(FileOperation::copyFatOut);
+	}
+
+	while (true) {
+		font->clear(false);
+
+		font->print(0, 0, false, fullPath);
+
+		int row = y;
+		for(FileOperation operation : operations) {
+			switch(operation) {
+				case FileOperation::bootFile:
+					font->print(3, row++, false, extension(entry->name, {"firm"}) ? "Boot file" : "Boot file (Direct)");
+					break;
+				case FileOperation::bootstrapFile:
+					font->print(3, row++, false, "Bootstrap file");
+					break;
+				case FileOperation::mountNitroFS:
+					font->print(3, row++, false, "Mount NitroFS");
+					break;
+				case FileOperation::ndsInfo:
+					font->print(3, row++, false, "Show NDS file info");
+					break;
+				case FileOperation::restoreSave:
+					font->print(3, row++, false, "Restore save");
+					break;
+				case FileOperation::mountImg:
+					font->print(3, row++, false, "Mount as FAT image");
+					break;
+				case FileOperation::hexEdit:
+					font->print(3, row++, false, "Open in hex editor");
+					break;
+				case FileOperation::showInfo:
+					font->print(3, row++, false, entry->isDirectory ? "Show directory info" : "Show file info");
+					break;
+				case FileOperation::copySdOut:
+					font->print(3, row++, false, "Copy to sd:/gm9i/out");
+					break;
+				case FileOperation::copyFatOut:
+					font->print(3, row++, false, "Copy to fat:/gm9i/out");
+					break;
+				case FileOperation::calculateSHA1:
+					font->print(3, row++, false, "Calculate SHA1 hash");
+					break;
+				case FileOperation::none:
+					row++;
+					break;
+			}
+		}
+
+		font->print(3, ++row, false, "(<A> select, <B> cancel)");
+
+		// Show cursor
+		font->print(0, y + optionOffset, false, "->");
+
+		font->update(false);
+
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
-			// Move to right side of screen
-			printf ("\x1b[0;26H");
 			// Print time
-			printf (" %s" ,RetTime().c_str());
+			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
+			font->update(true);
 
 			scanKeys();
 			pressed = keysDownRepeat();
@@ -288,26 +286,26 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 #endif
 				);
 
-		consoleSelect(&bottomConsole);
-		printf ("\x1B[47m");		// Print foreground white color
-
 		if (pressed & KEY_UP)		optionOffset -= 1;
 		if (pressed & KEY_DOWN)		optionOffset += 1;
 
-		if (optionOffset < 0)				optionOffset = maxCursors;		// Wrap around to bottom of list
-		if (optionOffset > maxCursors)		optionOffset = 0;		// Wrap around to top of list
+		if (optionOffset < 0) // Wrap around to bottom of list
+			optionOffset = operations.size() - 1;
+
+		if (optionOffset >= (int)operations.size()) // Wrap around to top of list
+			optionOffset = 0;
 
 		if (pressed & KEY_A) {
-			switch(assignedOp[optionOffset]) {
+			switch(operations[optionOffset]) {
 				case FileOperation::bootFile: {
 					applaunch = true;
-					iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
-					printf("Now loading...");
+					font->print(3, optionOffset + y, false, "Now loading...");
+					font->update(false);
 					break;
 				} case FileOperation::bootstrapFile: {
 					char baseFile[256], savePath[PATH_MAX]; //, bootstrapConfigPath[32];
 					//snprintf(bootstrapConfigPath, 32, "%s:/_nds/nds-bootstrap.ini", isDSiMode() ? "sd" : "fat");
-					strncpy(baseFile, entry->name.c_str(), 256);
+					strncpy(baseFile, entry->name.c_str(), 255);
 					*strrchr(baseFile, '.') = 0;
 					snprintf(savePath, PATH_MAX, "%s%s%s.sav", path, !access("saves", F_OK) ? "saves/" : "", baseFile);
 					CIniFile bootstrapConfig("/_nds/nds-bootstrap.ini");
@@ -327,19 +325,19 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					break;
 				} case FileOperation::copySdOut: {
 					if (access("sd:/gm9i", F_OK) != 0) {
-						iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
-						printf("Creating directory...");
+						font->print(3, optionOffset + y, false, "Creating directory...");
+						font->update(false);
 						mkdir("sd:/gm9i", 0777);
 					}
 					if (access("sd:/gm9i/out", F_OK) != 0) {
-						iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
-						printf("Creating directory...");
+						font->print(3, optionOffset + y, false, "Creating directory...");
+						font->update(false);
 						mkdir("sd:/gm9i/out", 0777);
 					}
 					char destPath[256];
 					snprintf(destPath, sizeof(destPath), "sd:/gm9i/out/%s", entry->name.c_str());
-					iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
-					printf("Copying...        	 ");
+					font->print(3, optionOffset + y, false, "Copying...");
+					font->update(false);
 					remove(destPath);
 					char sourceFolder[PATH_MAX];
 					getcwd(sourceFolder, PATH_MAX);
@@ -350,19 +348,19 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					break;
 				} case FileOperation::copyFatOut: {
 					if (access("fat:/gm9i", F_OK) != 0) {
-						iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
-						printf("Creating directory...");
+						font->print(3, optionOffset + y, false, "Creating directory...");
+						font->update(false);
 						mkdir("fat:/gm9i", 0777);
 					}
 					if (access("fat:/gm9i/out", F_OK) != 0) {
-						iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
-						printf("Creating directory...");
+						font->print(3, optionOffset + y, false, "Creating directory...");
+						font->update(false);
 						mkdir("fat:/gm9i/out", 0777);
 					}
 					char destPath[256];
 					snprintf(destPath, sizeof(destPath), "fat:/gm9i/out/%s", entry->name.c_str());
-					iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW+cursorScreenPos);
-					printf("Copying...        	 ");
+					font->print(3, (optionOffset + y), false, "Copying...");
+					font->update(false);
 					remove(destPath);
 					char sourceFolder[PATH_MAX];
 					getcwd(sourceFolder, PATH_MAX);
@@ -397,23 +395,27 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					hexEditor(entry->name.c_str(), currentDrive);
 					break;
 				} case FileOperation::calculateSHA1: {
-					iprintf("\x1b[2J");
-					iprintf("Calculating SHA1 hash of:\n%s\n", entry->name.c_str());
-					iprintf("Press <START> to cancel\n\n");
 					u8 sha1[20] = {0};
 					bool ret = calculateSHA1(strcat(getcwd(path, PATH_MAX), entry->name.c_str()), sha1);
-					if (!ret) break;
-					iprintf("SHA1 hash is: \n");
-					for (int i = 0; i < 20; ++i) iprintf("%02X", sha1[i]);
-					consoleSelect(&topConsole);
-					iprintf ("\x1B[30m");           // Print black color
+					if (!ret)
+						break;
+
+					font->clear(false);
+					font->print(0, 0, false, "SHA1 hash is:");
+					char sha1Str[41];
+					for (int i = 0; i < 20; ++i)
+						sniprintf(sha1Str + i * 2, 3, "%02X", sha1[i]);
+					font->print(0, 1, false, sha1Str);
+					font->print(0, font->calcHeight(sha1Str) + 2, false, "(<A> to continue)");
+					font->update(false);
+
 					// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 					int pressed;
 					do {
-						// Move to right side of screen
-						iprintf ("\x1b[0;26H");
 						// Print time
-						iprintf (" %s" ,RetTime().c_str());
+						font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
+						font->update(true);
+
 						scanKeys();
 						pressed = keysDownRepeat();
 						swiWaitForVBlank();
@@ -423,7 +425,7 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					break;
 				}
 			}
-			return assignedOp[optionOffset];
+			return operations[optionOffset];
 		}
 		if (pressed & KEY_B) {
 			return FileOperation::none;
@@ -441,43 +443,33 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 bool fileBrowse_paste(char dest[256]) {
 	int pressed = 0;
 	int optionOffset = 0;
-	int maxCursors = -1;
 
-	consoleSelect(&bottomConsole);
-	consoleClear();
-	printf ("\x1B[47m");		// Print foreground white color
-	printf("Paste clipboard here?");
-	printf("\n\n");
-	iprintf ("\x1b[%d;0H", OPTIONS_ENTRIES_START_ROW);
-	maxCursors++;
-	printf("   Copy files\n");
-	for (auto &file : clipboard) {
-		if (file.nitro)
-			continue;
-		maxCursors++;
-		printf("   Move files\n");
-		break;
-	}
-	printf("\n");
-	printf("(<A> select, <B> cancel)");
-	consoleSelect(&bottomConsole);
-	printf ("\x1B[47m");		// Print foreground white color
 	while (true) {
-		// Clear old cursors
-		for (int i = OPTIONS_ENTRIES_START_ROW; i < (maxCursors+1) + OPTIONS_ENTRIES_START_ROW; i++) {
-			iprintf ("\x1b[%d;0H  ", i);
-		}
-		// Show cursor
-		iprintf ("\x1b[%d;0H->", optionOffset + OPTIONS_ENTRIES_START_ROW);
+		font->clear(false);
 
-		consoleSelect(&topConsole);
-		printf ("\x1B[30m");		// Print black color for time text
+		font->print(0, 0, false, "Paste clipboard here?");
+
+		int row = OPTIONS_ENTRIES_START_ROW, maxCursors = 0;
+		font->print(3, row++, false, "Copy files");
+		for (auto &file : clipboard) {
+			if (file.nitro)
+				continue;
+			maxCursors++;
+			font->print(3, row++, false, "Move files");
+			break;
+		}
+		font->print(3, ++row, false, "(<A> select, <B> cancel)");
+
+		// Show cursor
+		font->print(0, optionOffset + OPTIONS_ENTRIES_START_ROW, false, "->");
+
+		font->update(false);
+
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
-			// Move to right side of screen
-			printf ("\x1b[0;26H");
 			// Print time
-			printf (" %s" ,RetTime().c_str());
+			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
+			font->update(true);
 
 			scanKeys();
 			pressed = keysDownRepeat();
@@ -489,10 +481,6 @@ bool fileBrowse_paste(char dest[256]) {
 #endif
 				);
 
-
-		consoleSelect(&bottomConsole);
-		printf ("\x1B[47m");		// Print foreground white color
-
 		if (pressed & KEY_UP)		optionOffset -= 1;
 		if (pressed & KEY_DOWN)		optionOffset += 1;
 
@@ -500,8 +488,7 @@ bool fileBrowse_paste(char dest[256]) {
 		if (optionOffset > maxCursors)		optionOffset = 0;		// Wrap around to top of list
 
 		if (pressed & KEY_A) {
-			iprintf ("\x1b[%d;3H", optionOffset + OPTIONS_ENTRIES_START_ROW);
-			printf(optionOffset ? "Moving... " : "Copying...");
+			font->print(3, optionOffset + OPTIONS_ENTRIES_START_ROW, false, optionOffset ? "Moving... " : "Copying...");
 			for (auto &file : clipboard) {
 				std::string destPath = dest + file.name;
 				if (file.path == destPath)
@@ -537,14 +524,14 @@ bool fileBrowse_paste(char dest[256]) {
 }
 
 void recRemove(const char *path, std::vector<DirEntry> dirContents) {
-	DirEntry *entry = NULL;
 	chdir (path);
 	getDirectoryContents(dirContents);
 	for (int i = 1; i < ((int)dirContents.size()); i++) {
-		entry = &dirContents.at(i);
-		if (entry->isDirectory)	recRemove(entry->name.c_str(), dirContents);
-		if (!(FAT_getAttr(entry->name.c_str()) & ATTR_READONLY)) {
-			remove(entry->name.c_str());
+		DirEntry &entry = dirContents[i];
+		if (entry.isDirectory)
+			recRemove(entry.name.c_str(), dirContents);
+		if (!(FAT_getAttr(entry.name.c_str()) & ATTR_READONLY)) {
+			remove(entry.name.c_str());
 		}
 	}
 	chdir ("..");
@@ -552,51 +539,52 @@ void recRemove(const char *path, std::vector<DirEntry> dirContents) {
 }
 
 void fileBrowse_drawBottomScreen(DirEntry* entry) {
-	consoleClear();
-	printf ("\x1B[47m");		// Print foreground white color
-	printf ("\x1b[22;0H");
-	printf ("%s\n", titleName);
-	printf ("X - DELETE/[+R] RENAME file\n");
-	printf ("L - %s files (with \x18\x19\x1A\x1B)\n", entry->selected ? "DESELECT" : "SELECT");
-	printf ("Y - %s file/[+R] CREATE entry%s", clipboardOn ? "PASTE" : "COPY", clipboardOn ? "" : "\n");
-	printf ("R+A - Directory options\n");
-	if (sdMounted || flashcardMounted) {
-		printf ("%s\n", SCREENSHOTTEXT);
-	}
-	printf ("%s\n", clipboardOn ? "SELECT - Clear Clipboard" : "SELECT - Restore Clipboard");
+	font->clear(false);
+
+	int row = -1;
+
 	if (!isDSiMode() && isRegularDS) {
-		printf (POWERTEXT_DS);
+		font->print(0, row--, false, POWERTEXT_DS);
 	} else if (is3DS) {
-		printf ("%s\n%s", POWERTEXT_3DS, HOMETEXT);
+		font->print(0, row--, false, HOMETEXT);
+		font->print(0, row--, false, POWERTEXT_3DS);
 	} else {
-		printf (POWERTEXT);
+		font->print(0, row--, false, POWERTEXT);
 	}
-	printf (entry->selected ? "\x1B[33m" : (entry->isDirectory ? "\x1B[37m" : "\x1B[40m"));		// Print custom blue color or foreground black color
-	printf ("\x1b[0;0H");
-	printf ("%s\n", entry->name.c_str());
+	font->print(0, row--, false, clipboardOn ? "SELECT - Clear Clipboard" : "SELECT - Restore Clipboard");
+	if (sdMounted || flashcardMounted) {
+		font->print(0, row--, false, SCREENSHOTTEXT);
+	}
+	font->print(0, row--, false, "R+A - Directory options\n");
+	font->printf(0, row--, false, Alignment::left, Palette::white, "Y - %s file/[+R] CREATE entry", clipboardOn ? "PASTE" : "COPY");
+	font->printf(0, row--, false, Alignment::left, Palette::white, "L - %s files (with ↑↓→←)\n", entry->selected ? "DESELECT" : "SELECT");
+	font->print(0, row--, false, "X - DELETE/[+R] RENAME file\n");
+	font->print(0, row--, false, titleName);
+
+	Palette pal = entry->selected ? Palette::yellow : (entry->isDirectory ? Palette::blue : Palette::gray);
+	font->print(0, 0, false, entry->name, Alignment::left, pal);
 	if (entry->name != "..") {
 		if (entry->isDirectory) {
-			printf ("(dir)");
+			font->print(0, font->calcHeight(entry->name), false, "(dir)", Alignment::left, pal);
 		} else if (entry->size == 1) {
-			printf ("%i Byte", (int)entry->size);
+			font->printf(0, font->calcHeight(entry->name), false, Alignment::left, pal, "%i Byte", entry->size);
 		} else {
-			printf ("%i Bytes", (int)entry->size);
+			font->printf(0, font->calcHeight(entry->name), false, Alignment::left, pal, "%i Bytes", entry->size);
 		}
 	}
 	if (clipboardOn) {
-		printf ("\x1b[9;0H");
-		printf ("\x1B[47m");		// Print foreground white color
-		printf ("[CLIPBOARD]\n");
+		font->print(0, 6, false, "[CLIPBOARD]");
 		for (size_t i = 0; i < clipboard.size(); ++i) {
-			printf (clipboard[i].folder ? "\x1B[37m" : "\x1B[40m");		// Print custom blue color or foreground black color
 			if (i < 4) {
-				printf ("%s\n", clipboard[i].name.c_str());
+				font->print(0, 7 + i, false, clipboard[i].name, Alignment::left, clipboard[i].folder ? Palette::blue : Palette::gray);
 			} else {
-				printf ("%d more files...\n", clipboard.size() - 4);
+				font->printf(0, 7 + i, false, Alignment::left, Palette::gray, "%d more files...", clipboard.size() - 4);
 				break;
 			}
 		}
 	}
+
+	font->update(false);
 }
 
 std::string browseForFile (void) {
@@ -609,23 +597,18 @@ std::string browseForFile (void) {
 	getDirectoryContents (dirContents);
 
 	while (true) {
-		DirEntry* entry = &dirContents.at(fileOffset);
+		DirEntry* entry = &dirContents[fileOffset];
 
-		consoleSelect(&bottomConsole);
 		fileBrowse_drawBottomScreen(entry);
-		consoleSelect(&topConsole);
-		showDirectoryContents (dirContents, fileOffset, screenOffset);
+		showDirectoryContents(dirContents, fileOffset, screenOffset);
 
 		stored_SCFG_MC = REG_SCFG_MC;
 
-		printf ("\x1B[30m");		// Print black color for time text
-
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
-			// Move to right side of screen
-			printf ("\x1b[0;26H");
 			// Print time
-			printf (" %s" ,RetTime().c_str());
+			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
+			font->update(true);
 
 			scanKeys();
 			pressed = keysDownRepeat();
@@ -639,16 +622,7 @@ std::string browseForFile (void) {
 			if ((held & KEY_R) && (pressed & KEY_L)) {
 				break;
 			}
-		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN) && !(pressed & KEY_LEFT) && !(pressed & KEY_RIGHT)
-				&& !(pressed & KEY_A) && !(pressed & KEY_B) && !(pressed & KEY_X) && !(pressed & KEY_Y)
-				&& !(pressed & KEY_L) && !(pressed & KEY_SELECT)
-#ifdef SCREENSWAP
-				&& !(pressed & KEY_TOUCH)
-#endif
-				);
-
-		printf ("\x1B[47m");		// Print foreground white color
-		iprintf ("\x1b[%d;0H", fileOffset - screenOffset + ENTRIES_START_ROW);
+		} while (!pressed);
 
 		if (isDSiMode() && !pressed && currentDrive == 1 && REG_SCFG_MC == 0x11 && flashcardMounted) {
 			flashcardUnmount();
@@ -692,10 +666,11 @@ std::string browseForFile (void) {
 				screenMode = 0;
 				return "null";
 			} else if (entry->isDirectory) {
-				iprintf("Entering directory ");
+				font->printf(0, fileOffset - screenOffset + ENTRIES_START_ROW, true, Alignment::left, Palette::white, "%-*s", SCREEN_COLS - 5, "Entering directory");
+				font->update(true);
 				// Enter selected directory
 				chdir (entry->name.c_str());
-				getDirectoryContents (dirContents);
+				getDirectoryContents(dirContents);
 				screenOffset = 0;
 				fileOffset = 0;
 			} else {
@@ -748,8 +723,10 @@ std::string browseForFile (void) {
 
 		// Rename file/folder
 		if ((held & KEY_R) && (pressed & KEY_X) && (entry->name != ".." && strncmp(path, "nitro:/", 7) != 0)) {
-			printf ("\x1b[0;27H");
-			printf ("     ");	// Clear time
+			// Clear time
+			font->print(-1, 0, true, "     ", Alignment::right, Palette::blackGreen);
+			font->update(true);
+
 			pressed = 0;
 			consoleDemoInit();
 			Keyboard *kbd = keyboardDemoInit();
@@ -757,13 +734,13 @@ std::string browseForFile (void) {
 			kbd->OnKeyPressed = OnKeyPressed;
 
 			keyboardShow();
-			printf("Rename to: \n");
+			iprintf("Rename to:\n");
 			fgets(newName, 256, stdin);
 			newName[strlen(newName)-1] = 0;
 			keyboardHide();
-			consoleClear();
 
-			reinitConsoles();
+			videoSetModeSub(MODE_5_2D);
+			bgShow(bgInitSub(2, BgType_Bmp8, BgSize_B8_256x256, 3, 0));
 
 			if (newName[0] != '\0') {
 				// Check for unsupported characters
@@ -782,49 +759,44 @@ std::string browseForFile (void) {
 					}
 				}
 				if (rename(entry->name.c_str(), newName) == 0) {
-					getDirectoryContents (dirContents);
+					getDirectoryContents(dirContents);
 				}
 			}
 		}
 
 		// Delete action
 		if ((pressed & KEY_X) && (entry->name != ".." && strncmp(path, "nitro:/", 7) != 0)) {
-			consoleSelect(&bottomConsole);
-			consoleClear();
-			printf ("\x1B[47m");		// Print foreground white color
+			font->clear(false);
 			int selections = std::count_if(dirContents.begin(), dirContents.end(), [](const DirEntry &x){ return x.selected; });
 			if (entry->selected && selections > 1) {
-				iprintf("Delete %d paths?\n", selections);
+				font->printf(0, 0, false, Alignment::left, Palette::white, "Delete %d paths?", selections);
 				for (uint i = 0, printed = 0; i < dirContents.size() && printed < 5; i++) {
 					if (dirContents[i].selected) {
-						iprintf("\x1B[41m- %s\n", dirContents[i].name.c_str());
+						font->printf(0, printed + 2, false, Alignment::left, Palette::red, "- %s", dirContents[i].name.c_str());
 						printed++;
 					}
 				}
 				if(selections > 5)
-					iprintf("\x1B[41m- and %d more...\n", selections - 5);
-				iprintf("\x1B[47m");
+					font->printf(0, 7, false, Alignment::left, Palette::red, "- and %d more...", selections - 5);
 			} else {
-				iprintf("Delete \"%s\"?\n", entry->name.c_str());
+				font->printf(0, 0, false, Alignment::left, Palette::white, "Delete \"%s\"?", entry->name.c_str());
 			}
-			printf ("(<A> yes, <B> no)");
-			consoleSelect(&topConsole);
-			printf ("\x1B[30m");		// Print black color for time text
+			font->print(0, (!entry->selected || selections == 1) ? 2 : (selections > 5 ? 9 : selections + 3), false, "(<A> yes, <B> no)");
+			font->update(false);
+
 			while (true) {
-				// Move to right side of screen
-				printf ("\x1b[0;26H");
 				// Print time
-				printf (" %s" ,RetTime().c_str());
+				font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
+				font->update(true);
 
 				scanKeys();
 				pressed = keysDownRepeat();
 				swiWaitForVBlank();
 				if (pressed & KEY_A) {
-					consoleSelect(&bottomConsole);
-					consoleClear();
-					printf ("\x1B[47m");		// Print foreground white color
 					if (entry->selected) {
-						printf ("Deleting files, please wait...");
+						font->clear(false);
+						font->print(0, 0, false, "Deleting files, please wait...");
+						font->update(false);
 						struct stat st;
 						for (auto &item : dirContents) {
 							if(item.selected) {
@@ -839,19 +811,16 @@ std::string browseForFile (void) {
 						}
 						fileOffset = 0;
 					} else if (FAT_getAttr(entry->name.c_str()) & ATTR_READONLY) {
-						printf ("Failed deleting:\n");
-						printf (entry->name.c_str());
-						printf ("\n");
-						printf ("\n");
-						printf ("(<A> to continue)");
+						font->clear(false);
+						font->print(0, 0, false, "Failed deleting:");
+						font->print(0, 1, false, entry->name);
+						font->print(0, 3, false, "(<A> to continue)");
 						pressed = 0;
-						consoleSelect(&topConsole);
-						printf ("\x1B[30m");		// Print black color for time text
+
 						while (!(pressed & KEY_A)) {
-							// Move to right side of screen
-							printf ("\x1b[0;26H");
 							// Print time
-							printf (" %s" ,RetTime().c_str());
+							font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
+							font->update(true);
 
 							scanKeys();
 							pressed = keysDown();
@@ -860,10 +829,14 @@ std::string browseForFile (void) {
 						for (int i = 0; i < 15; i++) swiWaitForVBlank();
 					} else {
 						if (entry->isDirectory) {
-							printf ("Deleting folder, please wait...");
+							font->clear(false);
+							font->print(0, 0, false, "Deleting folder, please wait...");
+							font->update(false);
 							recRemove(entry->name.c_str(), dirContents);
 						} else {
-							printf ("Deleting file, please wait...");
+							font->clear(false);
+							font->print(0, 0, false, "Deleting folder, please wait...");
+							font->update(false);
 							remove(entry->name.c_str());
 						}
 						fileOffset--;
@@ -881,8 +854,10 @@ std::string browseForFile (void) {
 
 		// Create new folder
 		if ((held & KEY_R) && (pressed & KEY_Y) && (strncmp(path, "nitro:/", 7) != 0)) {
-			printf ("\x1b[0;27H");
-			printf ("     ");	// Clear time
+			// Clear time
+			font->print(-1, 0, true, "     ", Alignment::right, Palette::blackGreen);
+			font->update(true);
+
 			pressed = 0;
 			consoleDemoInit();
 			Keyboard *kbd = keyboardDemoInit();
@@ -890,13 +865,13 @@ std::string browseForFile (void) {
 			kbd->OnKeyPressed = OnKeyPressed;
 
 			keyboardShow();
-			printf("Name for new folder: \n");
+			iprintf("Name for new folder:\n");
 			fgets(newName, 256, stdin);
 			newName[strlen(newName)-1] = 0;
 			keyboardHide();
-			consoleClear();
 
-			reinitConsoles();
+			videoSetModeSub(MODE_5_2D);
+			bgShow(bgInitSub(2, BgType_Bmp8, BgSize_B8_256x256, 3, 0));
 
 			if (newName[0] != '\0') {
 				// Check for unsupported characters
@@ -921,17 +896,14 @@ std::string browseForFile (void) {
 		}
 
 		// Add to selection
-		if (pressed & KEY_L && entry->name != "..") {
+		if ((pressed & KEY_L && !(held & KEY_R)) && entry->name != "..") {
 			bool select = !entry->selected;
 			entry->selected = select;
 			while(held & KEY_L) {
 				do {
-					// Move to right side of screen
-					printf ("\x1b[0;26H");
-					// Print black color for time text
-					printf ("\x1B[30m");
 					// Print time
-					printf (" %s" ,RetTime().c_str());
+					font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
+					font->update(true);
 
 					scanKeys();
 					pressed = keysDownRepeat();
@@ -980,10 +952,8 @@ std::string browseForFile (void) {
 					}
 				}
 
-				consoleSelect(&bottomConsole);
 				fileBrowse_drawBottomScreen(entry);
-				consoleSelect(&topConsole);
-				showDirectoryContents (dirContents, fileOffset, screenOffset);
+				showDirectoryContents(dirContents, fileOffset, screenOffset);
 			}
 		}
 
@@ -1025,48 +995,8 @@ std::string browseForFile (void) {
 
 		// Make a screenshot
 		if ((held & KEY_R) && (pressed & KEY_L)) {
-		  if (sdMounted || flashcardMounted) {
-			if (access((sdMounted ? "sd:/gm9i" : "fat:/gm9i"), F_OK) != 0) {
-				mkdir((sdMounted ? "sd:/gm9i" : "fat:/gm9i"), 0777);
-				if (strcmp(path, (sdMounted ? "sd:/" : "fat:/")) == 0) {
-					getDirectoryContents (dirContents);
-				}
-			}
-			if (access((sdMounted ? "sd:/gm9i/out" : "fat:/gm9i/out"), F_OK) != 0) {
-				mkdir((sdMounted ? "sd:/gm9i/out" : "fat:/gm9i/out"), 0777);
-				if (strcmp(path, (sdMounted ? "sd:/gm9i/" : "fat:/gm9i/")) == 0) {
-					getDirectoryContents (dirContents);
-				}
-			}
-			char timeText[8];
-			snprintf(timeText, sizeof(timeText), "%s", RetTime().c_str());
-			char fileTimeText[8];
-			snprintf(fileTimeText, sizeof(fileTimeText), "%s", RetTimeForFilename().c_str());
-			char snapPath[40];
-			// Take top screenshot
-			snprintf(snapPath, sizeof(snapPath), "%s:/gm9i/out/snap_%s_top.bmp", (sdMounted ? "sd" : "fat"), fileTimeText);
-			screenshotbmp(snapPath);
-			// Seamlessly swap top and bottom screens
-			lcdMainOnBottom();
-			printBorderBottom();
-			consoleSelect(&bottomConsole);
-			showDirectoryContents (dirContents, fileOffset, screenOffset);
-			printf("\x1B[30m");		// Print black color for time text
-			printf ("\x1b[0;26H");
-			printf (" %s" ,timeText);
-			clearBorderTop();
-			consoleSelect(&topConsole);
-			fileBrowse_drawBottomScreen(entry);
-			// Take bottom screenshot
-			snprintf(snapPath, sizeof(snapPath), "%s:/gm9i/out/snap_%s_bot.bmp", (sdMounted ? "sd" : "fat"), fileTimeText);
-			screenshotbmp(snapPath);
-			if (strcmp(path, (sdMounted ? "sd:/gm9i/out/" : "fat:/gm9i/out/")) == 0) {
-				getDirectoryContents (dirContents);
-			}
-			lcdMainOnTop();
-			printBorderTop();
-			clearBorderBottom();
-		  }
+			if(screenshot())
+				getDirectoryContents(dirContents);
 		}
 	}
 }

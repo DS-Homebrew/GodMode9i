@@ -1,6 +1,8 @@
 #ifndef FLASHCARD_H
 #define FLASHCARD_H
 
+#include <string>
+
 extern u8 stored_SCFG_MC;
 
 extern bool nandMounted;
@@ -24,7 +26,7 @@ extern u32 nandSize;
 extern u64 sdSize;
 extern u64 fatSize;
 extern u64 imgSize;
-extern void printDriveBytes(u64 bytes);
+extern std::string getDriveBytes(u64 bytes);
 
 extern const char* getDrivePath(void);
 
