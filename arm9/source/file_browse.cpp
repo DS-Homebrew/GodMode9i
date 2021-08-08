@@ -164,9 +164,9 @@ void showDirectoryContents (const std::vector<DirEntry>& dirContents, int fileOf
 		if (entry->name == "..") {
 			font->print(-1, i + 1, true, "(..)", Alignment::right, pal);
 		} else if (entry->isDirectory) {
-			font->print(-1, i + 1, true, "(dir)", Alignment::right, pal);
+			font->print(-1, i + 1, true, " (dir)", Alignment::right, pal);
 		} else {
-			font->printf(-1, i + 1, true, Alignment::right, pal, "(%s)", getBytes(entry->size).c_str());
+			font->printf(-1, i + 1, true, Alignment::right, pal, " (%s)", getBytes(entry->size).c_str());
 		}
 	}
 
