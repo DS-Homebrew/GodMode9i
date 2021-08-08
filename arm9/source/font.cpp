@@ -185,9 +185,9 @@ void Font::printf(int xPos, int yPos, bool top, Alignment align, Palette palette
 ITCM_CODE void Font::print(int xPos, int yPos, bool top, std::u16string_view text, Alignment align, Palette palette, bool rtl) {
 	int x = xPos * tileWidth, y = yPos * tileHeight;
 	if(x < 0 && align != Alignment::center)
-		x += 255;
+		x += 256;
 	if(y < 0)
-		y += 191;
+		y += 192;
 
 	// If RTL isn't forced, check for RTL text
 	if(!rtl) {
