@@ -3,6 +3,7 @@
 #include "date.h"
 #include "file_browse.h"
 #include "font.h"
+#include "screenshot.h"
 #include "tonccpy.h"
 
 #include <algorithm>
@@ -234,23 +235,26 @@ void hexEditor(const char *path, int drive) {
 	u32 fileSize = ftell(file);
 	fseek(file, 0, SEEK_SET);
 
-	u8 maxLines = std::min((u32)ENTRIES_PER_SCREEN, fileSize / 8 + (fileSize % 8 != 0));
-	u32 maxSize = ((fileSize - 8 * maxLines) & ~7) + (fileSize & 7 ? 8 : 0);
+	u8 bytesPerLine = font->width() < 5 ? 16 : 8;
+
+	u8 maxLines = std::min((u32)ENTRIES_PER_SCREEN, fileSize / bytesPerLine + (fileSize % bytesPerLine != 0));
+	u32 maxSize = ((fileSize - bytesPerLine * maxLines) & ~(bytesPerLine - 1)) + (fileSize & (bytesPerLine - 1) ? bytesPerLine : 0);
 
 	u16 pressed = 0, held = 0;
 	u32 offset = 0, cursorPosition = 0, mode = 0;
 
-	char data[8 * maxLines];
+	char data[bytesPerLine * maxLines];
 	fseek(file, offset, SEEK_SET);
 	fread(data, 1, sizeof(data), file);
 
 	while(1) {
 		font->clear(false);
 
-		font->printf(4, 0, false, Alignment::left, Palette::blackGreen, "%*c", SCREEN_COLS - 4, ' ');
+		font->printf(0, 0, false, Alignment::left, Palette::blackGreen, "%*c", SCREEN_COLS, ' ');
 		font->print(0, 0, false, "Hex Editor", Alignment::center, Palette::blackGreen);
 
-		font->printf(0, 0, false, Alignment::left, Palette::blackBlue, "%04lX", offset >> 0x10);
+		if(bytesPerLine < 16)
+			font->printf(0, 0, false, Alignment::left, Palette::blackBlue, "%04lX", offset >> 0x10);
 
 		if(mode < 2) {
 			fseek(file, offset, SEEK_SET);
@@ -259,22 +263,26 @@ void hexEditor(const char *path, int drive) {
 		}
 
 		for(u32 i = 0; i < maxLines; i++) {
-			font->printf(0, i + 1, false, Alignment::left, Palette::blue, "%04lX", (offset + i * 8) & 0xFFFF);
-			for(int j = 0; j < 4; j++)
-				font->printf(5 + (j * 2), i + 1, false, Alignment::left, (mode > 0 && i * 8 + j == cursorPosition) ? (mode > 1 ? Palette::blackRed : Palette::red) : (offset + i * 8 + j >= fileSize ? Palette::gray : (j % 2 ? Palette::greenAlt : Palette::green)), "%02X", data[i * 8 + j]);
-			for(int j = 0; j < 4; j++)
-				font->printf(14 + (j * 2), i + 1, false, Alignment::left, (mode > 0 && i * 8 + 4 + j == cursorPosition) ? (mode > 1 ? Palette::blackRed : Palette::red) : (offset + i * 8 + 4 + j >= fileSize ? Palette::gray : (j % 2 ? Palette::greenAlt : Palette::green)), "%02X", data[i * 8 + 4 + j]);
-			char line[9] = {0};
-			for(int j = 0; j < 8; j++) {
-				char c = data[i * 8 + j];
+			if(bytesPerLine < 16)
+				font->printf(0, i + 1, false, Alignment::left, Palette::blue, "%04lX", (offset + i * bytesPerLine) & 0xFFFF);
+			else
+				font->printf(0, i + 1, false, Alignment::left, Palette::blue, "%08lX", offset + i * bytesPerLine);
+
+			for(int group = 0; group < bytesPerLine / 4; group++) {
+				for(int j = 0; j < 4; j++)
+					font->printf(4 * (bytesPerLine / 8) + 1 + (group * 9) + (j * 2), i + 1, false, Alignment::left, (mode > 0 && i * bytesPerLine + (group * 4) + j == cursorPosition) ? (mode > 1 ? Palette::blackRed : Palette::red) : (offset + i * bytesPerLine + (group * 4) + j >= fileSize ? Palette::gray : (j % 2 ? Palette::greenAlt : Palette::green)), "%02X", data[i * bytesPerLine + group * 4 + j]);
+			}
+			char line[bytesPerLine + 1] = {0};
+			for(int j = 0; j < bytesPerLine; j++) {
+				char c = data[i * bytesPerLine + j];
 				if(c < ' ' || c > 127)
 					line[j] = '.';
 				else
 					line[j] = c;
 			}
-			font->print(23, i + 1, false, line);
-			if(mode > 0 && cursorPosition / 8 == i) {
-				font->printf(23 + cursorPosition % 8, i + 1, false, Alignment::left, mode > 1 ? Palette::blackRed : Palette::red, "%c", line[cursorPosition % 8]);
+			font->print(4 * (bytesPerLine / 8) + 1 + bytesPerLine / 4 * 9, i + 1, false, line);
+			if(mode > 0 && cursorPosition / bytesPerLine == i) {
+				font->printf(4 * (bytesPerLine / 8) + 1 + bytesPerLine / 4 * 9 + cursorPosition % bytesPerLine, i + 1, false, Alignment::left, mode > 1 ? Palette::blackRed : Palette::red, "%c", line[cursorPosition % bytesPerLine]);
 			}
 		}
 
@@ -303,15 +311,15 @@ void hexEditor(const char *path, int drive) {
 					offset = std::min(offset + 0x10000, maxSize);
 				}
 			} else if(held & KEY_UP) {
-				if(offset >= 8)
-					offset -= 8;
+				if(offset >= bytesPerLine)
+					offset -= bytesPerLine;
 			} else if(held & KEY_DOWN) {
-				if(offset < fileSize - 8 * maxLines && fileSize > 8 * maxLines)
-					offset += 8;
+				if(offset < fileSize - bytesPerLine * maxLines && fileSize > bytesPerLine * maxLines)
+					offset += bytesPerLine;
 			} else if(held & KEY_LEFT) {
-				offset = std::max((s64)offset - 8 * maxLines, 0ll);
+				offset = std::max((s64)offset - bytesPerLine * maxLines, 0ll);
 			} else if(held & KEY_RIGHT) {
-				offset = std::min(offset + 8 * maxLines, maxSize);
+				offset = std::min(offset + bytesPerLine * maxLines, maxSize);
 			} else if(pressed & KEY_A) {
 				mode = 1;
 				cursorPosition = std::min(cursorPosition, fileSize - offset - 1);
@@ -324,21 +332,21 @@ void hexEditor(const char *path, int drive) {
 			}
 		} else if(mode == 1) {
 			if(held & KEY_UP) {
-				if(cursorPosition >= 8)
-					cursorPosition -= 8;
-				else if(offset >= 8)
-					offset -= 8;
+				if(cursorPosition >= bytesPerLine)
+					cursorPosition -= bytesPerLine;
+				else if(offset >= bytesPerLine)
+					offset -= bytesPerLine;
 			} else if(held & KEY_DOWN) {
-				if(cursorPosition < 8u * (maxLines - 1))
-					cursorPosition += 8;
-				else if(offset < fileSize - 8 * maxLines && fileSize > 8 * maxLines)
-					offset += 8;
+				if((int)cursorPosition < bytesPerLine * (maxLines - 1))
+					cursorPosition += bytesPerLine;
+				else if(offset < fileSize - bytesPerLine * maxLines && fileSize > bytesPerLine * maxLines)
+					offset += bytesPerLine;
 				cursorPosition = std::min(cursorPosition, fileSize - offset - 1);
 			} else if(held & KEY_LEFT) {
 				if(cursorPosition > 0)
 					cursorPosition--;
 			} else if(held & KEY_RIGHT) {
-				if(cursorPosition < 8u * maxLines - 1)
+				if((int)cursorPosition < bytesPerLine * maxLines - 1)
 					cursorPosition = std::min(cursorPosition + 1, fileSize - offset - 1);
 			} else if(pressed & KEY_A) {
 				if(drive < 4) {
@@ -365,6 +373,10 @@ void hexEditor(const char *path, int drive) {
 				fseek(file, offset + cursorPosition, SEEK_SET);
 				fwrite(data + cursorPosition, 1, 1, file);
 			}
+		}
+
+		if(keysHeld() & KEY_R && pressed & KEY_L) {
+			screenshot();
 		}
 	}
 
