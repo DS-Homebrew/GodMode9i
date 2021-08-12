@@ -60,6 +60,8 @@ class Font {
 	u8 *fontTiles = nullptr;
 	u16 *fontMap = nullptr;
 
+	bool load(const char *path);
+
 	u16 getCharIndex(char16_t c);
 public:
 	static std::u16string utf8to16(std::string_view text);

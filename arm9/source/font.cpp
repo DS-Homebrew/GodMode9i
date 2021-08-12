@@ -24,7 +24,7 @@ bool Font::isNumber(char16_t c) {
 	return c >= '0' && c <= '9';
 }
 
-Font::Font(const char *path) {
+bool Font::load(const char *path) {
 	FILE *file = fopen(path, "rb");
 	
 	const u8 *fileBuffer = font_default_frf;
@@ -35,7 +35,7 @@ Font::Font(const char *path) {
 		fileBuffer = new u8[size];
 		if(!fileBuffer) {
 			fclose(file);
-			return;
+			return false;
 		}
 
 		fseek(file, 0, SEEK_SET);
@@ -44,8 +44,12 @@ Font::Font(const char *path) {
 	const u8 *ptr = fileBuffer;
 
 	// Check header magic, then skip over
-	if(memcmp(ptr, "RIFF", 4) != 0)
-		goto cleanup;
+	if(memcmp(ptr, "RIFF", 4) != 0) {
+		if(fileBuffer != font_default_frf)
+			delete[] fileBuffer;
+
+		return false;
+	}
 
 	ptr += 8;
 
@@ -55,21 +59,32 @@ Font::Font(const char *path) {
 		tileHeight = ptr[9];
 		tonccpy(&tileCount, ptr + 10, sizeof(u16));
 
-		if(tileWidth > TILE_MAX_WIDTH || tileHeight > TILE_MAX_HEIGHT)
-			goto cleanup;
+		if(tileWidth > TILE_MAX_WIDTH || tileHeight > TILE_MAX_HEIGHT) {
+			if(fileBuffer != font_default_frf)
+				delete[] fileBuffer;
+
+			return false;
+		}
 
 		u32 section_size;
 		tonccpy(&section_size, ptr + 4, sizeof(u32));
 		ptr += 8 + section_size;
 	} else {
-		goto cleanup;
+		if(fileBuffer != font_default_frf)
+			delete[] fileBuffer;
+
+		return false;
 	}
 
 	// Character data
 	if(memcmp(ptr, "CDAT", 4) == 0) {
 		fontTiles = new u8[tileHeight * tileCount];
-		if(!fontTiles)
-			goto cleanup;
+		if(!fontTiles) {
+			if(fileBuffer != font_default_frf)
+				delete[] fileBuffer;
+
+			return false;
+		}
 
 		tonccpy(fontTiles, ptr + 8, tileHeight * tileCount);
 
@@ -77,14 +92,23 @@ Font::Font(const char *path) {
 		tonccpy(&section_size, ptr + 4, sizeof(u32));
 		ptr += 8 + section_size;
 	} else {
-		goto cleanup;
+		if(fileBuffer != font_default_frf)
+			delete[] fileBuffer;
+
+		return false;
 	}
 
 	// character map
 	if(memcmp(ptr, "CMAP", 4) == 0) {
 		fontMap = new u16[tileCount];
-		if(!fontMap)
-			goto cleanup;
+		if(!fontMap) {
+			if(fileBuffer != font_default_frf)
+				delete[] fileBuffer;
+
+			delete[] fontTiles;
+
+			return false;
+		}
 
 		tonccpy(fontMap, ptr + 8, sizeof(u16) * tileCount);
 
@@ -92,7 +116,12 @@ Font::Font(const char *path) {
 		tonccpy(&section_size, ptr + 4, sizeof(u32));
 		ptr += 8 + section_size;
 	} else {
-		goto cleanup;
+		if(fileBuffer != font_default_frf)
+			delete[] fileBuffer;
+
+		delete[] fontTiles;
+
+		return false;
 	}
 
 	questionMark = getCharIndex('?');
@@ -103,9 +132,16 @@ Font::Font(const char *path) {
 		tonccpy(BG_PALETTE_SUB + i * 0x10, palette[i], 4);
 	}
 
-cleanup:
 	if(fileBuffer != font_default_frf)
 		delete[] fileBuffer;
+
+	return true;
+}
+
+Font::Font(const char *path) {
+	if(!load(path)) {
+		load(nullptr);
+	}
 }
 
 Font::~Font(void) {

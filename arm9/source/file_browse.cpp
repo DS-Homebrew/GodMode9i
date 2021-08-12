@@ -196,6 +196,8 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 			operations.push_back(FileOperation::restoreSave);
 		} else if(extension(entry->name, {"img", "sd"})) {
 			operations.push_back(FileOperation::mountImg);
+		} else if(extension(entry->name, {"frf"})) {
+			operations.push_back(FileOperation::loadFont);
 		}
 
 		operations.push_back(FileOperation::hexEdit);
@@ -260,6 +262,9 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					break;
 				case FileOperation::calculateSHA1:
 					font->print(3, row++, false, "Calculate SHA1 hash");
+					break;
+				case FileOperation::loadFont:
+					font->print(3, row++, false, "Load font");
 					break;
 				case FileOperation::none:
 					row++;
@@ -400,6 +405,10 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					break;
 				} case FileOperation::hexEdit: {
 					hexEditor(entry->name.c_str(), currentDrive);
+					break;
+				} case FileOperation::loadFont: {
+					delete font;
+					font = new Font(entry->name.c_str());
 					break;
 				} case FileOperation::calculateSHA1: {
 					u8 sha1[20] = {0};

@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
 	vramSetBankI(VRAM_I_SUB_SPRITE);
 
 	// Init built-in font
-	font = new Font("/font.frf");
+	font = new Font(nullptr);
 
 	// Display GM9i logo
 	bg3 = bgInit(3, BgType_Bmp8, BgSize_B8_256x256, 0, 0);
@@ -176,21 +176,9 @@ int main(int argc, char **argv) {
 
 	bgHide(bg3);
 
-	// TODO: better
+	// Reinit font, try to load default from SD this time
 	delete font;
-	font = new Font("/font.frf");
-
-	// Overwrite background white color
-	BG_PALETTE[15+(7*16)] = 0x656A;
-	BG_PALETTE_SUB[15+(7*16)] = 0x656A;
-
-	// Custom yellow color
-	BG_PALETTE[15+(3*16)] = 0x3339;
-	BG_PALETTE_SUB[15+(3*16)] = 0x3339;
-
-	// Overwrite 2nd smiley face with filled tile
-	dmaFillWords(0xFFFFFFFF, (void*)0x6000040, 8*8);	// Top screen
-	dmaFillWords(0xFFFFFFFF, (void*)0x6200040, 8*8);	// Bottom screen
+	font = new Font(sdFound() ? "sd:/gm9i/font.frf" : "fat:/gm9i/font.frf");
 
 	keysSetRepeat(25,5);
 

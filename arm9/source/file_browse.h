@@ -47,6 +47,7 @@ enum class FileOperation {
 	copyFatOut,
 	calculateSHA1,
 	hexEdit,
+	loadFont,
 };
 
 bool extension(const std::string &filename, const std::vector<std::string> &extensions);
