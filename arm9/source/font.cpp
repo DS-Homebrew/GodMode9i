@@ -3,6 +3,7 @@
 #include "font_default_frf.h"
 #include "tonccpy.h"
 
+#include <algorithm>
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
@@ -196,11 +197,17 @@ std::u16string Font::utf8to16(std::string_view text) {
 
 int Font::calcHeight(std::u16string_view text, int xPos) {
 	int lines = 1, chars = xPos + 1;
-	for(char16_t c : text) {
-		if(c == '\n' || chars > 256 / tileWidth) {
-			nocashMessage(c == '\n' ? "line" : "cha");
+	for(auto it = text.begin(); it != text.end(); it++) {
+		if(*it == '\n' || (*it == ' ' && 256 / tileWidth - chars < 10 && text.end() - it > (256 / tileWidth - chars) && *std::find(it + 1, std::min(it + (256 / tileWidth - chars), text.end()), ' ') != ' ')) {
 			lines++;
 			chars = xPos + 1;
+		} else if(chars > 256 / tileWidth) {
+			lines++;
+			chars = xPos + 1;
+
+			// Skip to next char if a space
+			if(*it == ' ')
+				it++;
 		} else {
 			chars++;
 		}
@@ -347,10 +354,22 @@ ITCM_CODE void Font::print(int xPos, int yPos, bool top, std::u16string_view tex
 			rtl = false;
 		}
 
-		if(*it == '\n') {
+		// Line break on newline or last space within 10 chars of edge in left align
+		if(*it == '\n' || (*it == ' ' && align == Alignment::left && 256 - x < tileWidth * 10 && text.end() - it > (256 - x) / tileWidth && *std::find(it + 1, std::min(it + (256 - x) / tileWidth, text.end()), ' ') != ' ')) {
 			x = xStart;
 			y += tileHeight;
+
 			continue;
+		}
+
+		// Wrap at edge if left aligning
+		if(x + tileWidth > 256 && align == Alignment::left) {
+			x = xStart;
+			y += tileHeight;
+
+			// Skip to next char if a space
+			if(*it == ' ')
+				it++;
 		}
 
 		// Brackets are flipped in RTL
@@ -381,12 +400,6 @@ ITCM_CODE void Font::print(int xPos, int yPos, bool top, std::u16string_view tex
 			}
 		} else {
 			index = getCharIndex(*it);
-		}
-
-		// Wrap at right edge if not center aligning
-		if(x + tileWidth > 256 && align != Alignment::center) {
-			x = xStart;
-			y += tileHeight;
 		}
 
 		// Don't draw off screen chars
