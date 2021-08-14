@@ -2,6 +2,7 @@
 
 #include "date.h"
 #include "font.h"
+#include "screenshot.h"
 #include "tonccpy.h"
 
 #include <nds.h>
@@ -120,6 +121,8 @@ void ndsInfo(const char *path) {
 				lang++;
 		} else if(pressed & KEY_B) {
 			break;
+		} else if(keysHeld() & KEY_R && pressed & KEY_L) {
+			screenshot();
 		}
 	}
 

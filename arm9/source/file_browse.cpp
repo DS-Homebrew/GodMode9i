@@ -174,7 +174,7 @@ void showDirectoryContents (const std::vector<DirEntry>& dirContents, int fileOf
 }
 
 FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
-	int pressed = 0;
+	int pressed = 0, held = 0;
 	std::vector<FileOperation> operations;
 	int optionOffset = 0;
 	std::string fullPath = path + entry->name;
@@ -287,9 +287,9 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 
 			scanKeys();
 			pressed = keysDownRepeat();
+			held = keysHeld();
 			swiWaitForVBlank();
-		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN)
-				&& !(pressed & KEY_A) && !(pressed & KEY_B)
+		} while (!(pressed & (KEY_UP| KEY_DOWN | KEY_A | KEY_B | KEY_L))
 #ifdef SCREENSWAP
 				&& !(pressed & KEY_TOUCH)
 #endif
@@ -435,6 +435,10 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 						scanKeys();
 						pressed = keysDownRepeat();
 						swiWaitForVBlank();
+
+						if(keysHeld() & KEY_R && pressed & KEY_L) {
+							screenshot();
+						}
 					} while (!(pressed & (KEY_A | KEY_Y | KEY_B | KEY_X)));
 					break;
 				} case FileOperation::none: {
@@ -453,6 +457,11 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 			screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
 		}
 #endif
+
+		// Make a screenshot
+		if ((held & KEY_R) && (pressed & KEY_L)) {
+			screenshot();
+		}
 	}
 }
 

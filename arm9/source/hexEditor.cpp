@@ -46,6 +46,8 @@ u32 jumpToOffset(u32 offset) {
 				cursorPosition--;
 		} else if(pressed & (KEY_A | KEY_B)) {
 			return offset;
+		} else if(keysHeld() & KEY_R && pressed & KEY_L) {
+			screenshot();
 		}
 	}
 }
@@ -79,6 +81,8 @@ u32 search(u32 offset, FILE *file) {
 			break;
 		} else if(pressed & KEY_B) {
 			return offset;
+		} else if(keysHeld() & KEY_R && pressed & KEY_L) {
+			screenshot();
 		}
 	}
 
@@ -160,6 +164,8 @@ u32 search(u32 offset, FILE *file) {
 					if(cursorPosition > strLen * 2 - 1)
 						cursorPosition -= 2;
 				}
+			} else if(keysHeld() & KEY_R && pressed & KEY_L) {
+				screenshot();
 			}
 		}
 	}

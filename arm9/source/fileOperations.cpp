@@ -9,6 +9,7 @@
 #include "file_browse.h"
 #include "font.h"
 #include "ndsheaderbanner.h"
+#include "screenshot.h"
 
 #define copyBufSize 0x8000
 #define shaChunkSize 0x10000
@@ -218,7 +219,7 @@ int fcopy(const char *sourcePath, const char *destinationPath) {
 }
 
 void changeFileAttribs(const DirEntry *entry) {
-	int pressed = 0;
+	int pressed = 0, held = 0;
 	int cursorScreenPos = font->calcHeight(entry->name);
 	uint8_t currentAttribs = FAT_getAttr(entry->name.c_str());
 	uint8_t newAttribs = currentAttribs;
@@ -242,6 +243,7 @@ void changeFileAttribs(const DirEntry *entry) {
 			font->update(true);
 
 			scanKeys();
+			held = keysHeld();
 			pressed = keysDown();
 			swiWaitForVBlank();
 		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN) && !(pressed & KEY_RIGHT) && !(pressed & KEY_LEFT)
@@ -260,6 +262,8 @@ void changeFileAttribs(const DirEntry *entry) {
 			break;
 		} else if (pressed & (KEY_A | KEY_B)) {
 			break;
+		} else if (held & KEY_R && pressed & KEY_L) {
+			screenshot();
 		}
 	}
 }
