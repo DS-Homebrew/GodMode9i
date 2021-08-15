@@ -160,7 +160,7 @@ void showDirectoryContents (const std::vector<DirEntry>& dirContents, int fileOf
 			pal = Palette::gray;
 		}
 
-		font->print(0, i + 1, true, entry->name, Alignment::left, pal);
+		font->print(0, i + 1, true, entry->name.substr(0, SCREEN_COLS), Alignment::left, pal);
 		if (entry->name == "..") {
 			font->print(-1, i + 1, true, "(..)", Alignment::right, pal);
 		} else if (entry->isDirectory) {
