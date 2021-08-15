@@ -305,7 +305,7 @@ void ndsCardDump(void) {
 	//bool showGameCardMsgAgain = false;
 
 	font->clear(false);
-	font->printf(0, 0, false, Alignment::left, Palette::white, "Dump NDS card ROM to\n\"%s:/gm9i/out\"?", sdMounted ? "sd:" : "fat:");
+	font->printf(0, 0, false, Alignment::left, Palette::white, "Dump NDS card ROM to\n\"%s:/gm9i/out\"?", sdMounted ? "sd" : "fat");
 	font->print(0, 2, false, "(<A> yes, <Y> trim, <B> no, <X> save only)");
 	font->update(false);
 
@@ -630,7 +630,7 @@ void gbaCartDump(void) {
 	int pressed = 0;
 
 	font->clear(false);
-	font->printf(0, 0, false, Alignment::left, Palette::white, "Dump GBA cart ROM to\n\"%s:/gm9i/out\"?", sdMounted ? "sd:" : "fat:");
+	font->printf(0, 0, false, Alignment::left, Palette::white, "Dump GBA cart ROM to\n\"%s:/gm9i/out\"?", sdMounted ? "sd" : "fat");
 	font->print(0, 2, false, "(<A> yes, <B> no)");
 	font->update(false);
 
