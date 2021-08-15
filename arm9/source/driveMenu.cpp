@@ -229,14 +229,14 @@ void driveMenu (void) {
 			dmOperations.push_back(DriveMenuOperation::ramDrive2);
 		if (imgMounted)
 			dmOperations.push_back(DriveMenuOperation::fatImage);
+		if (nitroMounted)
+			dmOperations.push_back(DriveMenuOperation::nitroFs);
 		if (expansionPakFound
 		|| (io_dldi_data->ioInterface.features & FEATURE_SLOT_GBA)
 		|| (isDSiMode() && !arm7SCFGLocked && !(REG_SCFG_MC & BIT(0))))
 			dmOperations.push_back(DriveMenuOperation::ndsCard);
 		if (!isDSiMode() && isRegularDS)
 			dmOperations.push_back(DriveMenuOperation::gbaCart);
-		if (nitroMounted)
-			dmOperations.push_back(DriveMenuOperation::nitroFs);
 
 		dm_drawBottomScreen();
 		dm_drawTopScreen();
