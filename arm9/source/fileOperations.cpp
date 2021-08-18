@@ -96,7 +96,11 @@ bool calculateSHA1(const char *fileName, u8 *sha1) {
 		swiSHA1Update(&ctx, buf, ret);
 		scanKeys();
 		int keys = keysHeld();
-		if (keys & KEY_START) return false;
+		if (keys & KEY_START) {
+			free(buf);
+			fclose(fp);
+			return false;
+		}
 
 		font->print((ftell(fp) / (fsize / (SCREEN_COLS - 2))) + 1, nameHeight + 5, false, "=");
 		font->printf(0, nameHeight + 6, false, Alignment::left, Palette::white, "%d/%d bytes processed", ftell(fp), fsize);
@@ -104,6 +108,7 @@ bool calculateSHA1(const char *fileName, u8 *sha1) {
 	}
 	swiSHA1Final(sha1, &ctx);
 	free(buf);
+	fclose(fp);
 	return true;
 }
 
