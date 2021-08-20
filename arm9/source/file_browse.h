@@ -26,8 +26,11 @@
 #include <vector>
 
 struct DirEntry {
+	DirEntry(std::string name, size_t size, bool isDirectory, bool isApp, bool selected = false) : name(name), size(size), isDirectory(isDirectory), isApp(isApp), selected(selected) {}
+	DirEntry() {}
+
 	std::string name;
-	size_t size;
+	int size;
 	bool isDirectory;
 	bool isApp;
 	bool selected = false;
@@ -50,7 +53,7 @@ enum class FileOperation {
 	loadFont,
 };
 
-bool extension(const std::string &filename, const std::vector<std::string> &extensions);
+bool extension(const std::string_view filename, const std::vector<std::string_view> &extensions);
 void OnKeyPressed(int key);
 
 std::string browseForFile (void);

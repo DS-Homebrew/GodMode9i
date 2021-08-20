@@ -51,8 +51,8 @@
 
 static char path[PATH_MAX];
 
-bool extension(const std::string &filename, const std::vector<std::string> &extensions) {
-	for(const std::string &ext : extensions) {
+bool extension(const std::string_view filename, const std::vector<std::string_view> &extensions) {
+	for(const std::string_view &ext : extensions) {
 		if(filename.length() > ext.length() && strcasecmp(filename.substr(filename.length() - ext.length()).data(), ext.data()) == 0)
 			return true;
 	}
@@ -77,58 +77,41 @@ bool dirEntryPredicate (const DirEntry& lhs, const DirEntry& rhs) {
 }
 
 void getDirectoryContents(std::vector<DirEntry>& dirContents) {
-	struct stat st;
-
 	dirContents.clear();
 
 	DIR *pdir = opendir (".");
 
-	if (pdir == NULL) {
+	if (pdir == nullptr) {
 		font->print(0, 0, true, "Unable to open the directory.");
 		font->update(true);
 	} else {
+		while (true) {
+			dirent *pent = readdir(pdir);
+			if (pent == nullptr)
+				break;
 
-		while(true) {
-			DirEntry dirEntry;
+			if (strcmp(pent->d_name, ".") == 0 || strcmp(pent->d_name, "..") == 0)
+				continue;
 
-			struct dirent* pent = readdir(pdir);
-			if(pent == NULL) break;
-
-			stat(pent->d_name, &st);
-			if (strcmp(pent->d_name, "..") != 0) {
-				dirEntry.name = pent->d_name;
-				dirEntry.isDirectory = st.st_mode & S_IFDIR;
-				if (!dirEntry.isDirectory) {
-					dirEntry.size = getFileSize(dirEntry.name.c_str());
-				}
-				if (extension(dirEntry.name, {"nds", "argv", "dsi", "ids", "app", "srl"})) {
-					dirEntry.isApp = ((currentDrive == 0 && sdMounted) || (currentDrive == 1 && flashcardMounted));
-				} else if (extension(dirEntry.name, {"firm"})) {
-					dirEntry.isApp = (isDSiMode() && is3DS && sdMounted);
-				} else {
-					dirEntry.isApp = false;
-				}
-
-				if (dirEntry.name.compare(".") != 0) {
-					dirContents.push_back (dirEntry);
-				}
+			bool isApp = false;
+			if (extension(pent->d_name, {"nds", "argv", "dsi", "ids", "app", "srl"})) {
+				isApp = (currentDrive == 0 && sdMounted) || (currentDrive == 1 && flashcardMounted);
+			} else if (extension(pent->d_name, {"firm"})) {
+				isApp = (isDSiMode() && is3DS && sdMounted);
 			}
 
+			dirContents.emplace_back(pent->d_name, pent->d_type == DT_DIR ? 0 : -1, pent->d_type == DT_DIR, isApp);
 		}
-
 		closedir(pdir);
 	}
 
-	sort(dirContents.begin(), dirContents.end(), dirEntryPredicate);
+	std::sort(dirContents.begin(), dirContents.end(), dirEntryPredicate);
 
-	DirEntry dirEntry;
-	dirEntry.name = "..";	// ".." entry
-	dirEntry.isDirectory = true;
-	dirEntry.isApp = false;
-	dirContents.insert (dirContents.begin(), dirEntry);	// Add ".." to top of list
+	// Add ".." to top of list
+	dirContents.insert(dirContents.begin(), {"..", 0, true, false});
 }
 
-void showDirectoryContents (const std::vector<DirEntry>& dirContents, int fileOffset, int startRow) {
+void showDirectoryContents(std::vector<DirEntry> &dirContents, int fileOffset, int startRow) {
 	getcwd(path, PATH_MAX);
 
 	font->clear(true);
@@ -147,7 +130,7 @@ void showDirectoryContents (const std::vector<DirEntry>& dirContents, int fileOf
 
 	// Print directory listing
 	for (int i = 0; i < ((int)dirContents.size() - startRow) && i < ENTRIES_PER_SCREEN; i++) {
-		const DirEntry *entry = &dirContents[i + startRow];
+		DirEntry *entry = &dirContents[i + startRow];
 
 		Palette pal;
 		if ((fileOffset - startRow) == i) {
@@ -159,6 +142,10 @@ void showDirectoryContents (const std::vector<DirEntry>& dirContents, int fileOf
 		} else {
 			pal = Palette::gray;
 		}
+
+		// Load size if not loaded yet
+		if(entry->size == -1)
+			entry->size = getFileSize(entry->name.c_str());
 
 		font->print(0, i + 1, true, entry->name.substr(0, SCREEN_COLS), Alignment::left, pal);
 		if (entry->name == "..") {
@@ -585,6 +572,10 @@ void fileBrowse_drawBottomScreen(DirEntry* entry) {
 	font->printf(0, row--, false, Alignment::left, Palette::white, "L - %s files (with ↑↓→←)\n", entry->selected ? "DESELECT" : "SELECT");
 	font->print(0, row--, false, "X - DELETE/[+R] RENAME file\n");
 	font->print(0, row--, false, titleName);
+
+	// Load size if not loaded yet
+	if(entry->size == -1)
+		entry->size = getFileSize(entry->name.c_str());
 
 	Palette pal = entry->selected ? Palette::yellow : (entry->isDirectory ? Palette::blue : Palette::gray);
 	font->print(0, 0, false, entry->name, Alignment::left, pal);
