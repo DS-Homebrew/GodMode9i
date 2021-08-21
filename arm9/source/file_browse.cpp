@@ -147,7 +147,13 @@ void showDirectoryContents(std::vector<DirEntry> &dirContents, int fileOffset, i
 		if(entry->size == -1)
 			entry->size = getFileSize(entry->name.c_str());
 
-		font->print(0, i + 1, true, entry->name.substr(0, SCREEN_COLS), Alignment::left, pal);
+		int nameSize = 0;
+		for(int i = 0; i < SCREEN_COLS; nameSize++) {
+			if((entry->name[nameSize] & 0xC0) != 0x80)
+				i++;
+		}
+
+		font->print(0, i + 1, true, entry->name.substr(0, nameSize), Alignment::left, pal);
 		if (entry->name == "..") {
 			font->print(-1, i + 1, true, "(..)", Alignment::right, pal);
 		} else if (entry->isDirectory) {
