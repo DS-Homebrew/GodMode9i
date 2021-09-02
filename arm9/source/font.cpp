@@ -7,14 +7,20 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
-#include<nds.h>
+
 u8 Font::textBuf[2][256 * 192];
 bool Font::mainScreen = false;
 
 Font *font = nullptr;
 
+// Specifically the Arabic letters that have supported presentation forms
+bool Font::isArabic(char16_t c) {
+	return c >= 0x0622 && c <= 0x064A;
+}
+
 bool Font::isStrongRTL(char16_t c) {
-	return (c >= 0x0590 && c <= 0x05FF) || c == 0x200F;
+	// Hebrew, Arabic, or RLM
+	return (c >= 0x0590 && c <= 0x05FF) || (c >= 0x0600 && c <= 0x06FF) || c == 0x200F;
 }
 
 bool Font::isWeak(char16_t c) {
@@ -23,6 +29,25 @@ bool Font::isWeak(char16_t c) {
 
 bool Font::isNumber(char16_t c) {
 	return c >= '0' && c <= '9';
+}
+
+char16_t Font::arabicForm(char16_t current, char16_t prev, char16_t next) {
+	if(isArabic(current)) {
+		// If previous should be connected to
+		if((prev >= 0x626 && prev <= 0x62E && prev != 0x627 && prev != 0x629) || (prev >= 0x633 && prev <= 0x64A && prev != 0x647)) {
+			if(isArabic(next)) // If next is arabic, medial
+				return arabicPresentationForms[current - 0x622][1];
+			else // If not, final
+				return arabicPresentationForms[current - 0x622][2];
+		} else {
+			if(isArabic(next)) // If next is arabic, initial
+				return arabicPresentationForms[current - 0x622][0];
+			else // If not, isolated
+				return current;
+		}
+	}
+
+	return current;
 }
 
 bool Font::load(const char *path) {
@@ -395,7 +420,7 @@ ITCM_CODE void Font::print(int xPos, int yPos, bool top, std::u16string_view tex
 					index = getCharIndex('<');
 					break;
 				default:
-					index = getCharIndex(*it);
+					index = getCharIndex(arabicForm(*it, *(it - 1), *(it + 1)));
 					break;
 			}
 		} else {
@@ -403,7 +428,7 @@ ITCM_CODE void Font::print(int xPos, int yPos, bool top, std::u16string_view tex
 		}
 
 		// Don't draw off screen chars
-		if(x >= 0 && y >= 0 && y + tileHeight <= 192) {
+		if(x >= 0 && x + tileWidth <= 256 && y >= 0 && y + tileHeight <= 192) {
 			u8 *dst = textBuf[top] + x;
 			for(int i = 0; i < tileHeight; i++) {
 				u8 px = fontTiles[(index * tileHeight) + i];
