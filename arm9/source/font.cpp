@@ -34,7 +34,7 @@ bool Font::isNumber(char16_t c) {
 char16_t Font::arabicForm(char16_t current, char16_t prev, char16_t next) {
 	if(isArabic(current)) {
 		// If previous should be connected to
-		if((prev >= 0x626 && prev <= 0x62E && prev != 0x627 && prev != 0x629) || (prev >= 0x633 && prev <= 0x64A && prev != 0x647)) {
+		if((prev >= 0x626 && prev <= 0x62E && prev != 0x627 && prev != 0x629) || (prev >= 0x633 && prev <= 0x64A && prev != 0x648)) {
 			if(isArabic(next)) // If next is arabic, medial
 				return arabicPresentationForms[current - 0x622][1];
 			else // If not, final
