@@ -298,7 +298,7 @@ void ndsCardSaveRestore(const char *filename) {
 				font->print(-1, 5, false, "]");
 				for(unsigned int i = 0; i < 32; i++) {
 					font->print((i * (SCREEN_COLS - 2) / 32) + 1, 5, false, "=");
-					font->printf(0, 6, false, Alignment::left, Palette::white, "%d/%d Bytes", i * LEN, length);
+					font->printf(0, 6, false, Alignment::left, Palette::white, "%d/%d Bytes", written, size);
 					font->update(false);
 
 					fread(buffer, 1, blocks, in);
