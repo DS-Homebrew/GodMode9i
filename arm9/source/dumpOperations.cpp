@@ -117,8 +117,15 @@ uint32 cardEepromGetSizeFixed() {
 
 		if ( ((id >> 16) & 0xff) == 0xC2 ) { // Macronix
 			
-			if (device == 0x2211)
+			switch(device) {
+
+			case 0x2211:
 				return 128*1024;		//	1Mbit(128KByte) - MX25L1021E
+				break;
+			case 0x2017:
+				return 8*1024*1024;		//	64Mbit(8 meg)
+				break;
+			}
 		}
 
 		if (id == 0xffffff) {
