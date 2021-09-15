@@ -39,6 +39,7 @@ int cardEepromGetTypeFixed(void) {
 //---------------------------------------------------------------------------------
 // https://github.com/devkitPro/libnds/blob/master/source/common/cardEeprom.c#L88
 // with type 2 fixed if the first word and another % 8192 location are 0x00000000
+// and type 3 with ID 0xC22017 added
 uint32 cardEepromGetSizeFixed() {
 //---------------------------------------------------------------------------------
 
@@ -117,8 +118,15 @@ uint32 cardEepromGetSizeFixed() {
 
 		if ( ((id >> 16) & 0xff) == 0xC2 ) { // Macronix
 			
-			if (device == 0x2211)
+			switch(device) {
+
+			case 0x2211:
 				return 128*1024;		//	1Mbit(128KByte) - MX25L1021E
+				break;
+			case 0x2017:
+				return 8*1024*1024;		//	64Mbit(8 meg)
+				break;
+			}
 		}
 
 		if (id == 0xffffff) {
@@ -133,6 +141,20 @@ uint32 cardEepromGetSizeFixed() {
 	}
 
 	return 0;
+}
+
+//---------------------------------------------------------------------------------
+// https://github.com/devkitPro/libnds/blob/master/source/common/cardEeprom.c#L263
+// but using our fixed size function
+//---------------------------------------------------------------------------------
+void cardEepromChipEraseFixed(void) {
+//---------------------------------------------------------------------------------
+	int sz, sector;
+	sz=cardEepromGetSizeFixed();
+
+	for ( sector = 0; sector < sz; sector+=0x10000) {
+		cardEepromSectorErase(sector);
+	}
 }
 
 void ndsCardSaveDump(const char* filename) {
@@ -254,7 +276,7 @@ void ndsCardSaveRestore(const char *filename) {
 				if(auxspi)
 					auxspi_erase(card_type);
 				else
-					cardEepromChipErase();
+					cardEepromChipEraseFixed();
 			}
 			if(auxspi){
 				buffer = new unsigned char[LEN];
