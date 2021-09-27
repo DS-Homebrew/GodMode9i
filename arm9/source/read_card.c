@@ -42,6 +42,18 @@ enum {
 		ERR_HEAD_CRC  = 0x16,
 } ERROR_CODES;
 
+// NAND Card commands
+// https://problemkaputt.de/gbatek-ds-cartridge-nand.htm
+#define CARD_CMD_NAND_WRITE_BUFFER   0x81
+#define CARD_CMD_NAND_FLUSH_BUFFER   0x82
+#define CARD_CMD_NAND_DISCARD_BUFFER 0x84
+#define CARD_CMD_NAND_WRITE_ENABLE   0x85
+#define CARD_CMD_NAND_ROM_MODE       0x8B
+#define CARD_CMD_NAND_RW_MODE        0xB2
+#define CARD_CMD_NAND_READ_STATUS    0xD6
+#define CARD_CMD_NAND_UNKNOWN        0xBB
+#define CARD_CMD_NAND_READ_ID        0x94
+
 typedef union
 {
 	char title[4];
@@ -51,6 +63,8 @@ typedef union
 static bool twlBlowfish = false;
 
 static bool normalChip = false;	// As defined by GBAtek, normal chip secure area is accessed in blocks of 0x200, other chip in blocks of 0x1000
+static bool nandChip = false;
+static bool nandRomMode = true;
 static u32 portFlags = 0;
 static u32 headerData[0x1000/sizeof(u32)] = {0};
 static u32 secureArea[CARD_SECURE_AREA_SIZE/sizeof(u32)] = {0};
@@ -277,6 +291,7 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 {
 	u32 portFlagsKey1, portFlagsSecRead;
 	normalChip = false;	// As defined by GBAtek, normal chip secure area is accessed in blocks of 0x200, other chip in blocks of 0x1000
+	nandRomMode = true;
 	int secureBlockNumber;
 	int i;
 	u8 cmdData[8] __attribute__ ((aligned));
@@ -310,9 +325,16 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 
 	toncset(headerData, 0, 0x1000);
 
-	u32 iCardId=cardReadID(CARD_CLK_SLOW);	
+	u32 iCardId=cardReadID(CARD_CLK_SLOW);
 	while(REG_ROMCTRL & CARD_BUSY);
 	//u32 iCheapCard=iCardId&0x80000000;
+
+	// Check if NAND
+	nandChip = (iCardId >> 24) & BIT(3);
+	if (nandChip) {
+		cardParamCommand(CARD_CMD_NAND_ROM_MODE, 0, portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_BLK_SIZE(1), NULL, 0);
+		nandRomMode = true;
+	}
 
 	// Read the header
 	cardParamCommand (CARD_CMD_HEADER_READ, 0,
@@ -462,6 +484,16 @@ void cardRead (u32 src, void* dest)
 		// Read data from secure area
 		tonccpy (dest, (u8*)secureArea + src - ndsHeader->arm9iromOffset, 0x200);
 		return;
+	}
+
+	if (nandChip) {
+		if (src < ndsHeader->nandRomEnd * 0x20000 /*dsi: 80000h?*/ && !nandRomMode) {
+			cardParamCommand(CARD_CMD_NAND_ROM_MODE, 0, portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_BLK_SIZE(1), NULL, 0);
+			nandRomMode = true;
+		} else if (src > ndsHeader->nandRwStart * 0x20000 /*dsi: 80000h?*/ && nandRomMode) {
+			cardParamCommand(CARD_CMD_NAND_RW_MODE, 0, portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_BLK_SIZE(1), NULL, 0);
+			nandRomMode = false;
+		}
 	}
 
 	cardParamCommand (CARD_CMD_DATA_READ, src,

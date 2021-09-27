@@ -20,6 +20,16 @@ extern bool expansionPakFound;
 
 static sNDSHeaderExt ndsCardHeader;
 
+void dumpFailMsg(bool save) {
+	font->clear(false);
+	font->printf(0, 0, false, Alignment::left, Palette::white, "Failed to dump the %s.", save ? "save" : "ROM");
+	font->update(false);
+
+	for (int i = 0; i < 60*2; i++) {
+		swiWaitForVBlank();
+	}
+}
+
 //---------------------------------------------------------------------------------
 // https://github.com/devkitPro/libnds/blob/master/source/common/cardEeprom.c#L74
 // with Pokémon Mystery Dungeon - Explorers of Sky (128 KiB EEPROM) fixed
@@ -157,6 +167,28 @@ void cardEepromChipEraseFixed(void) {
 	}
 }
 
+u32 cardNandGetSaveSize(void) {
+	u32 id = cardReadID(CARD_CLK_SLOW);
+
+	u16 flags = id >> 16;
+	
+	if ((id & 0xFF) == 0xEC) { // Samsung
+		switch(flags) {
+			case 0x8801:
+				return 8 << 20; // 8MByte - Jam with the Band
+				break;
+			case 0x8800:
+				return 16 << 20; // 16MByte - WarioWare D.I.Y.
+				break;
+			case 0xE800:
+				return 82 << 20; // 82MByte - Face Training
+				break;
+		}
+	}
+
+	return 0;
+}
+
 void ndsCardSaveDump(const char* filename) {
 	FILE *out = fopen(filename, "wb");
 	if(out) {
@@ -165,29 +197,76 @@ void ndsCardSaveDump(const char* filename) {
 		font->print(0, 1, false, "Do not remove the NDS card.");
 		font->update(false);
 
-		unsigned char *buffer;
-		auxspi_extra card_type = auxspi_has_extra();
-		if(card_type == AUXSPI_INFRARED) {
-			int size = auxspi_save_size_log_2(card_type);
-			int size_blocks;
-			int type = auxspi_save_type(card_type);
-			if(size < 16)
-				size_blocks = 1;
-			else
-				size_blocks = 1 << (size - 16);
-			u32 LEN = std::min(1 << size, 1 << 16);
-			buffer = new unsigned char[LEN*size_blocks];
-			auxspi_read_data(0, buffer, LEN*size_blocks, type, card_type);
-			fwrite(buffer, 1, LEN*size_blocks, out);
-		} else {
-			int type = cardEepromGetTypeFixed();
-			int size = cardEepromGetSizeFixed();
-			buffer = new unsigned char[size];
-			cardReadEeprom(0, buffer, size, type);
-			fwrite(buffer, 1, size, out);
+		int type = cardEepromGetTypeFixed();
+
+		if(type == -1) { // NAND
+			u32 saveSize = cardNandGetSaveSize();
+
+			if(saveSize == 0) {
+				dumpFailMsg(true);
+				return;
+			}
+
+			// testing print
+			font->clear(false);
+			font->printf(0, 0, false, Alignment::left, Palette::white, "Found NAND save: Size: %d MiB", saveSize >> 20);
+			font->update(false);
+			for(int i = 0; i < 120; i++)
+				swiWaitForVBlank();
+
+			u32 currentSize = saveSize;
+			FILE* destinationFile = fopen(filename, "wb");
+			if (destinationFile) {
+
+				font->print(0, 4, false, "Progress:");
+				font->print(0, 5, false, "[");
+				font->print(-1, 5, false, "]");
+				for (u32 src = 0; src < saveSize; src += 0x8000) {
+					// Print time
+					font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
+					font->update(true);
+
+					font->print((src / (saveSize / (SCREEN_COLS - 2))) + 1, 5, false, "=");
+					font->printf(0, 6, false, Alignment::left, Palette::white, "%d/%d Bytes", src, saveSize);
+					font->update(false);
+
+					for (u32 i = 0; i < 0x8000; i += 0x200) {
+						cardRead(src+i, copyBuf+i);
+					}
+					if (fwrite(copyBuf, 1, (currentSize >= 0x8000 ? 0x8000 : currentSize), destinationFile) < 1) {
+						dumpFailMsg(true);
+						break;
+					}
+					currentSize -= 0x8000;
+				}
+				fclose(destinationFile);
+			} else {
+				dumpFailMsg(true);
+			}
+		} else { // SPI
+			unsigned char *buffer;
+			auxspi_extra card_type = auxspi_has_extra();
+			if(card_type == AUXSPI_INFRARED) {
+				int size = auxspi_save_size_log_2(card_type);
+				int size_blocks;
+				int type = auxspi_save_type(card_type);
+				if(size < 16)
+					size_blocks = 1;
+				else
+					size_blocks = 1 << (size - 16);
+				u32 LEN = std::min(1 << size, 1 << 16);
+				buffer = new unsigned char[LEN*size_blocks];
+				auxspi_read_data(0, buffer, LEN*size_blocks, type, card_type);
+				fwrite(buffer, 1, LEN*size_blocks, out);
+			} else {
+				int size = cardEepromGetSizeFixed();
+				buffer = new unsigned char[size];
+				cardReadEeprom(0, buffer, size, type);
+				fwrite(buffer, 1, size, out);
+			}
+			delete[] buffer;
+			fclose(out);
 		}
-		delete[] buffer;
-		fclose(out);
 	}
 }
 
@@ -309,16 +388,6 @@ void ndsCardSaveRestore(const char *filename) {
 			delete[] buffer;
 			fclose(in);
 		}
-	}
-}
-
-void dumpFailMsg(void) {
-	font->clear(false);
-	font->print(0, 0, false, "Failed to dump the ROM.");
-	font->update(false);
-
-	for (int i = 0; i < 60*2; i++) {
-		swiWaitForVBlank();
 	}
 }
 
@@ -619,14 +688,14 @@ void ndsCardDump(void) {
 						cardRead (src+i, copyBuf+i);
 					}
 					if (fwrite(copyBuf, 1, (currentSize>=0x8000 ? 0x8000 : currentSize), destinationFile) < 1) {
-						dumpFailMsg();
+						dumpFailMsg(false);
 						break;
 					}
 					currentSize -= 0x8000;
 				}
 				fclose(destinationFile);
 			} else {
-				dumpFailMsg();
+				dumpFailMsg(false);
 			}
 			ndsCardSaveDump(destSavPath);
 		//}
@@ -752,7 +821,7 @@ void gbaCartDump(void) {
 		FILE* destinationFile = fopen(destPath, "wb");
 		if (destinationFile) {
 			if (fwrite(GBAROM, 1, romSize, destinationFile) < 1) {
-				dumpFailMsg();
+				dumpFailMsg(false);
 			} else
 			// Check for 64MB GBA Video ROM
 			if (strncmp((char*)0x080000AC, "MSAE", 4)==0	// Shark Tale
@@ -774,14 +843,14 @@ void gbaCartDump(void) {
 					writeChange(cmd);
 					readChange();
 					if (fwrite(GBAROM + (0x1000 >> 1), 0x1000, 1, destinationFile) < 1) {
-						dumpFailMsg();
+						dumpFailMsg(false);
 						break;
 					}
 				}
 			}
 			fclose(destinationFile);
 		} else {
-			dumpFailMsg();
+			dumpFailMsg(false);
 		}
 
 		// Save file
