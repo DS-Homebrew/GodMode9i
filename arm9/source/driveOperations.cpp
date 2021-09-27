@@ -1,9 +1,10 @@
 #include <nds.h>
 #include <nds/arm9/dldi.h>
 #include <fat.h>
+#include <stdio.h>
+#include <string>
 #include <sys/stat.h>
 #include <sys/statvfs.h>
-#include <stdio.h>
 
 #include "main.h"
 #include "dldi-include.h"
@@ -58,19 +59,22 @@ static float getTbNumber(u64 bytes) {
 	return tbNumber;
 }
 
-void printDriveBytes(u64 bytes)
+std::string getDriveBytes(u64 bytes)
 {
+	char buffer[12];
 	if (bytes < (1024 * 1024))
-		printf("%d KB", (int)bytes / 1024);
+		sniprintf(buffer, sizeof(buffer), "%d KB", (int)bytes / 1024);
 
 	else if (bytes >= (1024 * 1024) && bytes < (1024 * 1024 * 1024))
-		printf("%d MB", (int)bytes / 1024 / 1024);
+		sniprintf(buffer, sizeof(buffer), "%d MB", (int)bytes / 1024 / 1024);
 
 	else if (bytes >= 0x40000000 && bytes < 0x10000000000)
-		printf("%.1f GB", getGbNumber(bytes));
+		snprintf(buffer, sizeof(buffer), "%.1f GB", getGbNumber(bytes));
 
 	else
-		printf("%.1f TB", getTbNumber(bytes));
+		snprintf(buffer, sizeof(buffer), "%.1f TB", getTbNumber(bytes));
+
+	return buffer;
 }
 
 const char* getDrivePath(void) {

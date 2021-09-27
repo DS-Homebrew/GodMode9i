@@ -1,12 +1,12 @@
 #include "ndsInfo.h"
 
 #include "date.h"
+#include "font.h"
+#include "screenshot.h"
 #include "tonccpy.h"
 
 #include <nds.h>
 #include <stdio.h>
-
-extern PrintConsole bottomConsole, bottomConsoleBG, topConsole;
 
 constexpr const char *langNames[8] {
 	"Japanese",
@@ -18,8 +18,6 @@ constexpr const char *langNames[8] {
 	"Chinese",
 	"Korean"
 };
-
-extern void reinitConsoles(void);
 
 void ndsInfo(const char *path) {
 	FILE *file = fopen(path, "rb");
@@ -35,7 +33,10 @@ void ndsInfo(const char *path) {
 	u32 ofs;
 	fseek(file, 0x68, SEEK_SET);
 	fread(&ofs, sizeof(u32), 1, file);
-	fseek(file, ofs, SEEK_SET);
+	if(ofs < 0x8000 || fseek(file, ofs, SEEK_SET) != 0) {
+		fclose(file);
+		return;
+	}
 
 	u16 version;
 	fread(&version, sizeof(u16), 1, file);
@@ -51,10 +52,13 @@ void ndsInfo(const char *path) {
 		fread(iconAnimation, 2, 0x40, file);
 
 		fseek(file, ofs + 0x240, SEEK_SET);
-	} else { // DS
+	} else if((version & ~3) == 0) { // DS
 		fseek(file, 0x20 - 2, SEEK_CUR);
 		fread(iconBitmap, 1, 0x200, file);
 		fread(iconPalette, 2, 0x10, file);
+	} else {
+		fclose(file);
+		return;
 	}
 
 	int languages = 5 + (version & 0x3);
@@ -76,26 +80,23 @@ void ndsInfo(const char *path) {
 	u16 pressed = 0, held = 0;
 	int animationFrame = 0, frameDelay = 0, lang = 1;
 	while(1) {
-		consoleClear();
+		font->clear(false);
+		font->printf(0, 0, false, Alignment::left, Palette::white, "Header Title: %s", headerTitle);
+		font->printf(0, 1, false, Alignment::left, Palette::white, "Title ID: %s", tid);
+		font->printf(0, 2, false, Alignment::left, Palette::white, "Title: (%s)", langNames[lang]);
+		font->print(2, 3, false, titles + lang * 0x80);
+		font->update(false);
 
-		iprintf("Header Title: %s\n", headerTitle);
-		iprintf("Title ID: %s\n", tid);
-		iprintf("Title: (%s)\n  ", langNames[lang]);
-		for(int j = 0; j < 0x80 && titles[lang * 0x80 + j]; j++) {
-			if(titles[lang * 0x80 + j] == '\n')
-				iprintf("\n  ");
-			else
-				iprintf("%c", titles[lang * 0x80 + j]);
-		}
-		iprintf("\n");
-
-		consoleSelect(&topConsole);
 		do {
 			swiWaitForVBlank();
 			scanKeys();
 			pressed = keysDown();
 			held = keysDownRepeat();
-			iprintf("\x1B[30m\x1B[0;26H %s", RetTime().c_str()); // Print time
+
+			// Print time
+			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
+			font->update(true);
+
 			if(iconAnimation[animationFrame] && animationFrame < 0x40) {
 				if(frameDelay < (iconAnimation[animationFrame] & 0xFF) - 1) {
 					frameDelay++;
@@ -111,7 +112,6 @@ void ndsInfo(const char *path) {
 				}
 			}
 		} while(!held);
-		consoleSelect(&bottomConsole);
 
 		if(held & KEY_UP) {
 			if(lang > 0)
@@ -121,6 +121,8 @@ void ndsInfo(const char *path) {
 				lang++;
 		} else if(pressed & KEY_B) {
 			break;
+		} else if(keysHeld() & KEY_R && pressed & KEY_L) {
+			screenshot();
 		}
 	}
 

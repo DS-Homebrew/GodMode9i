@@ -42,6 +42,11 @@ In order to compile this application on your own, you will need [devkitPro](http
 
 Once everything is downloaded and installed, `git clone` this repository, navigate to the folder in which it was cloned, and run `make` to compile the application. If there is an error, let us know.
 
+## Custom Fonts
+GodMode9i uses the same FRF font files as [GodMode9](https://github.com/d0k3/GodMode9). To create an FRF font use [GodMode9's Python script](https://github.com/d0k3/GodMode9/blob/master/utils/fontriff.py) or you can find some in the `resources/fonts` folder in this repository.
+
+When loading GodMode9i will try to load `/gm9i/font.frf` on your SD card and if that fails will load the default font. To change the default font when building GodMode9i, replace `data/font_default.frf` with your font.
+
 ## Credits
 * [RocketRobz](https://github.com/RocketRobz): Main Developer.
 * [Evie/Pk11](https://github.com/Epicpkmn11): Contributor.

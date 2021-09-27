@@ -7,57 +7,40 @@
 
 #include "date.h"
 #include "file_browse.h"
+#include "font.h"
 #include "ndsheaderbanner.h"
+#include "screenshot.h"
 
 #define copyBufSize 0x8000
 #define shaChunkSize 0x10000
 
 u32 copyBuf[copyBufSize];
 
-extern PrintConsole topConsole, bottomConsole;
-
 std::vector<ClipboardFile> clipboard;
 bool clipboardOn = false;
 bool clipboardUsed = false;
 
-void printBytes(int bytes)
-{
+std::string getBytes(int bytes) {
+	char buffer[11];
 	if (bytes == 1)
-		iprintf("%d Byte", bytes);
+		sniprintf(buffer, sizeof(buffer), "%d Byte", bytes);
 
 	else if (bytes < 1024)
-		iprintf("%d Bytes", bytes);
+		sniprintf(buffer, sizeof(buffer), "%d Bytes", bytes);
 
 	else if (bytes < (1024 * 1024))
-		printf("%d KB", bytes / 1024);
+		sniprintf(buffer, sizeof(buffer), "%d KB", bytes / 1024);
 
 	else if (bytes < (1024 * 1024 * 1024))
-		printf("%d MB", bytes / 1024 / 1024);
+		sniprintf(buffer, sizeof(buffer), "%d MB", bytes / 1024 / 1024);
 
 	else
-		printf("%d GB", bytes / 1024 / 1024 / 1024);
+		sniprintf(buffer, sizeof(buffer), "%d GB", bytes / 1024 / 1024 / 1024);
+
+	return buffer;
 }
 
-void printBytesAlign(int bytes)
-{
-	if (bytes == 1)
-		iprintf("%4d Byte", bytes);
-
-	else if (bytes < 1024)
-		iprintf("%3d Bytes", bytes);
-
-	else if (bytes < (1024 * 1024))
-		printf("%6d KB", bytes / 1024);
-
-	else if (bytes < (1024 * 1024 * 1024))
-		printf("%6d MB", bytes / 1024 / 1024);
-
-	else
-		printf("%6d GB", bytes / 1024 / 1024 / 1024);
-}
-
-off_t getFileSize(const char *fileName)
-{
+off_t getFileSize(const char *fileName) {
 	FILE* fp = fopen(fileName, "rb");
 	off_t fsize = 0;
 	if (fp) {
@@ -70,17 +53,24 @@ off_t getFileSize(const char *fileName)
 	return fsize;
 }
 
-bool calculateSHA1(const char *fileName, u8 *sha1)
-{
+bool calculateSHA1(const char *fileName, u8 *sha1) {
 	off_t fsize = getFileSize(fileName);
 	u8 *buf = (u8*) malloc(shaChunkSize);
 	if (!buf) {
-		iprintf("Could not allocate buffer\n");
+		font->clear(false);
+		font->print(0, 0, false, "Could not allocate buffer");
+		font->update(false);
+		for(int i = 0; i < 60 * 2; i++)
+			swiWaitForVBlank();
 		return false;
 	}
 	FILE* fp = fopen(fileName, "rb");
 	if (!fp) {
-		iprintf("Could not open file for reading\n");
+		font->clear(false);
+		font->print(0, 0, false, "Could not open file for reading");
+		font->update(false);
+		for(int i = 0; i < 60 * 2; i++)
+			swiWaitForVBlank();
 		free(buf);
 		return false;
 	}
@@ -88,23 +78,41 @@ bool calculateSHA1(const char *fileName, u8 *sha1)
 	swiSHA1context_t ctx;
 	ctx.sha_block=0; //this is weird but it has to be done
 	swiSHA1Init(&ctx);
+
+	font->clear(false);
+	font->print(0, 0, false, "Calculating SHA1 hash of:");
+	font->print(0, 1, false, fileName);
+
+	int nameHeight = font->calcHeight(fileName);
+	font->print(0, nameHeight + 2, false, "(<START> to cancel)");
+
+	font->print(0, nameHeight + 4, false, "Progress:");
+	font->print(0, nameHeight + 5, false, "[");
+	font->print(-1, nameHeight + 5, false, "]");
+
 	while (true) {
 		size_t ret = fread(buf, 1, shaChunkSize, fp);
 		if (!ret) break;
 		swiSHA1Update(&ctx, buf, ret);
 		scanKeys();
 		int keys = keysHeld();
-		if (keys & KEY_START) return false;
-		iprintf("\x1b[1;A");
-		iprintf("%ld/%lld bytes processed\n", ftell(fp), fsize);
+		if (keys & KEY_START) {
+			free(buf);
+			fclose(fp);
+			return false;
+		}
+
+		font->print((ftell(fp) / (fsize / (SCREEN_COLS - 2))) + 1, nameHeight + 5, false, "=");
+		font->printf(0, nameHeight + 6, false, Alignment::left, Palette::white, "%d/%d bytes processed", ftell(fp), fsize);
+		font->update(false);
 	}
 	swiSHA1Final(sha1, &ctx);
 	free(buf);
+	fclose(fp);
 	return true;
 }
 
-int trimNds(const char *fileName)
-{
+int trimNds(const char *fileName) {
 	FILE *file = fopen(fileName, "rb");
 	if(file) {
 		sNDSHeaderExt ndsCardHeader;
@@ -123,18 +131,17 @@ int trimNds(const char *fileName)
 	return -1;
 }
 
-void dirCopy(DirEntry* entry, int i, const char *destinationPath, const char *sourcePath) {
+void dirCopy(const DirEntry &entry, int i, const char *destinationPath, const char *sourcePath) {
 	std::vector<DirEntry> dirContents;
 	dirContents.clear();
-	if (entry->isDirectory)	chdir((sourcePath + ("/" + entry->name)).c_str());
+	if (entry.isDirectory)	chdir((sourcePath + ("/" + entry.name)).c_str());
 	getDirectoryContents(dirContents);
-	if (((int)dirContents.size()) == 1)	mkdir((destinationPath + ("/" + entry->name)).c_str(), 0777);
-	if (((int)dirContents.size()) != 1)	fcopy((sourcePath + ("/" + entry->name)).c_str(), (destinationPath + ("/" + entry->name)).c_str());
+	if (((int)dirContents.size()) == 1)	mkdir((destinationPath + ("/" + entry.name)).c_str(), 0777);
+	if (((int)dirContents.size()) != 1)	fcopy((sourcePath + ("/" + entry.name)).c_str(), (destinationPath + ("/" + entry.name)).c_str());
 }
 
-int fcopy(const char *sourcePath, const char *destinationPath)
-{
-	DIR *isDir = opendir (sourcePath);
+int fcopy(const char *sourcePath, const char *destinationPath) {
+	DIR *isDir = opendir(sourcePath);
 	
 	if (isDir != NULL) {
 		closedir(isDir);
@@ -143,17 +150,15 @@ int fcopy(const char *sourcePath, const char *destinationPath)
 		chdir(sourcePath);
 		std::vector<DirEntry> dirContents;
 		getDirectoryContents(dirContents);
-		DirEntry* entry = NULL;
 
 		mkdir(destinationPath, 0777);
 		for (int i = 1; i < ((int)dirContents.size()); i++) {
 			chdir(sourcePath);
-			entry = &dirContents.at(i);
-			dirCopy(entry, i, destinationPath, sourcePath);
+			dirCopy(dirContents[i], i, destinationPath, sourcePath);
 		}
 
-		chdir (destinationPath);
-		chdir ("..");
+		chdir(destinationPath);
+		chdir("..");
 		return 1;
 	} else {
 		closedir(isDir);
@@ -163,26 +168,26 @@ int fcopy(const char *sourcePath, const char *destinationPath)
 		off_t fsize = 0;
 		if (sourceFile) {
 			fseek(sourceFile, 0, SEEK_END);
-			fsize = ftell(sourceFile);			// Get source file's size
+			fsize = ftell(sourceFile); // Get source file's size
 			fseek(sourceFile, 0, SEEK_SET);
 		} else {
-			fclose(sourceFile);
 			return -1;
 		}
 
 		FILE* destinationFile = fopen(destinationPath, "wb");
-		//if (destinationFile) {
-			fseek(destinationFile, 0, SEEK_SET);
-		/*} else {
+		if (!destinationFile) {
 			fclose(sourceFile);
-			fclose(destinationFile);
 			return -1;
-		}*/
+		}
+
+		font->clear(false);
+		font->print(0, 0, false, "Progress:");
+		font->print(0, 1, false, "[");
+		font->print(-1, 1, false, "]");
 
 		off_t offset = 0;
 		int numr;
-		while (1)
-		{
+		while (1) {
 			scanKeys();
 			if (keysHeld() & KEY_B) {
 				// Cancel copying
@@ -191,18 +196,14 @@ int fcopy(const char *sourcePath, const char *destinationPath)
 				return -1;
 				break;
 			}
-			consoleSelect(&topConsole);
-			printf ("\x1B[30m");		// Print black color
-			// Move to right side of screen
-			printf ("\x1b[0;26H");
-			// Print time
-			printf (" %s" ,RetTime().c_str());
 
-			consoleSelect(&bottomConsole);
-			printf ("\x1B[47m");		// Print foreground white color
-			printf ("\x1b[16;0H");
-			printf ("Progress:\n");
-			printf ("%i/%i Bytes                       ", (int)offset, (int)fsize);
+			// Print time
+			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
+			font->update(true);
+
+			font->print((offset / (fsize / (SCREEN_COLS - 2))) + 1, 1, false, "=");
+			font->printf(0, 2, false, Alignment::left, Palette::white, "%lld/%lld Bytes", offset, fsize);
+			font->update(false);
 
 			// Copy file to destination path
 			numr = fread(copyBuf, 1, copyBufSize, sourceFile);
@@ -213,10 +214,6 @@ int fcopy(const char *sourcePath, const char *destinationPath)
 				fclose(sourceFile);
 				fclose(destinationFile);
 
-				printf ("\x1b[17;0H");
-				printf ("%i/%i Bytes           	           ", (int)fsize, (int)fsize);
-				for (int i = 0; i < 30; i++) swiWaitForVBlank();
-
 				return 1;
 				break;
 			}
@@ -226,108 +223,52 @@ int fcopy(const char *sourcePath, const char *destinationPath)
 	}
 }
 
-void changeFileAttribs(DirEntry* entry) {
-	consoleClear();
-	int pressed = 0;
-	int cursorScreenPos = 0;
+void changeFileAttribs(const DirEntry *entry) {
+	int pressed = 0, held = 0;
+	int cursorScreenPos = font->calcHeight(entry->name);
 	uint8_t currentAttribs = FAT_getAttr(entry->name.c_str());
 	uint8_t newAttribs = currentAttribs;
 
-	// Position cursor, depending on how long the file name is
-	for (int i = 0; i < 256; i++) {
-		if (i == 33 || i == 65 || i == 97 || i == 129 || i == 161 || i == 193 || i == 225) {
-			cursorScreenPos++;
-		}
-		if (entry->name.c_str()[i] == '\0') {
-			break;
-		}
-	}
-
-	printf ("\x1b[0;0H");
-	printf (entry->name.c_str());
-	if (!entry->isDirectory) {
-		printf ("\x1b[%i;0H", 3+cursorScreenPos);
-		printf ("filesize: ");
-		printBytes(entry->size);
-	}
-	printf ("\x1b[%i;0H", 5+cursorScreenPos);
-	printf ("[ ] U read-only  [ ] D hidden");
-	printf ("\x1b[%i;0H", 6+cursorScreenPos);
-	printf ("[ ] R system	  [ ] L archive");
-	printf ("\x1b[%i;0H", 7+cursorScreenPos);
-	printf ("[ ]   virtual");
-	printf ("\x1b[%i;1H", 7+cursorScreenPos);
-	printf ((newAttribs & ATTR_VOLUME) ? "X" : " ");
-	printf ("\x1b[%i;0H", 9+cursorScreenPos);
-	printf ("(UDRL to change attributes)");
 	while (1) {
-		consoleSelect(&bottomConsole);
-		printf ("\x1B[47m");		// Print foreground white color
-		printf ("\x1b[%i;1H", 5+cursorScreenPos);
-		printf ((newAttribs & ATTR_READONLY) ? "X" : " ");
-		printf ("\x1b[%i;18H", 5+cursorScreenPos);
-		printf ((newAttribs & ATTR_HIDDEN) ? "X" : " ");
-		printf ("\x1b[%i;1H", 6+cursorScreenPos);
-		printf ((newAttribs & ATTR_SYSTEM) ? "X" : " ");
-		printf ("\x1b[%i;18H", 6+cursorScreenPos);
-		printf ((newAttribs & ATTR_ARCHIVE) ? "X" : " ");
-		printf ("\x1b[%i;0H", 11+cursorScreenPos);
-		printf ((currentAttribs==newAttribs) ? "(<A> to continue)            " : "(<A> to apply, <B> to cancel)");
+		font->clear(false);
+		font->print(0, 0, false, entry->name);
+		if (!entry->isDirectory)
+			font->printf(0, cursorScreenPos + 1, false, Alignment::left, Palette::white, "filesize: %s", getBytes(entry->size).c_str());
+		font->printf(0, cursorScreenPos + 3, false, Alignment::left, Palette::white, "[%c] ↑ read-only  [%c] ↓ hidden", (newAttribs & ATTR_READONLY) ? 'X' : ' ', (newAttribs & ATTR_HIDDEN) ? 'X' : ' ');
+		font->printf(0, cursorScreenPos + 4, false, Alignment::left, Palette::white, "[%c] → system     [%c] ← archive", (newAttribs & ATTR_SYSTEM) ? 'X' : ' ', (newAttribs & ATTR_ARCHIVE) ? 'X' : ' ');
+		font->printf(0, cursorScreenPos + 5, false, Alignment::left, Palette::white, "[%c]   virtual", (newAttribs & ATTR_VOLUME) ? 'X' : ' ');
+		font->printf(0, cursorScreenPos + 6, false, Alignment::left, Palette::white, "(↑↓→← to change attributes)");
+		font->print(0, cursorScreenPos + 8, false, (currentAttribs == newAttribs) ? "(<A> to continue)" : "(<A> to apply, <B> to cancel)");
+		font->update(false);
 
-		consoleSelect(&topConsole);
-		printf ("\x1B[30m");		// Print black color
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
-			// Move to right side of screen
-			printf ("\x1b[0;26H");
 			// Print time
-			printf (" %s" ,RetTime().c_str());
+			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
+			font->update(true);
 
 			scanKeys();
+			held = keysHeld();
 			pressed = keysDown();
 			swiWaitForVBlank();
 		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN) && !(pressed & KEY_RIGHT) && !(pressed & KEY_LEFT)
 				&& !(pressed & KEY_A) && !(pressed & KEY_B));
 
 		if (pressed & KEY_UP) {
-			if (newAttribs & ATTR_READONLY) {
-				newAttribs -= ATTR_READONLY;
-			} else {
-				newAttribs += ATTR_READONLY;
-			}
-		}
-
-		if (pressed & KEY_DOWN) {
-			if (newAttribs & ATTR_HIDDEN) {
-				newAttribs -= ATTR_HIDDEN;
-			} else {
-				newAttribs += ATTR_HIDDEN;
-			}
-		}
-
-		if (pressed & KEY_RIGHT) {
-			if (newAttribs & ATTR_SYSTEM) {
-				newAttribs -= ATTR_SYSTEM;
-			} else {
-				newAttribs += ATTR_SYSTEM;
-			}
-		}
-
-		if (pressed & KEY_LEFT) {
-			if (newAttribs & ATTR_ARCHIVE) {
-				newAttribs -= ATTR_ARCHIVE;
-			} else {
-				newAttribs += ATTR_ARCHIVE;
-			}
-		}
-
-		if ((pressed & KEY_A) && (currentAttribs!=newAttribs)) {
+			newAttribs ^= ATTR_READONLY;
+		} else if (pressed & KEY_DOWN) {
+			newAttribs ^= ATTR_HIDDEN;
+		} else if (pressed & KEY_RIGHT) {
+			newAttribs ^= ATTR_SYSTEM;
+		} else if (pressed & KEY_LEFT) {
+			newAttribs ^= ATTR_ARCHIVE;
+		} else if ((pressed & KEY_A) && (currentAttribs != newAttribs)) {
 			FAT_setAttr(entry->name.c_str(), newAttribs);
 			break;
-		}
-
-		if ((pressed & KEY_A) || (pressed & KEY_B)) {
+		} else if (pressed & (KEY_A | KEY_B)) {
 			break;
+		} else if (held & KEY_R && pressed & KEY_L) {
+			screenshot();
 		}
 	}
 }
