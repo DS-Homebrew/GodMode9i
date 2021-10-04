@@ -300,7 +300,7 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 	twlBlowfish = false;
 
 	sysSetCardOwner (BUS_OWNER_ARM9);	// Allow arm9 to access NDS cart
-	if (isDSiMode()) { 
+	if (isDSiMode()) {
 		// Reset card slot
 		disableSlot1();
 		for(i = 0; i < 25; i++) { swiWaitForVBlank(); }
@@ -311,17 +311,20 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 		cardParamCommand (CARD_CMD_DUMMY, 0,
 			CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(1) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
 			NULL, 0);
-	} else {
-		REG_ROMCTRL=0;
-		REG_AUXSPICNT=0;
-		//ioDelay2(167550);
-		for(i = 0; i < 25; i++) { swiWaitForVBlank(); }
-		REG_AUXSPICNT=CARD_CR1_ENABLE|CARD_CR1_IRQ;
-		REG_ROMCTRL=CARD_nRESET|CARD_SEC_SEED;
-		while(REG_ROMCTRL&CARD_BUSY) ;
-		cardReset();
-		while(REG_ROMCTRL&CARD_BUSY) ;
 	}
+
+	// TODO: This was only done in DS mode, but fixes NAND in DSi mode
+	// see if only part of this is needed or if it causes problems to do
+	// all of it in DSi mode.
+	REG_ROMCTRL=0;
+	REG_AUXSPICNT=0;
+	//ioDelay2(167550);
+	for(i = 0; i < 25; i++) { swiWaitForVBlank(); }
+	REG_AUXSPICNT=CARD_CR1_ENABLE|CARD_CR1_IRQ;
+	REG_ROMCTRL=CARD_nRESET|CARD_SEC_SEED;
+	while(REG_ROMCTRL&CARD_BUSY) ;
+	cardReset();
+	while(REG_ROMCTRL&CARD_BUSY) ;
 
 	toncset(headerData, 0, 0x1000);
 
@@ -332,7 +335,7 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 	// Check if NAND
 	nandChip = (iCardId >> 24) & BIT(3);
 	if (nandChip) {
-		cardParamCommand(CARD_CMD_NAND_ROM_MODE, 0, portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_BLK_SIZE(1), NULL, 0);
+		// cardParamCommand(CARD_CMD_NAND_ROM_MODE, 0, CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(7) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F), NULL, 0);
 		nandRomMode = true;
 	}
 
@@ -346,9 +349,17 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 	if ((ndsHeader->unitCode != 0) || (ndsHeader->dsi_flags != 0))
 	{
 		// Extended header found
-		cardParamCommand (CARD_CMD_HEADER_READ, 0,
-			CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(4) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
-			(void*)headerData, 0x1000/sizeof(u32));
+		if(true) { // TODO: some need single 1000h?
+			for(int i = 0; i < 8; i++) {
+				cardParamCommand (CARD_CMD_HEADER_READ, i * 0x200,
+					CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(1) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
+					headerData + i * 0x200 / sizeof(u32), 0x200/sizeof(u32));
+			}
+		} else {
+			cardParamCommand (CARD_CMD_HEADER_READ, 0,
+				CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(4) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
+				(void*)headerData, 0x1000/sizeof(u32));
+		}
 		if (ndsHeader->dsi1[0]==0xFFFFFFFF && ndsHeader->dsi1[1]==0xFFFFFFFF
 		 && ndsHeader->dsi1[2]==0xFFFFFFFF && ndsHeader->dsi1[3]==0xFFFFFFFF)
 		{
@@ -488,10 +499,10 @@ void cardRead (u32 src, void* dest)
 
 	if (nandChip) {
 		if (src < ndsHeader->nandRomEnd * 0x20000 /*dsi: 80000h?*/ && !nandRomMode) {
-			cardParamCommand(CARD_CMD_NAND_ROM_MODE, 0, portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_BLK_SIZE(1), NULL, 0);
+			cardParamCommand(CARD_CMD_NAND_ROM_MODE, 0, CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(7) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F), NULL, 0);
 			nandRomMode = true;
 		} else if (src > ndsHeader->nandRwStart * 0x20000 /*dsi: 80000h?*/ && nandRomMode) {
-			cardParamCommand(CARD_CMD_NAND_RW_MODE, 0, portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_BLK_SIZE(1), NULL, 0);
+			cardParamCommand(CARD_CMD_NAND_RW_MODE, 0, CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(7) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F), NULL, 0);
 			nandRomMode = false;
 		}
 	}

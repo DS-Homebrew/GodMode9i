@@ -168,22 +168,13 @@ void cardEepromChipEraseFixed(void) {
 }
 
 u32 cardNandGetSaveSize(void) {
-	u32 id = cardReadID(CARD_CLK_SLOW);
-
-	u16 flags = id >> 16;
-	
-	if ((id & 0xFF) == 0xEC) { // Samsung
-		switch(flags) {
-			case 0x8801:
-				return 8 << 20; // 8MByte - Jam with the Band
-				break;
-			case 0x8800:
-				return 16 << 20; // 16MByte - WarioWare D.I.Y.
-				break;
-			case 0xE800:
-				return 82 << 20; // 82MByte - Face Training
-				break;
-		}
+	switch(*(u32*)ndsCardHeader.gameCode & 0x00FFFFFF) {
+		case 0x00425855: // 'UXB'
+			return 8 << 20; // 8MByte - Jam with the Band
+		case 0x00524F55: // 'UOR'
+			return 16 << 20; // 16MByte - WarioWare D.I.Y.
+		case 0x004B5355: // 'USK'
+			return 82 << 20; // 82MByte - Face Training
 	}
 
 	return 0;
@@ -207,13 +198,6 @@ void ndsCardSaveDump(const char* filename) {
 				return;
 			}
 
-			// testing print
-			font->clear(false);
-			font->printf(0, 0, false, Alignment::left, Palette::white, "Found NAND save: Size: %d MiB", saveSize >> 20);
-			font->update(false);
-			for(int i = 0; i < 120; i++)
-				swiWaitForVBlank();
-
 			u32 currentSize = saveSize;
 			FILE* destinationFile = fopen(filename, "wb");
 			if (destinationFile) {
@@ -231,7 +215,7 @@ void ndsCardSaveDump(const char* filename) {
 					font->update(false);
 
 					for (u32 i = 0; i < 0x8000; i += 0x200) {
-						cardRead(src+i, copyBuf+i);
+						cardRead(ndsCardHeader.nandRwStart + src + i, copyBuf + i);
 					}
 					if (fwrite(copyBuf, 1, (currentSize >= 0x8000 ? 0x8000 : currentSize), destinationFile) < 1) {
 						dumpFailMsg(true);
@@ -680,6 +664,11 @@ void ndsCardDump(void) {
 					font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
 					font->update(true);
 
+					// TODO: Remove, just for testing
+					scanKeys();
+					if(keysDown() & KEY_B)
+						break;
+
 					font->print((src / (romSize / (SCREEN_COLS - 2))) + 1, 5, false, "=");
 					font->printf(0, 6, false, Alignment::left, Palette::white, "%d/%d Bytes", src, romSize);
 					font->update(false);
@@ -697,7 +686,8 @@ void ndsCardDump(void) {
 			} else {
 				dumpFailMsg(false);
 			}
-			ndsCardSaveDump(destSavPath);
+			// TODO: Uncomment, just commented for testing
+			// ndsCardSaveDump(destSavPath);
 		//}
 	}
 }
