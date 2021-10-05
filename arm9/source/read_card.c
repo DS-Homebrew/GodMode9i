@@ -64,7 +64,7 @@ static bool twlBlowfish = false;
 
 static bool normalChip = false;	// As defined by GBAtek, normal chip secure area is accessed in blocks of 0x200, other chip in blocks of 0x1000
 static bool nandChip = false;
-static bool nandRomMode = true;
+static int nandRomMode = -1;
 static u32 portFlags = 0;
 static u32 headerData[0x1000/sizeof(u32)] = {0};
 static u32 secureArea[CARD_SECURE_AREA_SIZE/sizeof(u32)] = {0};
@@ -290,8 +290,9 @@ static void switchToTwlBlowfish(sNDSHeaderExt* ndsHeader) {
 int cardInit (sNDSHeaderExt* ndsHeader)
 {
 	u32 portFlagsKey1, portFlagsSecRead;
-	normalChip = false;	// As defined by GBAtek, normal chip secure area is accessed in blocks of 0x200, other chip in blocks of 0x1000
-	nandRomMode = true;
+	normalChip = false; // As defined by GBAtek, normal chip secure area and header are accessed in blocks of 0x200, other chip in blocks of 0x1000
+	nandChip = false;
+	nandRomMode = -1;
 	int secureBlockNumber;
 	int i;
 	u8 cmdData[8] __attribute__ ((aligned));
@@ -330,14 +331,9 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 
 	u32 iCardId=cardReadID(CARD_CLK_SLOW);
 	while(REG_ROMCTRL & CARD_BUSY);
-	//u32 iCheapCard=iCardId&0x80000000;
 
-	// Check if NAND
-	nandChip = (iCardId >> 24) & BIT(3);
-	if (nandChip) {
-		// cardParamCommand(CARD_CMD_NAND_ROM_MODE, 0, CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(7) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F), NULL, 0);
-		nandRomMode = true;
-	}
+	normalChip = (iCardId & BIT(31)) != 0; // ROM chip ID MSB
+	nandChip = (iCardId & BIT(27)) != 0; // Card has a NAND chip
 
 	// Read the header
 	cardParamCommand (CARD_CMD_HEADER_READ, 0,
@@ -349,7 +345,7 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 	if ((ndsHeader->unitCode != 0) || (ndsHeader->dsi_flags != 0))
 	{
 		// Extended header found
-		if(true) { // TODO: some need single 1000h?
+		if(normalChip) {
 			for(int i = 0; i < 8; i++) {
 				cardParamCommand (CARD_CMD_HEADER_READ, i * 0x200,
 					CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(1) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
@@ -391,7 +387,6 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 		((ndsHeader->cardControlBF & (CARD_CLK_SLOW|CARD_DELAY1(0x1FFF))) + ((ndsHeader->cardControlBF & CARD_DELAY2(0x3F)) >> 16));
 
 	// Adjust card transfer method depending on the most significant bit of the chip ID
-	normalChip = (iCardId & 0x80000000) != 0;		// ROM chip ID MSB
 	if (!normalChip) {
 		portFlagsKey1 |= CARD_SEC_LARGE;
 	}
@@ -497,15 +492,15 @@ void cardRead (u32 src, void* dest)
 		return;
 	}
 
-	if (nandChip) {
-		if (src < ndsHeader->nandRomEnd * 0x20000 /*dsi: 80000h?*/ && !nandRomMode) {
-			cardParamCommand(CARD_CMD_NAND_ROM_MODE, 0, CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(7) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F), NULL, 0);
-			nandRomMode = true;
-		} else if (src > ndsHeader->nandRwStart * 0x20000 /*dsi: 80000h?*/ && nandRomMode) {
-			cardParamCommand(CARD_CMD_NAND_RW_MODE, 0, CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(7) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F), NULL, 0);
-			nandRomMode = false;
-		}
-	}
+	// if (nandChip) {
+	// 	if (src < ndsHeader->nandRomEnd * 0x20000 /*dsi: 80000h?*/ && nandRomMode != CARD_CMD_NAND_ROM_MODE) {
+	// 		cardParamCommand(CARD_CMD_NAND_ROM_MODE, 0, CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F), NULL, 0);
+	// 		nandRomMode = CARD_CMD_NAND_ROM_MODE;
+	// 	} else if (src > ndsHeader->nandRwStart * 0x20000 /*dsi: 80000h?*/ && nandRomMode != CARD_CMD_NAND_RW_MODE) {
+	// 		cardParamCommand(CARD_CMD_NAND_RW_MODE, 0, CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F), NULL, 0);
+	// 		nandRomMode = CARD_CMD_NAND_RW_MODE;
+	// 	}
+	// }
 
 	cardParamCommand (CARD_CMD_DATA_READ, src,
 		portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_BLK_SIZE(1),
