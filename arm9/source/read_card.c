@@ -72,8 +72,7 @@ static u32 secureArea[CARD_SECURE_AREA_SIZE/sizeof(u32)] = {0};
 static const u8 cardSeedBytes[] = {0xE8, 0x4D, 0x5A, 0xB1, 0x17, 0x8F, 0x99, 0xD5};
 
 static u32 getRandomNumber(void) {
-	return 4;	// chosen by fair dice roll.
-				// guaranteed to be random.
+	return rand();
 }
 
 static void decryptSecureArea (u32 gameCode, u32* secureArea, int iCardDevice)
