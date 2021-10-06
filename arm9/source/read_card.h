@@ -36,9 +36,14 @@
 extern "C" {
 #endif
 
+extern u32 cardNandRomEnd;
+extern u32 cardNandRwStart;
+
 int cardInit (sNDSHeaderExt* ndsHeader);
 
-void cardRead (u32 src, void* dest);
+void cardRead (u32 src, void* dest, bool nandSave);
+
+void cardWriteNand (void* src, u32 dest);
 
 #ifdef __cplusplus
 }

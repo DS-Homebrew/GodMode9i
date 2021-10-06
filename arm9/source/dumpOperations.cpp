@@ -30,6 +30,26 @@ void dumpFailMsg(bool save) {
 	}
 }
 
+void saveWriteFailMsg(void) {
+	const std::string_view sizeError = "The size of this save doesn't match the size of the inserted game card.\n\nWrite cancelled!";
+
+	font->clear(false);
+	font->print(0, 0, false, sizeError, Alignment::left, Palette::red);
+	font->print(0, font->calcHeight(sizeError) + 1, false, "(<A> OK)");
+	font->update(false);
+
+	u16 pressed;
+	do {
+		// Print time
+		font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
+		font->update(true);
+
+		scanKeys();
+		pressed = keysDownRepeat();
+		swiWaitForVBlank();
+	} while (!(pressed & KEY_A));
+}
+
 //---------------------------------------------------------------------------------
 // https://github.com/devkitPro/libnds/blob/master/source/common/cardEeprom.c#L74
 // with Pokémon Mystery Dungeon - Explorers of Sky (128 KiB EEPROM) fixed
@@ -215,7 +235,7 @@ void ndsCardSaveDump(const char* filename) {
 					font->update(false);
 
 					for (u32 i = 0; i < 0x8000; i += 0x200) {
-						cardRead(ndsCardHeader.nandRwStart + src + i, copyBuf + i);
+						cardRead(cardNandRwStart + src + i, copyBuf + i, true);
 					}
 					if (fwrite(copyBuf, 1, (currentSize >= 0x8000 ? 0x8000 : currentSize), destinationFile) < 1) {
 						dumpFailMsg(true);
@@ -273,104 +293,144 @@ void ndsCardSaveRestore(const char *filename) {
 	} while (!(pressed & (KEY_A | KEY_B)));
 
 	if(pressed & KEY_A) {
-		auxspi_extra card_type = auxspi_has_extra();
-		bool auxspi = card_type == AUXSPI_INFRARED;
-		FILE *in = fopen(filename, "rb");
-		if(in) {
-			unsigned char *buffer;
-			int size;
-			int type;
-			int length;
-			unsigned int num_blocks = 0, shift = 0, LEN = 0;
-			if(auxspi) {
-				size = auxspi_save_size_log_2(card_type);
-				type = auxspi_save_type(card_type);
-				switch(type) {
-				case 1:
-					shift = 4; // 16 bytes
-					break;
-				case 2:
-					shift = 5; // 32 bytes
-					break;
-				case 3:
-					shift = 8; // 256 bytes
-					break;
-				default:
-					return;
+		int type = cardEepromGetTypeFixed();
+
+		if(type == -1) { // NAND
+			if (cardInit(&ndsCardHeader) != 0) {
+				font->clear(false);
+				font->print(0, 0, false, "Unable to restore the save.");
+				font->update(false);
+				for (int i = 0; i < 60 * 2; i++) {
+					swiWaitForVBlank();
 				}
-				LEN = 1 << shift;
-				num_blocks = 1 << (size - shift);
-			} else {
-				type = cardEepromGetTypeFixed();
-				size = cardEepromGetSizeFixed();
+				return;
 			}
+
+			u32 saveSize = cardNandGetSaveSize();
+
+			if(saveSize == 0) {
+				dumpFailMsg(true);
+				return;
+			}
+
+			FILE* in = fopen(filename, "rb");
+
 			fseek(in, 0, SEEK_END);
-			length = ftell(in);
+			size_t length = ftell(in);
 			fseek(in, 0, SEEK_SET);
-			if(length != (auxspi ? (int)(LEN * num_blocks) : size)) {
+			if(length != saveSize) {
 				fclose(in);
 
-				const std::string_view sizeError = "The size of this save doesn't match the size of the inserted game card.\n\nWrite cancelled!";
+				saveWriteFailMsg();
+				return;
+			}
 
-				font->clear(false);
-				font->print(0, 0, false, sizeError, Alignment::left, Palette::red);
-				font->print(0, font->calcHeight(sizeError) + 1, false, "(<A> OK)");
-				font->update(false);
+			u32 currentSize = saveSize;
+			if (in) {
 
-				do {
+				font->print(0, 4, false, "Progress:");
+				font->print(0, 5, false, "[");
+				font->print(-1, 5, false, "]");
+				for (u32 src = 0; src < saveSize; src += 0x8000) {
 					// Print time
 					font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
 					font->update(true);
 
-					scanKeys();
-					pressed = keysDownRepeat();
-					swiWaitForVBlank();
-				} while (!(pressed & KEY_A));
-				return;
-			}
-
-			font->clear(false);
-			font->print(0, 0, false, "Restoring save...");
-			font->print(0, 1, false, "Do not remove the NDS card.");
-			font->print(0, 4, false, "Progress:");
-			font->update(false);
-
-			if(type == 3) {
-				if(auxspi)
-					auxspi_erase(card_type);
-				else
-					cardEepromChipEraseFixed();
-			}
-			if(auxspi){
-				buffer = new unsigned char[LEN];
-				font->print(0, 5, false, "[");
-				font->print(-1, 5, false, "]");
-				for(unsigned int i = 0; i < num_blocks; i++) {
-					font->print((i * (SCREEN_COLS - 2) / num_blocks) + 1, 5, false, "=");
-					font->printf(0, 6, false, Alignment::left, Palette::white, "%d/%d Bytes", i * LEN, length);
+					font->print((src / (saveSize / (SCREEN_COLS - 2))) + 1, 5, false, "=");
+					font->printf(0, 6, false, Alignment::left, Palette::white, "%d/%d Bytes", src, saveSize);
 					font->update(false);
 
-					fread(buffer, 1, LEN, in);
-					auxspi_write_data(i << shift, buffer, LEN, type, card_type);
+					fread(copyBuf, 1, 0x8000, in);
+					for (u32 i = 0; i < 0x8000; i += 0x800) {
+						cardWriteNand(copyBuf + i, cardNandRwStart + src + i);
+					}
+					currentSize -= 0x8000;
 				}
-			} else {
-				int blocks = size / 32;
-				int written = 0;
-				buffer = new unsigned char[blocks];
-				font->print(0, 5, false, "[");
-				font->print(-1, 5, false, "]");
-				for(unsigned int i = 0; i < 32; i++) {
-					font->print((i * (SCREEN_COLS - 2) / 32) + 1, 5, false, "=");
-					font->printf(0, 6, false, Alignment::left, Palette::white, "%d/%d Bytes", written, size);
-					font->update(false);
-
-					fread(buffer, 1, blocks, in);
-					cardWriteEeprom(written, buffer, blocks, type);
-					written += blocks;
-				}
+				fclose(in);
 			}
-			delete[] buffer;
-			fclose(in);
+		} else { // SPI
+			auxspi_extra card_type = auxspi_has_extra();
+			bool auxspi = card_type == AUXSPI_INFRARED;
+			FILE *in = fopen(filename, "rb");
+			if(in) {
+				unsigned char *buffer;
+				int size;
+				int length;
+				unsigned int num_blocks = 0, shift = 0, LEN = 0;
+				if(auxspi) {
+					size = auxspi_save_size_log_2(card_type);
+					type = auxspi_save_type(card_type);
+					switch(type) {
+					case 1:
+						shift = 4; // 16 bytes
+						break;
+					case 2:
+						shift = 5; // 32 bytes
+						break;
+					case 3:
+						shift = 8; // 256 bytes
+						break;
+					default:
+						return;
+					}
+					LEN = 1 << shift;
+					num_blocks = 1 << (size - shift);
+				} else {
+					size = cardEepromGetSizeFixed();
+				}
+				fseek(in, 0, SEEK_END);
+				length = ftell(in);
+				fseek(in, 0, SEEK_SET);
+				if(length != (auxspi ? (int)(LEN * num_blocks) : size)) {
+					fclose(in);
+
+					saveWriteFailMsg();
+					return;
+				}
+
+				font->clear(false);
+				font->print(0, 0, false, "Restoring save...");
+				font->print(0, 1, false, "Do not remove the NDS card.");
+				font->print(0, 4, false, "Progress:");
+				font->update(false);
+
+				if(type == 3) {
+					if(auxspi)
+						auxspi_erase(card_type);
+					else
+						cardEepromChipEraseFixed();
+				}
+				if(auxspi){
+					buffer = new unsigned char[LEN];
+					font->print(0, 5, false, "[");
+					font->print(-1, 5, false, "]");
+					for(unsigned int i = 0; i < num_blocks; i++) {
+						font->print((i * (SCREEN_COLS - 2) / num_blocks) + 1, 5, false, "=");
+						font->printf(0, 6, false, Alignment::left, Palette::white, "%d/%d Bytes", i * LEN, length);
+						font->update(false);
+
+						fread(buffer, 1, LEN, in);
+						auxspi_write_data(i << shift, buffer, LEN, type, card_type);
+					}
+				} else {
+					int blocks = size / 32;
+					int written = 0;
+					buffer = new unsigned char[blocks];
+					font->print(0, 5, false, "[");
+					font->print(-1, 5, false, "]");
+					for(unsigned int i = 0; i < 32; i++) {
+						font->print((i * (SCREEN_COLS - 2) / 32) + 1, 5, false, "=");
+						font->printf(0, 6, false, Alignment::left, Palette::white, "%d/%d Bytes", written, size);
+						font->update(false);
+
+						fread(buffer, 1, blocks, in);
+						cardWriteEeprom(written, buffer, blocks, type);
+						written += blocks;
+					}
+				}
+				delete[] buffer;
+				fclose(in);
+			}
 		}
 	}
 }
@@ -604,7 +664,7 @@ void ndsCardDump(void) {
 					iprintf ("\x1b[8;0H");
 					iprintf ("Read:\n");
 					iprintf ("%i/%i Bytes                       ", (int)src, (int)romSize);
-					cardRead (src, (void*)0x09000000+(src % 0x800000));
+					cardRead (src, (void*)0x09000000+(src % 0x800000), false);
 				}
 				iprintf("\x1b[15;0H");
 				iprintf("Please switch to the\nflashcard, then press A.\n");
@@ -664,17 +724,12 @@ void ndsCardDump(void) {
 					font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
 					font->update(true);
 
-					// TODO: Remove, just for testing
-					scanKeys();
-					if(keysDown() & KEY_B)
-						break;
-
 					font->print((src / (romSize / (SCREEN_COLS - 2))) + 1, 5, false, "=");
 					font->printf(0, 6, false, Alignment::left, Palette::white, "%d/%d Bytes", src, romSize);
 					font->update(false);
 
 					for (u32 i = 0; i < 0x8000; i += 0x200) {
-						cardRead (src+i, copyBuf+i);
+						cardRead (src+i, copyBuf+i, false);
 					}
 					if (fwrite(copyBuf, 1, (currentSize>=0x8000 ? 0x8000 : currentSize), destinationFile) < 1) {
 						dumpFailMsg(false);
@@ -686,8 +741,7 @@ void ndsCardDump(void) {
 			} else {
 				dumpFailMsg(false);
 			}
-			// TODO: Uncomment, just commented for testing
-			// ndsCardSaveDump(destSavPath);
+			ndsCardSaveDump(destSavPath);
 		//}
 	}
 }
