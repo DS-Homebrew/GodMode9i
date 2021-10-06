@@ -194,7 +194,7 @@ u32 cardNandGetSaveSize(void) {
 		case 0x00524F55: // 'UOR'
 			return 16 << 20; // 16MByte - WarioWare D.I.Y.
 		case 0x004B5355: // 'USK'
-			return 82 << 20; // 82MByte - Face Training
+			return 64 << 20; // 64MByte - Face Training
 	}
 
 	return 0;
