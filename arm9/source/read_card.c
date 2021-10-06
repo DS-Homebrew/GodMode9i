@@ -547,7 +547,7 @@ void cardRead (u32 src, void* dest, bool nandSave)
 		portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_BLK_SIZE(1),
 		dest, 0x200/sizeof(u32));
 
-	if (src > ndsHeader->romSize) {
+	if (src > ndsHeader->romSize && !(nandSave && src >= cardNandRwStart)) {
 		switchToTwlBlowfish(ndsHeader);
 	}
 }
