@@ -535,7 +535,7 @@ void cardRead (u32 src, void* dest, bool nandSave)
 		if ((src < cardNandRomEnd || !nandSave) && nandSection != -1) {
 			cardParamCommand(CARD_CMD_NAND_ROM_MODE, 0, portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW, NULL, 0);
 			nandSection = -1;
-		} else if (src >= cardNandRwStart && nandSection != (src - cardNandRwStart) / (128 << 10)) {
+		} else if (src >= cardNandRwStart && nandSection != (src - cardNandRwStart) / (128 << 10) && nandSave) {
 			if(nandSection != -1) // Need to switch back to ROM mode before switching to another RW section
 				cardParamCommand(CARD_CMD_NAND_ROM_MODE, 0, portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW, NULL, 0);
 			cardParamCommand(CARD_CMD_NAND_RW_MODE, src, portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW, NULL, 0);
