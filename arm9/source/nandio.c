@@ -11,8 +11,6 @@
 //#define SECTOR_SIZE 512
 #define CRYPT_BUF_LEN 64
 
-extern bool is3DS;
-
 extern bool nand_Startup();
 
 static u8* crypt_buf = 0;
@@ -49,11 +47,11 @@ bool nandio_startup() {
 	if (!nand_Startup()) return false;
 
 	nand_ReadSectors(0, 1, sector_buf);
-	is3DS = parse_ncsd(sector_buf, 0) == 0;
-	//if (is3DS) return false;
+	bool isDSi = parse_ncsd(sector_buf, 0) != 0;
+	//if (!isDSi) return false;
 
 	if (*(u32*)(0x2FFD7BC) == 0) {
-		if (is3DS) {
+		if (!isDSi) {
 			FILE* cidFile = fopen("sd:/gm9/out/nand_cid.mem", "rb");
 			if (!cidFile) return false;
 			fread((void*)0x2FFD7BC, 1, 16, cidFile);
@@ -75,12 +73,12 @@ bool nandio_startup() {
 	}
 
 	// iprintf("sector 0 is %s\n", is3DS ? "3DS" : "DSi");
-	dsi_crypt_init((const u8*)consoleIDfixed, (const u8*)0x2FFD7BC, is3DS);
+	dsi_crypt_init((const u8*)consoleIDfixed, (const u8*)0x2FFD7BC, !isDSi);
 	dsi_nand_crypt(sector_buf, sector_buf, 0, SECTOR_SIZE / AES_BLOCK_SIZE);
-	parse_mbr(sector_buf, is3DS, 0);
+	parse_mbr(sector_buf, !isDSi, 0);
 
 	mbr_t *mbr = (mbr_t*)sector_buf;
-	nandio_set_fat_sig_fix(is3DS ? 0 : mbr->partitions[0].offset);
+	nandio_set_fat_sig_fix(isDSi ? mbr->partitions[0].offset : 0);
 
 	if (crypt_buf == 0) {
 		crypt_buf = (u8*)memalign(32, SECTOR_SIZE * CRYPT_BUF_LEN);

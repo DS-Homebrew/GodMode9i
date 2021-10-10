@@ -154,6 +154,7 @@ int main(int argc, char **argv) {
 		*(vu32*)(0x0DFFFE0C) = 0x474D3969;		// Check for 32MB of RAM
 		if (*(vu32*)(0x0DFFFE0C) == 0x474D3969) {
 			ramdrive2Mount();
+			is3DS = fifoGetValue32(FIFO_USER_05) != 0xD2;
 		}
 		if (!(keysHeld() & KEY_X)) {
 			nandMounted = nandMount();

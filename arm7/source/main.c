@@ -123,6 +123,12 @@ int main() {
 
 	setPowerButtonCB(powerButtonCB);
 
+	// Check for 3DS
+	u8 byteBak = i2cReadRegister(0x4A, 0x71);
+	i2cWriteRegister(0x4A, 0x71, 0xD2);
+	fifoSendValue32(FIFO_USER_05, i2cReadRegister(0x4A, 0x71));
+	i2cWriteRegister(0x4A, 0x71, byteBak);
+
 	if (isDSiMode() /*|| ((REG_SCFG_EXT & BIT(17)) && (REG_SCFG_EXT & BIT(18)))*/) {
 		/*for (int i = 0; i < 8; i++) {
 			*(u8*)(0x2FFFD00+i) = *(u8*)(0x4004D07-i);	// Get ConsoleID
