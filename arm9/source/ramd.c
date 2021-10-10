@@ -1,9 +1,12 @@
 
 #include <nds.h>
+#include <nds/ndstypes.h>
 #include <nds/disc_io.h>
 #include "tonccpy.h"
 
 #define SECTOR_SIZE 512
+
+u8* ramdLoc = (u8*)NULL;
 
 bool ramd_startup() {
 	return true;
@@ -14,12 +17,12 @@ bool ramd_is_inserted() {
 }
 
 bool ramd_read_sectors(sec_t sector, sec_t numSectors, void *buffer) {
-	tonccpy(buffer, (void*)0x02500000+(sector << 9), numSectors << 9);
+	tonccpy(buffer, ramdLoc+(sector << 9), numSectors << 9);
 	return true;
 }
 
 bool ramd_write_sectors(sec_t sector, sec_t numSectors, const void *buffer) {
-	tonccpy((void*)0x02500000+(sector << 9), buffer, numSectors << 9);
+	tonccpy(ramdLoc+(sector << 9), buffer, numSectors << 9);
 	return true;
 }
 

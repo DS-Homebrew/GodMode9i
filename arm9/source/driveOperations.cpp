@@ -339,7 +339,8 @@ void flashcardUnmount(void) {
 }
 
 TWL_CODE void ramdrive1Mount(void) {
-	LZ77_Decompress((u8*)__9MB_lz77, (u8*)0x02500000);
+	ramdLoc = new u8[0x900200];
+	LZ77_Decompress((u8*)__9MB_lz77, ramdLoc);
 	fatMountSimple("ram1", &io_ram_drive);
 	ramdrive1Mounted = (access("ram1:/", F_OK) == 0);
 }
