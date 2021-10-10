@@ -533,12 +533,12 @@ void cardRead (u32 src, void* dest, bool nandSave)
 
 	if (nandChip) {
 		if ((src < cardNandRomEnd || !nandSave) && nandSection != -1) {
-			cardParamCommand(CARD_CMD_NAND_ROM_MODE, 0, portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW, NULL, 0);
+			cardParamCommand(CARD_CMD_NAND_ROM_MODE, 0, portFlags | CARD_ACTIVATE | CARD_nRESET, NULL, 0);
 			nandSection = -1;
 		} else if (src >= cardNandRwStart && nandSection != (src - cardNandRwStart) / (128 << 10) && nandSave) {
 			if(nandSection != -1) // Need to switch back to ROM mode before switching to another RW section
-				cardParamCommand(CARD_CMD_NAND_ROM_MODE, 0, portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW, NULL, 0);
-			cardParamCommand(CARD_CMD_NAND_RW_MODE, src, portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW, NULL, 0);
+				cardParamCommand(CARD_CMD_NAND_ROM_MODE, 0, portFlags | CARD_ACTIVATE | CARD_nRESET, NULL, 0);
+			cardParamCommand(CARD_CMD_NAND_RW_MODE, src, portFlags | CARD_ACTIVATE | CARD_nRESET, NULL, 0);
 			nandSection = (src - cardNandRwStart) / (128 << 10);
 		}
 	}
@@ -560,24 +560,24 @@ void cardWriteNand (void* src, u32 dest)
 
 	if (nandSection != (dest - cardNandRwStart) / (128 << 10)) {
 		if(nandSection != -1) // Need to switch back to ROM mode before switching to another RW section
-			cardParamCommand(CARD_CMD_NAND_ROM_MODE, 0, portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW, NULL, 0);
-		cardParamCommand(CARD_CMD_NAND_RW_MODE, dest, portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW, NULL, 0);
+			cardParamCommand(CARD_CMD_NAND_ROM_MODE, 0, portFlags | CARD_ACTIVATE | CARD_nRESET, NULL, 0);
+		cardParamCommand(CARD_CMD_NAND_RW_MODE, dest, portFlags | CARD_ACTIVATE | CARD_nRESET, NULL, 0);
 		nandSection = (dest - cardNandRwStart) / (128 << 10);
 	}
 
-	cardParamCommand(CARD_CMD_NAND_WRITE_ENABLE, 0, portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW, NULL, 0);
+	cardParamCommand(CARD_CMD_NAND_WRITE_ENABLE, 0, portFlags | CARD_ACTIVATE | CARD_nRESET, NULL, 0);
 
 	const u8 cmdData[8] = {0, 0, 0, dest, dest >> 8, dest >> 16, dest >> 24, CARD_CMD_NAND_WRITE_BUFFER};
 	for (int i = 0; i < 4; i++) {
 		cardPolledTransferWrite(portFlags | CARD_ACTIVATE | CARD_WR | CARD_nRESET | CARD_BLK_SIZE(1), src + (i * 0x200), 0x200 / sizeof(u32), cmdData);
 	}
 
-	cardParamCommand(CARD_CMD_NAND_COMMIT_BUFFER, 0, portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW, NULL, 0);
+	cardParamCommand(CARD_CMD_NAND_COMMIT_BUFFER, 0, portFlags | CARD_ACTIVATE | CARD_nRESET, NULL, 0);
 
 	u32 status;
 	do {
-		cardParamCommand(CARD_CMD_NAND_READ_STATUS, 0, portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(7), &status, 1);
+		cardParamCommand(CARD_CMD_NAND_READ_STATUS, 0, portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_BLK_SIZE(7), &status, 1);
 	} while((status & BIT(5)) == 0);
 
-	cardParamCommand(CARD_CMD_NAND_DISCARD_BUFFER, 0, portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW, NULL, 0);
+	cardParamCommand(CARD_CMD_NAND_DISCARD_BUFFER, 0, portFlags | CARD_ACTIVATE | CARD_nRESET, NULL, 0);
 }
