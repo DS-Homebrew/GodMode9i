@@ -309,7 +309,11 @@ void ndsCardSaveRestore(const char *filename) {
 			u32 saveSize = cardNandGetSaveSize();
 
 			if(saveSize == 0) {
-				dumpFailMsg(true);
+				font->print(0, 0, false, "Unable to restore the save.");
+				font->update(false);
+				for (int i = 0; i < 60 * 2; i++) {
+					swiWaitForVBlank();
+				}
 				return;
 			}
 
@@ -327,22 +331,21 @@ void ndsCardSaveRestore(const char *filename) {
 
 			u32 currentSize = saveSize;
 			if (in) {
-
 				font->print(0, 4, false, "Progress:");
 				font->print(0, 5, false, "[");
 				font->print(-1, 5, false, "]");
-				for (u32 src = 0; src < saveSize; src += 0x8000) {
+				for (u32 dest = 0; dest < saveSize; dest += 0x8000) {
 					// Print time
 					font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
 					font->update(true);
 
-					font->print((src / (saveSize / (SCREEN_COLS - 2))) + 1, 5, false, "=");
-					font->printf(0, 6, false, Alignment::left, Palette::white, "%d/%d Bytes", src, saveSize);
+					font->print((dest / (saveSize / (SCREEN_COLS - 2))) + 1, 5, false, "=");
+					font->printf(0, 6, false, Alignment::left, Palette::white, "%d/%d Bytes", dest, saveSize);
 					font->update(false);
 
 					fread(copyBuf, 1, 0x8000, in);
 					for (u32 i = 0; i < 0x8000; i += 0x800) {
-						cardWriteNand(copyBuf + i, cardNandRwStart + src + i);
+						cardWriteNand(copyBuf + i, cardNandRwStart + dest + i);
 					}
 					currentSize -= 0x8000;
 				}
