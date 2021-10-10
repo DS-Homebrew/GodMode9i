@@ -42,6 +42,18 @@ enum {
 		ERR_HEAD_CRC  = 0x16,
 } ERROR_CODES;
 
+// NAND Card commands
+// https://problemkaputt.de/gbatek-ds-cartridge-nand.htm
+#define CARD_CMD_NAND_WRITE_BUFFER   0x81
+#define CARD_CMD_NAND_COMMIT_BUFFER  0x82
+#define CARD_CMD_NAND_DISCARD_BUFFER 0x84
+#define CARD_CMD_NAND_WRITE_ENABLE   0x85
+#define CARD_CMD_NAND_ROM_MODE       0x8B
+#define CARD_CMD_NAND_RW_MODE        0xB2
+#define CARD_CMD_NAND_READ_STATUS    0xD6
+#define CARD_CMD_NAND_UNKNOWN        0xBB
+#define CARD_CMD_NAND_READ_ID        0x94
+
 typedef union
 {
 	char title[4];
@@ -55,11 +67,42 @@ static u32 portFlags = 0;
 static u32 headerData[0x1000/sizeof(u32)] = {0};
 static u32 secureArea[CARD_SECURE_AREA_SIZE/sizeof(u32)] = {0};
 
+static bool nandChip = false;
+static int nandSection = -1; // -1 = ROM, above that is the current 128 KiB section in RW
+u32 cardNandRomEnd = 0;
+u32 cardNandRwStart = 0;
+
 static const u8 cardSeedBytes[] = {0xE8, 0x4D, 0x5A, 0xB1, 0x17, 0x8F, 0x99, 0xD5};
 
 static u32 getRandomNumber(void) {
-	return 4;	// chosen by fair dice roll.
-				// guaranteed to be random.
+	return rand();
+}
+
+//---------------------------------------------------------------------------------
+// https://github.com/devkitPro/libnds/blob/105d4943dbac8f2bd99a47b22cd3ed48f96af083/source/common/card.c#L47-L62
+// but modified to write if CARD_WR is set.
+static void cardPolledTransferWrite(u32 flags, u32 *buffer, u32 length, const u8 *command) {
+//---------------------------------------------------------------------------------
+	cardWriteCommand(command);
+	REG_ROMCTRL = flags | CARD_BUSY;
+	u32 * target = buffer + length;
+	do {
+		// Read/write data if available
+		if (REG_ROMCTRL & CARD_DATA_READY) {
+			if (flags & CARD_WR) { // Write
+				if (NULL != buffer && buffer < target)
+					REG_CARD_DATA_RD = *buffer++;
+				else
+					REG_CARD_DATA_RD = 0;
+			} else { // Read
+				u32 data = REG_CARD_DATA_RD;
+				if (NULL != buffer && buffer < target)
+					*buffer++ = REG_CARD_DATA_RD;
+				else
+					(void)data;
+			}
+		}
+	} while (REG_ROMCTRL & CARD_BUSY);
 }
 
 static void decryptSecureArea (u32 gameCode, u32* secureArea, int iCardDevice)
@@ -276,7 +319,9 @@ static void switchToTwlBlowfish(sNDSHeaderExt* ndsHeader) {
 int cardInit (sNDSHeaderExt* ndsHeader)
 {
 	u32 portFlagsKey1, portFlagsSecRead;
-	normalChip = false;	// As defined by GBAtek, normal chip secure area is accessed in blocks of 0x200, other chip in blocks of 0x1000
+	normalChip = false; // As defined by GBAtek, normal chip secure area and header are accessed in blocks of 0x200, other chip in blocks of 0x1000
+	nandChip = false;
+	nandSection = -1;
 	int secureBlockNumber;
 	int i;
 	u8 cmdData[8] __attribute__ ((aligned));
@@ -285,7 +330,7 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 	twlBlowfish = false;
 
 	sysSetCardOwner (BUS_OWNER_ARM9);	// Allow arm9 to access NDS cart
-	if (isDSiMode()) { 
+	if (isDSiMode()) {
 		// Reset card slot
 		disableSlot1();
 		for(i = 0; i < 25; i++) { swiWaitForVBlank(); }
@@ -296,23 +341,25 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 		cardParamCommand (CARD_CMD_DUMMY, 0,
 			CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(1) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
 			NULL, 0);
-	} else {
-		REG_ROMCTRL=0;
-		REG_AUXSPICNT=0;
-		//ioDelay2(167550);
-		for(i = 0; i < 25; i++) { swiWaitForVBlank(); }
-		REG_AUXSPICNT=CARD_CR1_ENABLE|CARD_CR1_IRQ;
-		REG_ROMCTRL=CARD_nRESET|CARD_SEC_SEED;
-		while(REG_ROMCTRL&CARD_BUSY) ;
-		cardReset();
-		while(REG_ROMCTRL&CARD_BUSY) ;
 	}
+
+	REG_ROMCTRL=0;
+	REG_AUXSPICNT=0;
+	//ioDelay2(167550);
+	for(i = 0; i < 25; i++) { swiWaitForVBlank(); }
+	REG_AUXSPICNT=CARD_CR1_ENABLE|CARD_CR1_IRQ;
+	REG_ROMCTRL=CARD_nRESET|CARD_SEC_SEED;
+	while(REG_ROMCTRL&CARD_BUSY) ;
+	cardReset();
+	while(REG_ROMCTRL&CARD_BUSY) ;
 
 	toncset(headerData, 0, 0x1000);
 
-	u32 iCardId=cardReadID(CARD_CLK_SLOW);	
+	u32 iCardId=cardReadID(CARD_CLK_SLOW);
 	while(REG_ROMCTRL & CARD_BUSY);
-	//u32 iCheapCard=iCardId&0x80000000;
+
+	normalChip = (iCardId & BIT(31)) != 0; // ROM chip ID MSB
+	nandChip = (iCardId & BIT(27)) != 0; // Card has a NAND chip
 
 	// Read the header
 	cardParamCommand (CARD_CMD_HEADER_READ, 0,
@@ -324,9 +371,17 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 	if ((ndsHeader->unitCode != 0) || (ndsHeader->dsi_flags != 0))
 	{
 		// Extended header found
-		cardParamCommand (CARD_CMD_HEADER_READ, 0,
-			CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(4) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
-			(void*)headerData, 0x1000/sizeof(u32));
+		if(normalChip) {
+			for(int i = 0; i < 8; i++) {
+				cardParamCommand (CARD_CMD_HEADER_READ, i * 0x200,
+					CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(1) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
+					headerData + i * 0x200 / sizeof(u32), 0x200/sizeof(u32));
+			}
+		} else {
+			cardParamCommand (CARD_CMD_HEADER_READ, 0,
+				CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(4) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
+				(void*)headerData, 0x1000/sizeof(u32));
+		}
 		if (ndsHeader->dsi1[0]==0xFFFFFFFF && ndsHeader->dsi1[1]==0xFFFFFFFF
 		 && ndsHeader->dsi1[2]==0xFFFFFFFF && ndsHeader->dsi1[3]==0xFFFFFFFF)
 		{
@@ -358,7 +413,6 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 		((ndsHeader->cardControlBF & (CARD_CLK_SLOW|CARD_DELAY1(0x1FFF))) + ((ndsHeader->cardControlBF & CARD_DELAY2(0x3F)) >> 16));
 
 	// Adjust card transfer method depending on the most significant bit of the chip ID
-	normalChip = (iCardId & 0x80000000) != 0;		// ROM chip ID MSB
 	if (!normalChip) {
 		portFlagsKey1 |= CARD_SEC_LARGE;
 	}
@@ -440,10 +494,23 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 		//return normalChip ? ERR_SEC_NORM : ERR_SEC_OTHR;
 	}
 
+	// Set NAND card section location variables
+	if (nandChip) {
+		if(ndsHeader->nandRomEnd != 0) {
+			// TWL cards (Face Training) multiply by 0x80000 instead of 0x20000
+			cardNandRomEnd = ndsHeader->nandRomEnd * (ndsHeader->unitCode == 0 ? 0x20000 : 0x80000);
+			cardNandRwStart = ndsHeader->nandRwStart * (ndsHeader->unitCode == 0 ? 0x20000 : 0x80000);
+		} else {
+			// Jam with the Band (J) (大合奏！バンドブラザーズ) doesn't have the RW section in the header
+			cardNandRomEnd = 0x7200000;
+			cardNandRwStart = 0x7200000;
+		}
+	}
+
 	return ERR_NONE;
 }
 
-void cardRead (u32 src, void* dest)
+void cardRead (u32 src, void* dest, bool nandSave)
 {
 	sNDSHeaderExt* ndsHeader = (sNDSHeaderExt*)headerData;
 
@@ -464,12 +531,53 @@ void cardRead (u32 src, void* dest)
 		return;
 	}
 
+	if (nandChip) {
+		if ((src < cardNandRomEnd || !nandSave) && nandSection != -1) {
+			cardParamCommand(CARD_CMD_NAND_ROM_MODE, 0, portFlags | CARD_ACTIVATE | CARD_nRESET, NULL, 0);
+			nandSection = -1;
+		} else if (src >= cardNandRwStart && nandSection != (src - cardNandRwStart) / (128 << 10) && nandSave) {
+			if(nandSection != -1) // Need to switch back to ROM mode before switching to another RW section
+				cardParamCommand(CARD_CMD_NAND_ROM_MODE, 0, portFlags | CARD_ACTIVATE | CARD_nRESET, NULL, 0);
+			cardParamCommand(CARD_CMD_NAND_RW_MODE, src, portFlags | CARD_ACTIVATE | CARD_nRESET, NULL, 0);
+			nandSection = (src - cardNandRwStart) / (128 << 10);
+		}
+	}
+
 	cardParamCommand (CARD_CMD_DATA_READ, src,
 		portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_BLK_SIZE(1),
 		dest, 0x200/sizeof(u32));
 
-	if (src > ndsHeader->romSize) {
+	if (src > ndsHeader->romSize && !(nandSave && src >= cardNandRwStart)) {
 		switchToTwlBlowfish(ndsHeader);
 	}
 }
 
+// src must be a 0x800 byte array
+void cardWriteNand (void* src, u32 dest)
+{
+	if (dest < cardNandRwStart || !nandChip)
+		return;
+
+	if (nandSection != (dest - cardNandRwStart) / (128 << 10)) {
+		if(nandSection != -1) // Need to switch back to ROM mode before switching to another RW section
+			cardParamCommand(CARD_CMD_NAND_ROM_MODE, 0, portFlags | CARD_ACTIVATE | CARD_nRESET, NULL, 0);
+		cardParamCommand(CARD_CMD_NAND_RW_MODE, dest, portFlags | CARD_ACTIVATE | CARD_nRESET, NULL, 0);
+		nandSection = (dest - cardNandRwStart) / (128 << 10);
+	}
+
+	cardParamCommand(CARD_CMD_NAND_WRITE_ENABLE, 0, portFlags | CARD_ACTIVATE | CARD_nRESET, NULL, 0);
+
+	const u8 cmdData[8] = {0, 0, 0, dest, dest >> 8, dest >> 16, dest >> 24, CARD_CMD_NAND_WRITE_BUFFER};
+	for (int i = 0; i < 4; i++) {
+		cardPolledTransferWrite(portFlags | CARD_ACTIVATE | CARD_WR | CARD_nRESET | CARD_BLK_SIZE(1), src + (i * 0x200), 0x200 / sizeof(u32), cmdData);
+	}
+
+	cardParamCommand(CARD_CMD_NAND_COMMIT_BUFFER, 0, portFlags | CARD_ACTIVATE | CARD_nRESET, NULL, 0);
+
+	u32 status;
+	do {
+		cardParamCommand(CARD_CMD_NAND_READ_STATUS, 0, portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_BLK_SIZE(7), &status, 1);
+	} while((status & BIT(5)) == 0);
+
+	cardParamCommand(CARD_CMD_NAND_DISCARD_BUFFER, 0, portFlags | CARD_ACTIVATE | CARD_nRESET, NULL, 0);
+}
