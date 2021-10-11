@@ -228,17 +228,27 @@ void changeFileAttribs(const DirEntry *entry) {
 	int cursorScreenPos = font->calcHeight(entry->name);
 	uint8_t currentAttribs = FAT_getAttr(entry->name.c_str());
 	uint8_t newAttribs = currentAttribs;
+	struct stat st;
+	if(!entry->isDirectory)
+		stat(entry->name.c_str(), &st);
 
 	while (1) {
 		font->clear(false);
 		font->print(0, 0, false, entry->name);
-		if (!entry->isDirectory)
+		if (!entry->isDirectory) {
 			font->printf(0, cursorScreenPos + 1, false, Alignment::left, Palette::white, "filesize: %s", getBytes(entry->size).c_str());
-		font->printf(0, cursorScreenPos + 3, false, Alignment::left, Palette::white, "[%c] ↑ read-only  [%c] ↓ hidden", (newAttribs & ATTR_READONLY) ? 'X' : ' ', (newAttribs & ATTR_HIDDEN) ? 'X' : ' ');
-		font->printf(0, cursorScreenPos + 4, false, Alignment::left, Palette::white, "[%c] → system     [%c] ← archive", (newAttribs & ATTR_SYSTEM) ? 'X' : ' ', (newAttribs & ATTR_ARCHIVE) ? 'X' : ' ');
-		font->printf(0, cursorScreenPos + 5, false, Alignment::left, Palette::white, "[%c]   virtual", (newAttribs & ATTR_VOLUME) ? 'X' : ' ');
-		font->printf(0, cursorScreenPos + 6, false, Alignment::left, Palette::white, "(↑↓→← to change attributes)");
-		font->print(0, cursorScreenPos + 8, false, (currentAttribs == newAttribs) ? "(<A> to continue)" : "(<A> to apply, <B> to cancel)");
+
+			char str[32];
+			strftime(str, sizeof(str), "%Y-%m-%d %H:%M:%S", localtime(&st.st_ctime));
+			font->printf(0, cursorScreenPos + 2, false, Alignment::left, Palette::white, "created: %s", str);
+			strftime(str, sizeof(str), "%Y-%m-%d %H:%M:%S", localtime(&st.st_mtime));
+			font->printf(0, cursorScreenPos + 3, false, Alignment::left, Palette::white, "modified: %s", str);
+		}
+		font->printf(0, cursorScreenPos + 5, false, Alignment::left, Palette::white, "[%c] ↑ read-only  [%c] ↓ hidden", (newAttribs & ATTR_READONLY) ? 'X' : ' ', (newAttribs & ATTR_HIDDEN) ? 'X' : ' ');
+		font->printf(0, cursorScreenPos + 6, false, Alignment::left, Palette::white, "[%c] → system     [%c] ← archive", (newAttribs & ATTR_SYSTEM) ? 'X' : ' ', (newAttribs & ATTR_ARCHIVE) ? 'X' : ' ');
+		font->printf(0, cursorScreenPos + 7, false, Alignment::left, Palette::white, "[%c]   virtual", (newAttribs & ATTR_VOLUME) ? 'X' : ' ');
+		font->printf(0, cursorScreenPos + 8, false, Alignment::left, Palette::white, "(↑↓→← to change attributes)");
+		font->print(0, cursorScreenPos + 10, false, (currentAttribs == newAttribs) ? "(<A> to continue)" : "(<A> to apply, <B> to cancel)");
 		font->update(false);
 
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
