@@ -804,11 +804,11 @@ void gbaCartDump(void) {
 			mkdir("fat:/gm9i/out", 0777);
 		}
 		char gbaHeaderGameTitle[13] = "\0";
-		tonccpy((u8*)(0x080000A0), &gbaHeaderGameTitle, 12);
+		tonccpy(gbaHeaderGameTitle, (u8*)(0x080000A0), 12);
 		char gbaHeaderGameCode[5] = "\0";
-		tonccpy((u8*)(0x080000AC), &gbaHeaderGameCode, 4);
+		tonccpy(gbaHeaderGameCode, (u8*)(0x080000AC), 4);
 		char gbaHeaderMakerCode[3] = "\0";
-		tonccpy((u8*)(0x080000B0), &gbaHeaderMakerCode, 2);
+		tonccpy(gbaHeaderMakerCode, (u8*)(0x080000B0), 2);
 		if (gbaHeaderGameTitle[0] == 0 || gbaHeaderGameTitle[0] == 0xFF) {
 			sprintf(gbaHeaderGameTitle, "NO-TITLE");
 		} else {
