@@ -4,6 +4,7 @@
 #include "date.h"
 #include "driveOperations.h"
 #include "font.h"
+#include "gba.h"
 #include "ndsheaderbanner.h"
 #include "read_card.h"
 #include "tonccpy.h"
@@ -30,8 +31,9 @@ void dumpFailMsg(bool save) {
 	}
 }
 
-void saveWriteFailMsg(void) {
-	const std::string_view sizeError = "The size of this save doesn't match the size of the inserted game card.\n\nWrite cancelled!";
+void saveWriteFailMsg(bool gba) {
+	char sizeError[256];
+	snprintf(sizeError, sizeof(sizeError), "The size of this save doesn't match the size of the inserted game %s.\n\nWrite cancelled!", gba ? "pak" : "card");
 
 	font->clear(false);
 	font->print(0, 0, false, sizeError, Alignment::left, Palette::red);
@@ -325,7 +327,7 @@ void ndsCardSaveRestore(const char *filename) {
 			if(length != saveSize) {
 				fclose(in);
 
-				saveWriteFailMsg();
+				saveWriteFailMsg(false);
 				return;
 			}
 
@@ -387,7 +389,7 @@ void ndsCardSaveRestore(const char *filename) {
 				if(length != (auxspi ? (int)(LEN * num_blocks) : size)) {
 					fclose(in);
 
-					saveWriteFailMsg();
+					saveWriteFailMsg(false);
 					return;
 				}
 
@@ -491,8 +493,7 @@ void ndsCardDump(void) {
 		char destSavPath[256];
 		sprintf(destSavPath, "%s:/gm9i/out/%s_%s_%02x.sav", (sdMounted ? "sd" : "fat"), gameTitle, gameCode, ndsCardHeader.romversion);
 		ndsCardSaveDump(destSavPath);
-	} else
-	if ((pressed & KEY_A) || (pressed & KEY_Y)) {
+	} else if ((pressed & KEY_A) || (pressed & KEY_Y)) {
 		bool trimRom = (pressed & KEY_Y);
 		char folderPath[2][256];
 		sprintf(folderPath[0], "%s:/gm9i", (sdMounted ? "sd" : "fat"));
@@ -750,6 +751,96 @@ void ndsCardDump(void) {
 }
 
 
+void gbaCartSaveDump(const char *filename) {
+	font->clear(false);
+	font->print(0, 0, false, "Dumping save...");
+	font->print(0, 1, false, "Do not remove the GBA cart.");
+	font->update(false);
+
+	u8 type = gbaGetSaveType();
+	u32 size = gbaGetSaveSize(type);
+	u8 *buffer = new u8[size];
+	gbaReadSave(buffer, 0, size, type);
+
+	remove(filename);
+	FILE *destinationFile = fopen(filename, "wb");
+	fwrite(buffer, 1, size, destinationFile);
+	fclose(destinationFile);
+	delete[] buffer;
+}
+
+void gbaCartSaveRestore(const char *filename) {
+	font->clear(false);
+	font->print(0, 0, false, "Restore the selected save to the inserted game pak?");
+	font->print(0, 2, false, "(<A> yes, <B> no)\n");
+	font->update(false);
+
+	// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
+	u16 pressed;
+	do {
+		// Print time
+		font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
+		font->update(true);
+
+		scanKeys();
+		pressed = keysDownRepeat();
+		swiWaitForVBlank();
+	} while (!(pressed & (KEY_A | KEY_B)));
+
+	if (pressed & KEY_A) {
+		u8 type = gbaGetSaveType();
+		u32 size = gbaGetSaveSize(type);
+
+		FILE *sourceFile = fopen(filename, "rb");
+		u8 *buffer = new u8[size];
+		if(!buffer || !sourceFile) {
+			if(buffer) delete[] buffer;
+			if(sourceFile) fclose(sourceFile);
+
+			font->clear(false);
+			font->print(0, 0, false, "Failed to open save.");
+			font->update(false);
+
+			for (int i = 0; i < 60 * 2; i++)
+				swiWaitForVBlank();
+			return;
+		}
+
+		fseek(sourceFile, 0, SEEK_END);
+		size_t length = ftell(sourceFile);
+		fseek(sourceFile, 0, SEEK_SET);
+		if(length != size) {
+			fclose(sourceFile);
+
+			saveWriteFailMsg(true);
+			return;
+		}
+
+		if (fread(buffer, 1, size, sourceFile) != size) {
+			delete[] buffer;
+			fclose(sourceFile);
+
+			font->clear(false);
+			font->print(0, 0, false, "Failed to read save.");
+			font->update(false);
+
+			for (int i = 0; i < 60 * 2; i++)
+				swiWaitForVBlank();
+			return;
+		}
+
+		font->clear(false);
+		font->print(0, 0, false, "Restoring save...");
+		font->print(0, 1, false, "Do not remove the GBA cart.");
+		font->update(false);
+
+		gbaWriteSave(0, buffer, size, type);
+
+		delete[] buffer;
+		fclose(sourceFile);
+	}
+}
+
 void writeChange(const u32* buffer) {
 	// Input registers are at 0x08800000 - 0x088001FF
 	*(vu32*) 0x08800184 = buffer[1];
@@ -769,7 +860,7 @@ void gbaCartDump(void) {
 
 	font->clear(false);
 	font->printf(0, 0, false, Alignment::left, Palette::white, "Dump GBA cart ROM to\n\"%s:/gm9i/out\"?", sdMounted ? "sd" : "fat");
-	font->print(0, 2, false, "(<A> yes, <B> no)");
+	font->print(0, 2, false, "(<A> yes, <B> no, <X> save only)");
 	font->update(false);
 
 	// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
@@ -781,16 +872,44 @@ void gbaCartDump(void) {
 		scanKeys();
 		pressed = keysDownRepeat();
 		swiWaitForVBlank();
-	} while (!(pressed & KEY_A) && !(pressed & KEY_B));
+	} while (!(pressed & (KEY_A | KEY_B | KEY_X)));
 
-	if (pressed & KEY_A) {
-		// Clear time
-		font->print(-1, 0, true, "     ", Alignment::right, Palette::blackGreen);
-		font->update(true);
+	// Get name
+	char gbaHeaderGameTitle[13] = {0};
+	tonccpy(gbaHeaderGameTitle, (u8*)(0x080000A0), 12);
+	char gbaHeaderGameCode[5] = {0};
+	tonccpy(gbaHeaderGameCode, (u8*)(0x080000AC), 4);
+	char gbaHeaderMakerCode[3] = {0};
+	tonccpy(gbaHeaderMakerCode, (u8*)(0x080000B0), 2);
+	if (gbaHeaderGameTitle[0] == 0 || gbaHeaderGameTitle[0] == 0xFF) {
+		sprintf(gbaHeaderGameTitle, "NO-TITLE");
+	} else {
+		for(uint i = 0; i < sizeof(gbaHeaderGameTitle); i++) {
+			switch(gbaHeaderGameTitle[i]) {
+				case '>':
+				case '<':
+				case ':':
+				case '"':
+				case '/':
+				case '\\':
+				case '|':
+				case '?':
+				case '*':
+					gbaHeaderGameTitle[i] = '_';
+			}
+		}
 	}
+	if (gbaHeaderGameCode[0] == 0 || gbaHeaderGameCode[0] == 0xFF) {
+		sprintf(gbaHeaderGameCode, "NONE");
+	}
+	if (gbaHeaderMakerCode[0] == 0 || gbaHeaderMakerCode[0] == 0xFF) {
+		sprintf(gbaHeaderMakerCode, "00");
+	}
+	u8 gbaHeaderSoftwareVersion = *(u8*)(0x080000BC);
+	char fileName[32] = {0};
+	sprintf(fileName, "%s_%s%s_%x", gbaHeaderGameTitle, gbaHeaderGameCode, gbaHeaderMakerCode, gbaHeaderSoftwareVersion);
 
 	if (pressed & KEY_A) {
-		consoleClear();
 		if (access("fat:/gm9i", F_OK) != 0) {
 			font->clear(false);
 			font->print(0, 0, false, "Creating directory...");
@@ -803,43 +922,9 @@ void gbaCartDump(void) {
 			font->update(false);
 			mkdir("fat:/gm9i/out", 0777);
 		}
-		char gbaHeaderGameTitle[13] = "\0";
-		tonccpy(gbaHeaderGameTitle, (u8*)(0x080000A0), 12);
-		char gbaHeaderGameCode[5] = "\0";
-		tonccpy(gbaHeaderGameCode, (u8*)(0x080000AC), 4);
-		char gbaHeaderMakerCode[3] = "\0";
-		tonccpy(gbaHeaderMakerCode, (u8*)(0x080000B0), 2);
-		if (gbaHeaderGameTitle[0] == 0 || gbaHeaderGameTitle[0] == 0xFF) {
-			sprintf(gbaHeaderGameTitle, "NO-TITLE");
-		} else {
-			for(uint i = 0; i < sizeof(gbaHeaderGameTitle); i++) {
-				switch(gbaHeaderGameTitle[i]) {
-					case '>':
-					case '<':
-					case ':':
-					case '"':
-					case '/':
-					case '\x5C':
-					case '|':
-					case '?':
-					case '*':
-						gbaHeaderGameTitle[i] = '_';
-				}
-			}
-		}
-		if (gbaHeaderGameCode[0] == 0 || gbaHeaderGameCode[0] == 0xFF) {
-			sprintf(gbaHeaderGameCode, "NONE");
-		}
-		if (gbaHeaderMakerCode[0] == 0 || gbaHeaderMakerCode[0] == 0xFF) {
-			sprintf(gbaHeaderMakerCode, "00");
-		}
-		u8 gbaHeaderSoftwareVersion = *(u8*)(0x080000BC);
-		char fileName[32] = {0};
-		sprintf(fileName, "%s_%s%s_%x", gbaHeaderGameTitle, gbaHeaderGameCode, gbaHeaderMakerCode, gbaHeaderSoftwareVersion);
+
 		char destPath[256] = {0};
-		char destSavPath[256] = {0};
 		sprintf(destPath, "fat:/gm9i/out/%s.gba", fileName);
-		sprintf(destSavPath, "fat:/gm9i/out/%s.sav", fileName);
 
 		font->clear(false);
 		font->printf(0, 0, false, Alignment::left, Palette::white, "%s.gba\nis dumping...", fileName);
@@ -867,15 +952,33 @@ void gbaCartDump(void) {
 		writeChange(rstCmd);
 		FILE* destinationFile = fopen(destPath, "wb");
 		if (destinationFile) {
-			if (fwrite(GBAROM, 1, romSize, destinationFile) < 1) {
-				dumpFailMsg(false);
-			} else
+			bool failed = false;
+
+			font->print(0, 4, false, "Progress:");
+			font->print(0, 5, false, "[");
+			font->print(-1, 5, false, "]");
+			for (u32 src = 0; src < romSize; src += 0x8000) {
+				// Print time
+				font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
+				font->update(true);
+
+				font->print((src / (romSize / (SCREEN_COLS - 2))) + 1, 5, false, "=");
+				font->printf(0, 6, false, Alignment::left, Palette::white, "%d/%d Bytes", src, romSize);
+				font->update(false);
+
+				if (fwrite(GBAROM + src / sizeof(u16), 1, 0x8000, destinationFile) != 0x8000) {
+					dumpFailMsg(false);
+					failed = true;
+					break;
+				}
+			}
+
 			// Check for 64MB GBA Video ROM
-			if (strncmp((char*)0x080000AC, "MSAE", 4)==0	// Shark Tale
-			|| strncmp((char*)0x080000AC, "MSKE", 4)==0	// Shrek
-			|| strncmp((char*)0x080000AC, "MSTE", 4)==0	// Shrek & Shark Tale
-			|| strncmp((char*)0x080000AC, "M2SE", 4)==0	// Shrek 2
-			) {
+			if ((strncmp((char*)0x080000AC, "MSAE", 4) == 0 // Shark Tale
+			|| strncmp((char*)0x080000AC, "MSKE", 4) == 0   // Shrek
+			|| strncmp((char*)0x080000AC, "MSTE", 4) == 0   // Shrek & Shark Tale
+			|| strncmp((char*)0x080000AC, "M2SE", 4) == 0   // Shrek 2
+			) && !failed) {
 				// Dump last 32MB
 				u32 cmd[4] = {
 					0x11, // Command
@@ -884,8 +987,17 @@ void gbaCartDump(void) {
 					0x8, // Size (in 0x200 byte blocks)
 				};
 
-				size_t i;
-				for (i = 0x02000000; i < 0x04000000; i += 0x1000) {
+				font->print(0, 5, false, "[");
+				font->print(-1, 5, false, "]");
+				for (size_t i = 0x02000000; i < 0x04000000; i += 0x1000) {
+					// Print time
+					font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
+					font->update(true);
+
+					font->print((i / (0x04000000 / (SCREEN_COLS - 2))) + 1, 5, false, "=");
+					font->printf(0, 7, false, Alignment::left, Palette::white, "%d/%d Bytes", i - 0x02000000, 0x04000000 - 0x02000000);
+					font->update(false);
+
 					cmd[1] = i,
 					writeChange(cmd);
 					readChange();
@@ -898,12 +1010,27 @@ void gbaCartDump(void) {
 			fclose(destinationFile);
 		} else {
 			dumpFailMsg(false);
+			return;
+		}
+	}
+
+	if(pressed & (KEY_A | KEY_X)) {
+		if (access("fat:/gm9i", F_OK) != 0) {
+			font->clear(false);
+			font->print(0, 0, false, "Creating directory...");
+			font->update(false);
+			mkdir("fat:/gm9i", 0777);
+		}
+		if (access("fat:/gm9i/out", F_OK) != 0) {
+			font->clear(false);
+			font->print(0, 0, false, "Creating directory...");
+			font->update(false);
+			mkdir("fat:/gm9i/out", 0777);
 		}
 
-		// Save file
-		remove(destSavPath);
-		destinationFile = fopen(destSavPath, "wb");
-		fwrite((void*)0x0A000000, 1, 0x10000, destinationFile);
-		fclose(destinationFile);
+		char destSavPath[256] = {0};
+		sprintf(destSavPath, "fat:/gm9i/out/%s.sav", fileName);
+
+		gbaCartSaveDump(destSavPath);
 	}
 }

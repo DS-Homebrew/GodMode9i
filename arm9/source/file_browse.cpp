@@ -323,7 +323,11 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					return FileOperation::bootFile;
 					break;
 				} case FileOperation::restoreSave: {
-					ndsCardSaveRestore(entry->name.c_str());
+					if(isDSiMode()) {
+						ndsCardSaveRestore(entry->name.c_str());
+					} else {
+						gbaCartSaveRestore(entry->name.c_str());
+					}
 					break;
 				} case FileOperation::copySdOut: {
 					if (access("sd:/gm9i", F_OK) != 0) {
