@@ -38,20 +38,12 @@
 //  Games known to use this hardware:
 //  - Personal Trainer: Walking (aka Laufrhytmus DS, Walk With Me, ...)
 //  - Pokemon HeartGold/SoulSilver/Black/White
-// AUXSPI_BBDX: A game with what seems to be an extra protection against reading
-//  out the chip. Exclusively found on Band Brothers DX.
 // AUXSPI_BLUETOOTH: A game with a Bluetooth transceiver. The only game using this
 //  hardware is Pokemon Typing DS.
-//
-// NOTE: This library does *not* support BBDX (I do have the game, but did not find the
-//  time to reverse engineer this; besides, a separate homebrew for this game already exists),
-//  and also *not* BLUETOOTH (the game is Japan-only, and I am from Europe. Plus I can't
-//  read Japanese. And it is unlikely that this game will ever make it here.)
 //
 typedef enum {
 	AUXSPI_DEFAULT,
 	AUXSPI_INFRARED,
-	AUXSPI_BBDX,
 	AUXSPI_BLUETOOTH,
 	AUXSPI_FLASH_CARD = 999
 } auxspi_extra;
