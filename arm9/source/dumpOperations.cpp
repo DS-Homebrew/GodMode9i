@@ -932,14 +932,20 @@ void gbaCartDump(void) {
 		font->update(false);
 
 		// Determine ROM size
-		u32 romSize = 0x02000000;
-		for (u32 i = 0x09FE0000; i > 0x08000000; i -= 0x20000) {
-			if (*(u32*)(i) == 0xFFFE0000) {
-				romSize -= 0x20000;
-			} else {
-				break;
+		u32 romSize;
+		for (romSize = (1 << 20); romSize < (1 << 25); romSize <<= 1) {
+			vu16 *rompos = (vu16*)(0x08000000 + romSize);
+			bool romend = true;
+			for (int j = 0; j < 0x1000; j++) {
+				if (rompos[j] != j) {
+					romend = false;
+					break;
+				}
 			}
+			if (romend)
+				break;
 		}
+
 		// Dump!
 		remove(destPath);
 		// Reset data at virtual address
