@@ -757,8 +757,11 @@ void gbaCartSaveDump(const char *filename) {
 	font->print(0, 1, false, "Do not remove the GBA cart.");
 	font->update(false);
 
-	u8 type = gbaGetSaveType();
+	saveTypeGBA type = gbaGetSaveType();
 	u32 size = gbaGetSaveSize(type);
+	if(size == 0)
+		return;
+
 	u8 *buffer = new u8[size];
 	gbaReadSave(buffer, 0, size, type);
 
@@ -788,8 +791,10 @@ void gbaCartSaveRestore(const char *filename) {
 	} while (!(pressed & (KEY_A | KEY_B)));
 
 	if (pressed & KEY_A) {
-		u8 type = gbaGetSaveType();
+		saveTypeGBA type = gbaGetSaveType();
 		u32 size = gbaGetSaveSize(type);
+		if(size == 0)
+			return;
 
 		FILE *sourceFile = fopen(filename, "rb");
 		u8 *buffer = new u8[size];
@@ -810,6 +815,7 @@ void gbaCartSaveRestore(const char *filename) {
 		size_t length = ftell(sourceFile);
 		fseek(sourceFile, 0, SEEK_SET);
 		if(length != size) {
+			delete[] buffer;
 			fclose(sourceFile);
 
 			saveWriteFailMsg(true);
@@ -834,6 +840,7 @@ void gbaCartSaveRestore(const char *filename) {
 		font->print(0, 1, false, "Do not remove the GBA cart.");
 		font->update(false);
 
+		gbaFormatSave(type);
 		gbaWriteSave(0, buffer, size, type);
 
 		delete[] buffer;

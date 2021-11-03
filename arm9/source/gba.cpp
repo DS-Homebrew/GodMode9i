@@ -59,38 +59,6 @@ inline u32 max(u32 i, u32 j) { return (i > j) ? i : j;}
 
 #define MAGIC_H1M_ 0x5f4d3148
 
-saveTypeGBA GetSlot2SaveType(cartTypeGBA type) {
-	if (type == CART_GBA_NONE)
-		return SAVE_GBA_NONE;
-		
-	// Search for any one of the magic version strings in the ROM.
-	uint32 *data = (uint32*)0x08000000;
-	
-	for (int i = 0; i < (0x02000000 >> 2); i++, data++) {
-		if (*data == MAGIC_EEPR)
-			return SAVE_GBA_EEPROM_8; // TODO: Try to figure out 512 bytes version...
-		if (*data == MAGIC_SRAM)
-			return SAVE_GBA_SRAM_32;
-		if (*data == MAGIC_FLAS) {
-			uint32 *data2 = data + 1;
-			if (*data2 == MAGIC_H1M_)
-				return SAVE_GBA_FLASH_128;
-			else
-				return SAVE_GBA_FLASH_64;
-		}
-	}
-	return SAVE_GBA_NONE;
-};
-
-cartTypeGBA GetSlot2Type(uint32 id)
-{		
-	if (id == 0x53534150)
-		// All conventional GBA flash cards identify themselves as "PASS"
-		return CART_GBA_FLASH;
-	else {
-		return CART_GBA_GAME;
-	}
-};
 
 // -----------------------------------------------------------
 bool gbaIsGame()
@@ -106,58 +74,58 @@ bool gbaIsGame()
 	return false;
 }
 
-uint8 gbaGetSaveType()
-{
+saveTypeGBA gbaGetSaveType() {
 	// Search for any one of the magic version strings in the ROM. They are always dword-aligned.
 	uint32 *data = (uint32*)0x08000000;
 	
 	for (int i = 0; i < (0x02000000 >> 2); i++, data++) {
 		if (*data == MAGIC_EEPR) {
-			// 2 versions: 512 bytes / 8 kB
-			return 2; // TODO: Try to figure out how to ID the 512 bytes version... hard way? write/restore!
-		}
-		if (*data == MAGIC_SRAM) {
+			return SAVE_GBA_EEPROM_8; // TODO: Try to figure out 512 bytes version...
+
+		} else if (*data == MAGIC_SRAM) {
 			// *always* 32 kB
-			return 3;
-		}
-		if (*data == MAGIC_FLAS) {
+			return SAVE_GBA_SRAM_32;
+		} else if (*data == MAGIC_FLAS) {
 			// 64 kB oder 128 kB
 			uint32 *data2 = data + 1;
 			if (*data2 == MAGIC_H1M_)
-				return 5;
+				return SAVE_GBA_FLASH_128;
 			else
-				return 4;
+				return SAVE_GBA_FLASH_64;
 		}
 	}
-	
-	return 0;
+
+	return SAVE_GBA_NONE;
 }
 
-uint32 gbaGetSaveSizeLog2(uint8 type)
+uint32 gbaGetSaveSizeLog2(saveTypeGBA type)
 {
-	if (type == 255)
+	if (type == SAVE_GBA_NONE)
 		type = gbaGetSaveType();
 	
 	switch (type) {
-		case 1:
+		case SAVE_GBA_EEPROM_05:
 			return 9;
-		case 2:
+		case SAVE_GBA_EEPROM_8:
 			return 13;
-		case 3:
+		case SAVE_GBA_SRAM_32:
 			return 15;
-		case 4:
+		case SAVE_GBA_FLASH_64:
 			return 16;
-		case 5:
+		case SAVE_GBA_FLASH_128:
 			return 17;
-		case 0:
+		case SAVE_GBA_NONE:
 		default:
 			return 0;
 	}
 }
 
-uint32 gbaGetSaveSize(uint8 type)
+uint32 gbaGetSaveSize(saveTypeGBA type)
 {
-	return 1 << gbaGetSaveSizeLog2(type);
+	if (type == SAVE_GBA_NONE)
+		return 0;
+	else
+		return 1 << gbaGetSaveSizeLog2(type);
 }
 
 // local function
@@ -342,16 +310,16 @@ void gbaEepromWrite8Bytes(u8 *out, u32 addr, bool short_addr = false)
 #endif
 }
 
-bool gbaReadSave(u8 *dst, u32 src, u32 len, u8 type)
+bool gbaReadSave(u8 *dst, u32 src, u32 len, saveTypeGBA type)
 {
 	int nbanks = 2; // for type 4,5
 	bool eeprom_long = true;
 	
 	switch (type) {
-	case 1: {
+	case SAVE_GBA_EEPROM_05: {
 		eeprom_long = false;
 		}
-	case 2: {
+	case SAVE_GBA_EEPROM_8: {
 		int start, end;
 		start = src >> 3;
 		end = (src + len - 1) >> 3;
@@ -364,7 +332,7 @@ bool gbaReadSave(u8 *dst, u32 src, u32 len, u8 type)
 		free(tmp);
 		break;
 		}
-	case 3: {
+	case SAVE_GBA_SRAM_32: {
 		// SRAM: blind copy
 		int start = 0x0a000000 + src;
 		u8 *tmpsrc = (u8*)start;
@@ -373,19 +341,19 @@ bool gbaReadSave(u8 *dst, u32 src, u32 len, u8 type)
 			*dst = *tmpsrc;
 		break;
 		}
-	case 4:
+	case SAVE_GBA_FLASH_64:
 		// FLASH - must be opend by register magic, then blind copy
 		nbanks = 1;
-	case 5:
+	case SAVE_GBA_FLASH_128:
 		for (int j = 0; j < nbanks; j++) {
 			// we need to wait a few cycles before the hardware reacts!
-			*(u8*)0x0a005555 = 0xaa;
+			*(vu8*)0x0a005555 = 0xaa;
 			swiDelay(10);
-			*(u8*)0x0a002aaa = 0x55;
+			*(vu8*)0x0a002aaa = 0x55;
 			swiDelay(10);
-			*(u8*)0x0a005555 = 0xb0;
+			*(vu8*)0x0a005555 = 0xb0;
 			swiDelay(10);
-			*(u8*)0x0a000000 = (u8)j;
+			*(vu8*)0x0a000000 = (u8)j;
 			swiDelay(10);
 			u32 start, sublen;
 			if (j == 0) {
@@ -401,27 +369,29 @@ bool gbaReadSave(u8 *dst, u32 src, u32 len, u8 type)
 				*dst = *tmpsrc;
 		}
 		break;
+	case SAVE_GBA_NONE:
+		break;
 	}
 	return true;
 }
 
 bool gbaIsAtmel()
 {
-	*(u8*)0x0a005555 = 0xaa;
+	*(vu8*)0x0a005555 = 0xaa;
 	swiDelay(10);
-	*(u8*)0x0a002aaa = 0x55;
+	*(vu8*)0x0a002aaa = 0x55;
 	swiDelay(10);
-	*(u8*)0x0a005555 = 0x90; // ID mode
+	*(vu8*)0x0a005555 = 0x90; // ID mode
 	swiDelay(10);
 	//
 	u8 dev = *(u8*)0x0a000001;
 	u8 man = *(u8*)0x0a000000;
 	//
-	*(u8*)0x0a005555 = 0xaa;
+	*(vu8*)0x0a005555 = 0xaa;
 	swiDelay(10);
-	*(u8*)0x0a002aaa = 0x55;
+	*(vu8*)0x0a002aaa = 0x55;
 	swiDelay(10);
-	*(u8*)0x0a005555 = 0xf0; // leave ID mode
+	*(vu8*)0x0a005555 = 0xf0; // leave ID mode
 	swiDelay(10);
 	//
 	//char txt[128];
@@ -433,16 +403,16 @@ bool gbaIsAtmel()
 		return false;
 }
 
-bool gbaWriteSave(u32 dst, u8 *src, u32 len, u8 type)
+bool gbaWriteSave(u32 dst, u8 *src, u32 len, saveTypeGBA type)
 {
 	int nbanks = 2; // for type 4,5
 	bool eeprom_long = true;
 	
 	switch (type) {
-	case 1: {
+	case SAVE_GBA_EEPROM_05: {
 		eeprom_long = false;
 		}
-	case 2: {
+	case SAVE_GBA_EEPROM_8: {
 	/*
 		int start, end;
 		start = src >> 3;
@@ -457,7 +427,7 @@ bool gbaWriteSave(u32 dst, u8 *src, u32 len, u8 type)
 		*/
 		break;
 		}
-	case 3: {
+	case SAVE_GBA_SRAM_32: {
 		// SRAM: blind write
 		u32 start = 0x0a000000 + dst;
 		u8 *tmpdst = (u8*)start;
@@ -468,7 +438,7 @@ bool gbaWriteSave(u32 dst, u8 *src, u32 len, u8 type)
 		}
 		break;
 		}
-	case 4: {
+	case SAVE_GBA_FLASH_64: {
 		bool atmel = gbaIsAtmel();
 		if (atmel) {
 			// only 64k, no bank switching required
@@ -476,11 +446,11 @@ bool gbaWriteSave(u32 dst, u8 *src, u32 len, u8 type)
 			u8 *tmpdst = (u8*)(0x0a000000+dst);
 			for (u32 j = 0; j < len7; j++) {
 				u32 ime = enterCriticalSection();
-				*(u8*)0x0a005555 = 0xaa;
+				*(vu8*)0x0a005555 = 0xaa;
 				swiDelay(10);
-				*(u8*)0x0a002aaa = 0x55;
+				*(vu8*)0x0a002aaa = 0x55;
 				swiDelay(10);
-				*(u8*)0x0a005555 = 0xa0;
+				*(vu8*)0x0a005555 = 0xa0;
 				swiDelay(10);
 				for (int i = 0; i < 128; i++) {
 					*tmpdst = *src;
@@ -493,18 +463,18 @@ bool gbaWriteSave(u32 dst, u8 *src, u32 len, u8 type)
 		}
 		nbanks = 1;
 		}
-	case 5:
+	case SAVE_GBA_FLASH_128:
 		// FLASH - must be opend by register magic, erased and then rewritten
 		// FIXME: currently, you can only write "all or nothing"
 		nbanks = 2;
 		for (int j = 0; j < nbanks; j++) {
-			*(u8*)0x0a005555 = 0xaa;
+			*(vu8*)0x0a005555 = 0xaa;
 			swiDelay(10);
-			*(u8*)0x0a002aaa = 0x55;
+			*(vu8*)0x0a002aaa = 0x55;
 			swiDelay(10);
-			*(u8*)0x0a005555 = 0xb0;
+			*(vu8*)0x0a005555 = 0xb0;
 			swiDelay(10);
-			*(u8*)0x0a000000 = (u8)j;
+			*(vu8*)0x0a000000 = (u8)j;
 			swiDelay(10);
 			//
 			u32 start, sublen;
@@ -519,11 +489,11 @@ bool gbaWriteSave(u32 dst, u8 *src, u32 len, u8 type)
 			sysSetBusOwners(true, true);
 			for (u32 i = 0; i < sublen; i++, tmpdst++, src++) {
 				// we need to wait a few cycles before the hardware reacts!
-				*(u8*)0x0a005555 = 0xaa;
+				*(vu8*)0x0a005555 = 0xaa;
 				swiDelay(10);
-				*(u8*)0x0a002aaa = 0x55;
+				*(vu8*)0x0a002aaa = 0x55;
 				swiDelay(10);
-				*(u8*)0x0a005555 = 0xa0; // write byte command
+				*(vu8*)0x0a005555 = 0xa0; // write byte command
 				swiDelay(10);
 				//
 				*tmpdst = *src;
@@ -533,41 +503,45 @@ bool gbaWriteSave(u32 dst, u8 *src, u32 len, u8 type)
 			}
 		}
 		break;
+	case SAVE_GBA_NONE:
+		break;
 	}
 	return true;
 }
 
-bool gbaFormatSave(u8 type)
+bool gbaFormatSave(saveTypeGBA type)
 {
 	switch (type) {
-		case 1:
-		case 2:
+		case SAVE_GBA_EEPROM_05:
+		case SAVE_GBA_EEPROM_8:
 			// TODO: eeprom is not supported yet
 			break;
-		case 3:
+		case SAVE_GBA_SRAM_32:
 			{
 				// memset(data, 0, 1 << 15);
 				u8 *data = new u8[1 << 15]();
-				gbaWriteSave(0, data, 1 << 15, 3);
+				gbaWriteSave(0, data, 1 << 15, SAVE_GBA_SRAM_32);
 				delete[] data;
 			}
 			break;
-		case 4:
-		case 5:
-			*(u8*)0x0a005555 = 0xaa;
+		case SAVE_GBA_FLASH_64:
+		case SAVE_GBA_FLASH_128:
+			*(vu8*)0x0a005555 = 0xaa;
 			swiDelay(10);
-			*(u8*)0x0a002aaa = 0x55;
+			*(vu8*)0x0a002aaa = 0x55;
 			swiDelay(10);
-			*(u8*)0x0a005555 = 0x80; // erase command
+			*(vu8*)0x0a005555 = 0x80; // erase command
 			swiDelay(10);
-			*(u8*)0x0a005555 = 0xaa;
+			*(vu8*)0x0a005555 = 0xaa;
 			swiDelay(10);
-			*(u8*)0x0a002aaa = 0x55;
+			*(vu8*)0x0a002aaa = 0x55;
 			swiDelay(10);
-			*(u8*)0x0a005555 = 0x10; // erase entire chip
+			*(vu8*)0x0a005555 = 0x10; // erase entire chip
 			swiDelay(10);
 			while (*(u8*)0x0a000000 != 0xff)
 				swiDelay(10);
+			break;
+		case SAVE_GBA_NONE:
 			break;
 	}
 	return true;
