@@ -268,10 +268,6 @@ void auxspi_disable_extra(auxspi_extra extra)
 		case AUXSPI_INFRARED:
 			auxspi_disable_infrared_core();
 			break;
-		case AUXSPI_BBDX:
-			// TODO:
-			auxspi_disable_big_protection();
-			break;
 		case AUXSPI_BLUETOOTH:
 			// TODO
 			//auxspi_disable_bluetooth();
@@ -355,15 +351,6 @@ auxspi_extra auxspi_has_extra()
 	u8 size1 = auxspi_save_size_log_2();
 	if (size1 > 0)
 		return AUXSPI_DEFAULT;
-
-#if 0
-	// EXPERIMENTAL: verify that flash cards do not answer with the same signature!
-	// Look for BBDX (which always returns "ff" on every command)
-	uint32 jedec = auxspi_save_jedec_id(); // 9f
-	//int8 sr = auxspi_save_status_register(); // 05
-	if (jedec == 0x00ffffff)
-		return AUXSPI_BBDX;
-#endif
 	
 	// TODO: add support for Pokemon Typing DS (as soon as we figure out how)
 	

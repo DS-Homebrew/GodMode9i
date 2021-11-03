@@ -2,6 +2,7 @@
 #define DUMPING_H
 
 void ndsCardSaveRestore(const char *filename);
+void gbaCartSaveRestore(const char *filename);
 
 void ndsCardDump(void);
 void gbaCartDump(void);
