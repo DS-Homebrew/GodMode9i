@@ -59,6 +59,9 @@ inline u32 max(u32 i, u32 j) { return (i > j) ? i : j;}
 
 #define MAGIC_H1M_ 0x5f4d3148
 
+#define EEPROM_ADDRESS (0x0DFFFF00)
+#define REG_EEPROM *(vu16 *)(EEPROM_ADDRESS)
+
 
 // -----------------------------------------------------------
 bool gbaIsGame()
@@ -74,14 +77,116 @@ bool gbaIsGame()
 	return false;
 }
 
+void EEPROM_SendPacket(u16 *packet, int size)
+{
+	REG_EXMEMCNT = (REG_EXMEMCNT & 0xFFE3) | 0x000C;
+	DMA3_SRC = (u32)packet;
+	DMA3_DEST = EEPROM_ADDRESS;
+	DMA3_CR = 0x80000000 + size;
+	while((DMA3_CR & 0x80000000) != 0);
+}
+
+void EEPROM_ReceivePacket(u16 *packet, int size)
+{
+	REG_EXMEMCNT = (REG_EXMEMCNT & 0xFFE3) | 0x000C;
+	DMA3_SRC = EEPROM_ADDRESS;
+	DMA3_DEST = (u32)packet;
+	DMA3_CR = 0x80000000 + size;
+	while((DMA3_CR & 0x80000000) != 0);
+}
+
+// local function
+void gbaEepromRead8Bytes(u8 *out, u16 addr, bool short_addr)
+{
+	u16 packet[68];
+
+	memset(packet, 0, 68 * 2);
+
+	// Read request
+	packet[0] = 1;
+	packet[1] = 1;
+
+	// 6 or 14 bytes eeprom address (MSB first)
+	for(int i = 2, shift = (short_addr ? 5 : 13); i < (short_addr ? 8 : 16); i++, shift--) {
+		packet[i] = (addr >> shift) & 1;
+	}
+
+	// End of request
+	packet[short_addr ? 8 : 16] = 0;
+
+	// Do transfers
+	EEPROM_SendPacket(packet, short_addr ? 9 : 17);
+	memset(packet, 0, 68 * 2);
+	EEPROM_ReceivePacket(packet, 68);
+
+	// Extract data
+	u16 *in_pos = &packet[4];
+	for(int byte = 7; byte >= 0; --byte) {
+		u8 out_byte = 0;
+		for(int bit = 7; bit >= 0; --bit) {
+			// out_byte += (*in_pos++) << bit;
+			out_byte += ((*in_pos++) & 1) << bit;
+		}
+		*out++ = out_byte;
+	}
+}
+
+// local function
+void gbaEepromWrite8Bytes(u8 *in, u16 addr, bool short_addr = false)
+{
+	u16 packet_length = short_addr ? 73 : 81;
+	u16 packet[packet_length];
+
+	memset( packet, 0, packet_length * 2);
+
+	// Write request
+	packet[0] = 1;
+	packet[1] = 0;
+
+	// 6 or 14 bytes eeprom address (MSB first)
+	for(int i = 2, shift = (short_addr ? 5 : 13); i < (short_addr ? 8 : 16); i++, shift--) {
+		packet[i] = (addr >> shift) & 1;
+	}
+
+	// Extract data
+	u16 *out_pos = &packet[short_addr ? 8 : 16];
+	for(int byte = 7; byte >= 0; --byte) {
+		u8 in_byte = *in++;
+		for(int bit = 7; bit >= 0; --bit) {
+			*out_pos++ = (in_byte >> bit) & 1;
+		}
+	}
+
+	// End of request
+	packet[packet_length - 1] = 0;
+
+	// Do transfers
+	EEPROM_SendPacket(packet, packet_length);
+
+	// Wait for EEPROM to finish (should timeout after 10 ms)
+	while((REG_EEPROM & 1) == 0);
+}
+
 saveTypeGBA gbaGetSaveType() {
 	// Search for any one of the magic version strings in the ROM. They are always dword-aligned.
 	uint32 *data = (uint32*)0x08000000;
 	
 	for (int i = 0; i < (0x02000000 >> 2); i++, data++) {
 		if (*data == MAGIC_EEPR) {
-			return SAVE_GBA_EEPROM_8; // TODO: Try to figure out 512 bytes version...
-
+			u8 *buf = new u8[0x2000];
+			u8 *ptr = buf;
+			for (int j = 0; j < 0x400; j++, ptr += 8) {
+				gbaEepromRead8Bytes(ptr, j, false);
+				for(int sleep=0;sleep<512000;sleep++);
+			}
+			for(int j = 8; j < 0x800; j += 8) {
+				if(memcmp(buf, buf + j, 8) != 0) {
+					delete[] buf;
+					return SAVE_GBA_EEPROM_8;
+				}
+			}
+			delete[] buf;
+			return SAVE_GBA_EEPROM_05;
 		} else if (*data == MAGIC_SRAM) {
 			// *always* 32 kB
 			return SAVE_GBA_SRAM_32;
@@ -128,188 +233,6 @@ uint32 gbaGetSaveSize(saveTypeGBA type)
 		return 1 << gbaGetSaveSizeLog2(type);
 }
 
-// local function
-void gbaEepromRead8Bytes(u8 *out, u32 addr, bool short_addr = false)
-{
-	// TODO: this still does not work... figure out somehow how to do it right!
-	
-	// waitstates - this is what Rudolph uses...
-	*(volatile unsigned short *)0x04000204 = 0x4317; 
-
-	// maximal length of the buffer
-	u16 buf[68];
-	
-	// Prepare a "read" command.
-	u16 length;
-	// raw command
-	buf[0] = 1;
-	buf[1] = 1;
-	// address
-	if (short_addr) {
-		length = 9;
-		buf[2] = addr >> 5;
-		buf[3] = addr >> 4;
-		buf[4] = addr >> 3;
-		buf[5] = addr >> 2;
-		buf[6] = addr >> 1;
-		buf[7] = addr;
-		buf[8] = 0;
-	} else {
-		length = 17;
-		buf[2] = addr >> 13;
-		buf[3] = addr >> 12;
-		buf[4] = addr >> 11;
-		buf[5] = addr >> 10;
-		buf[6] = addr >> 9;
-		buf[7] = addr >> 8;
-		buf[8] = addr >> 7;
-		buf[9] = addr >> 6;
-		buf[10] = addr >> 5;
-		buf[11] = addr >> 4;
-		buf[12] = addr >> 3;
-		buf[13] = addr >> 2;
-		buf[14] = addr >> 1;
-		buf[15] = addr;
-		buf[16] = 0;
-	}
-	for (int i = 0; i < 17; i++) {
-		if (buf[i])
-			buf[i] = 255;
-		else
-			buf[i] = 0;
-	}
-	
-	static u32 eeprom = 0x09ffff00;
-
-	// send command to eeprom
-	// displayStateF(STR_STR, "Sending command");
-	// commenting this out or not does not have any impact on the EEPROM device. Therefore,
-	//  the following command does not "make" it to the hardware!
-	DC_FlushRange(&buf[0], sizeof(buf));
-	DMA_SRC(3) = (uint32)&buf[0];
-	DMA_DEST(3) = (uint32)eeprom;
-	// there is a bit for eeprom access, but it only seems to freeze the transfer!?
-	//DMA_CR(3) = DMA_COPY_HALFWORDS | DMA_START_CARD | length; // this bit is expanding to "3 bits"
-	//DMA_CR(3) = DMA_COPY_HALFWORDS | length;
-	DMA_CR(3) = DMA_COPY_HALFWORDS | (6 << 27) | length;
-	while(DMA_CR(3) & DMA_BUSY);
-	//while ((*(u16*)0x09ffff00 & 1) == 0);
-
-	// get answer from eeprom
-	// displayStateF(STR_STR, "listening");
-	DC_FlushRange(&buf[0], sizeof(buf));
-	DMA_SRC(3) = (uint32)eeprom;
-	DMA_DEST(3) = (uint32)&buf[0];
-	// there is a bit for eeprom access, but it only seems to freeze the transfer!?
-	//DMA_CR(3) = DMA_COPY_HALFWORDS | DMA_START_CARD | 68; // this bit is expanding to "3 bits"
-	//DMA_CR(3) = DMA_COPY_HALFWORDS | 68;
-	DMA_CR(3) = DMA_COPY_HALFWORDS | (6 << 27) | 68;
-	while(DMA_CR(3) & DMA_BUSY);
-	//while ((*(u16*)0x09ffff00 & 1) == 0);
-
-/*
-	// Extract data (there is only one *bit* per halfword!)
-	u16 *in_pos = &buf[4]; 
-	u8 *out_pos = out; 
-	u8 out_byte;
-	for(s8 byte = 7; byte >= 0; --byte )
-	{
-		out_byte = 0;
-		for(s8 bit = 7; bit >= 0; --bit )
-		{
-			out_byte += ((*in_pos++)&1)<<bit;
-		}
-		*out_pos++ = out_byte;
-	}
-	*/
-	// let us study what the hardware *does* give us!
-	for (u8 i = 0; i < 8; i++)
-		*out++ = buf[i+4];
-}
-
-// local function
-void gbaEepromWrite8Bytes(u8 *out, u32 addr, bool short_addr = false)
-{
-	// TODO: this still does not work... figure out somehow how to do it right!
-	
-	// don't do anything unless we know what we are doing!
-#if 0
-	// waitstates - this is what Rudolph uses...
-	*(volatile unsigned short *)0x04000204 = 0x4317; 
-
-	// maximal length of the buffer
-	u16 buf[68];
-	
-	// Prepare a "read" command.
-	u16 length;
-	// raw command
-	buf[0] = 1;
-	buf[1] = 1;
-	// address
-	if (short_addr) {
-		length = 9;
-		buf[2] = addr >> 5;
-		buf[3] = addr >> 4;
-		buf[4] = addr >> 3;
-		buf[5] = addr >> 2;
-		buf[6] = addr >> 1;
-		buf[7] = addr;
-		buf[8] = 0;
-	} else {
-		length = 17;
-		buf[2] = addr >> 13;
-		buf[3] = addr >> 12;
-		buf[4] = addr >> 11;
-		buf[5] = addr >> 10;
-		buf[6] = addr >> 9;
-		buf[7] = addr >> 8;
-		buf[8] = addr >> 7;
-		buf[9] = addr >> 6;
-		buf[10] = addr >> 5;
-		buf[11] = addr >> 4;
-		buf[12] = addr >> 3;
-		buf[13] = addr >> 2;
-		buf[14] = addr >> 1;
-		buf[15] = addr;
-		buf[16] = 0;
-	}
-	
-	// send command to eeprom
-	displayStateF(STR_STR, "Sending command");
-	static u32 eeprom = 0x09ffff00;
-	DMA_SRC(3) = (uint32)&buf[0];
-	DMA_DEST(3) = (uint32)eeprom;
-	// there is a bit for eeprom access, but it only seems to freeze the transfer!?
-	//DMA_CR(3) = DMA_COPY_HALFWORDS | DMA_START_CARD | length;
-	DMA_CR(3) = DMA_COPY_HALFWORDS | length;
-	while(DMA_CR(3) & DMA_BUSY);
-
-	// get answer from eeprom
-	displayStateF(STR_STR, "listening");
-	DMA_SRC(3) = (uint32)eeprom;
-	DMA_DEST(3) = (uint32)&buf[0];
-	// there is a bit for eeprom access, but it only seems to freeze the transfer!?
-	DMA_CR(3) = DMA_COPY_HALFWORDS | DMA_START_CARD | 68;
-	//DMA_CR(3) = DMA_COPY_HALFWORDS | 68;
-	while(DMA_CR(3) & DMA_BUSY);
-
-	// Extract data (there is only one *bit* per halfword!)
-	// TODO: convert this to write format
-	u16 *in_pos = &buf[4]; 
-	u8 *out_pos = out; 
-	u8 out_byte;
-	for(s8 byte = 7; byte >= 0; --byte )
-	{
-		out_byte = 0;
-		for(s8 bit = 7; bit >= 0; --bit )
-		{
-			out_byte += ((*in_pos++)&1)<<bit;
-		}
-		*out_pos++ = out_byte;
-	}
-#endif
-}
-
 bool gbaReadSave(u8 *dst, u32 src, u32 len, saveTypeGBA type)
 {
 	int nbanks = 2; // for type 4,5
@@ -322,14 +245,12 @@ bool gbaReadSave(u8 *dst, u32 src, u32 len, saveTypeGBA type)
 	case SAVE_GBA_EEPROM_8: {
 		int start, end;
 		start = src >> 3;
-		end = (src + len - 1) >> 3;
-		u8 *tmp = (u8*)malloc((end-start+1) << 3);
-		u8 *ptr = tmp;
-		for (int j = start; j <= end; j++, ptr+=8) {
-			gbaEepromRead8Bytes(ptr, j, eeprom_long);
+		end = (src + len) >> 3;
+		u8 *ptr = dst;
+		for (int j = start; j < end; j++, ptr += 8) {
+			gbaEepromRead8Bytes(ptr, j, !eeprom_long);
+			for(int sleep=0;sleep<512000;sleep++);
 		}
-		memcpy(dst, tmp, len);
-		free(tmp);
 		break;
 		}
 	case SAVE_GBA_SRAM_32: {
@@ -415,15 +336,12 @@ bool gbaWriteSave(u32 dst, u8 *src, u32 len, saveTypeGBA type)
 	case SAVE_GBA_EEPROM_8: {
 	/*
 		int start, end;
-		start = src >> 3;
-		end = (src + len - 1) >> 3;
-		u8 *tmp = (u8*)malloc((end-start+1) << 3);
-		u8 *ptr = tmp;
-		for (int j = start; j <= end; j++, ptr+=8) {
+		start = dst >> 3;
+		end = (dst + len) >> 3;
+		u8 *ptr = src;
+		for (int j = start; j < end; j++, ptr+=8) {
 			gbaEepromWrite8Bytes(ptr, j, eeprom_long);
 		}
-		memcpy(dst, tmp, len);
-		free(tmp);
 		*/
 		break;
 		}
