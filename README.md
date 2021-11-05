@@ -1,5 +1,5 @@
 <p align="center">
-	<img src="https://github.com/RocketRobz/GodMode9i/blob/master/resources/logo2_small.png"><br>
+	<img src="https://github.com/DS-Homebrew/GodMode9i/raw/master/resources/logo2_small.png"><br>
 	<b>A full access file browser for the DS and DSi consoles :godmode:</b>
 	<br>
 	<a href="https://dev.azure.com/DS-Homebrew/Builds/_build?definitionId=14" style="padding-right: 5px;">
@@ -16,9 +16,9 @@
 GodMode9i is a full access file browser for the Nintendo DS, Nintendo DSi and the Nintendo 3DS's TWL_FIRM.
 
 <div align="center">
-	<img src="https://gbatemp.net/attachments/snap_191051-png.195366/" alt="Drive menu">
-	<img src="https://gbatemp.net/attachments/snap_191132-png.195368/" alt="File list">
-	<img src="https://gbatemp.net/attachments/file-options-v2-1-0-png.195367/" alt="NDS file menu">
+	<img src="https://github.com/DS-Homebrew/GodMode9i/raw/master/resources/screenshots/drive-menu.png" alt="Drive menu">
+	<img src="https://github.com/DS-Homebrew/GodMode9i/raw/master/resources/screenshots/file-list.png" alt="File list">
+	<img src="https://github.com/DS-Homebrew/GodMode9i/raw/master/resources/screenshots/nds-file-menu.png" alt="NDS file menu">
 </div>
 
 ## Features
