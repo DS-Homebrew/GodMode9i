@@ -21,23 +21,10 @@ extern bool expansionPakFound;
 
 static sNDSHeaderExt ndsCardHeader;
 
-void dumpFailMsg(bool save) {
+void dumpFailMsg(const char *msg) {
 	font->clear(false);
-	font->printf(0, 0, false, Alignment::left, Palette::white, "Failed to dump the %s.", save ? "save" : "ROM");
-	font->update(false);
-
-	for (int i = 0; i < 60*2; i++) {
-		swiWaitForVBlank();
-	}
-}
-
-void saveWriteFailMsg(bool gba) {
-	char sizeError[256];
-	snprintf(sizeError, sizeof(sizeError), "The size of this save doesn't match the size of the inserted game %s.\n\nWrite cancelled!", gba ? "pak" : "card");
-
-	font->clear(false);
-	font->print(0, 0, false, sizeError, Alignment::left, Palette::red);
-	font->print(0, font->calcHeight(sizeError) + 1, false, "(<A> OK)");
+	font->print(0, 0, false, msg, Alignment::left, Palette::red);
+	font->print(0, font->calcHeight(msg) + 1, false, "(<A> OK)");
 	font->update(false);
 
 	u16 pressed;
@@ -216,7 +203,7 @@ void ndsCardSaveDump(const char* filename) {
 			u32 saveSize = cardNandGetSaveSize();
 
 			if(saveSize == 0) {
-				dumpFailMsg(true);
+				dumpFailMsg("Failed to dump the save.");
 				return;
 			}
 
@@ -240,14 +227,14 @@ void ndsCardSaveDump(const char* filename) {
 						cardRead(cardNandRwStart + src + i, copyBuf + i, true);
 					}
 					if (fwrite(copyBuf, 1, (currentSize >= 0x8000 ? 0x8000 : currentSize), destinationFile) < 1) {
-						dumpFailMsg(true);
+						dumpFailMsg("Failed to dump the save.");
 						break;
 					}
 					currentSize -= 0x8000;
 				}
 				fclose(destinationFile);
 			} else {
-				dumpFailMsg(true);
+				dumpFailMsg("Failed to dump the save.");
 			}
 		} else { // SPI
 			unsigned char *buffer;
@@ -311,11 +298,7 @@ void ndsCardSaveRestore(const char *filename) {
 			u32 saveSize = cardNandGetSaveSize();
 
 			if(saveSize == 0) {
-				font->print(0, 0, false, "Unable to restore the save.");
-				font->update(false);
-				for (int i = 0; i < 60 * 2; i++) {
-					swiWaitForVBlank();
-				}
+				dumpFailMsg("Unable to restore the save.");
 				return;
 			}
 
@@ -327,7 +310,7 @@ void ndsCardSaveRestore(const char *filename) {
 			if(length != saveSize) {
 				fclose(in);
 
-				saveWriteFailMsg(false);
+				dumpFailMsg("The size of this save doesn't match the size of the inserted game card.\n\nWrite cancelled!");
 				return;
 			}
 
@@ -388,8 +371,7 @@ void ndsCardSaveRestore(const char *filename) {
 				fseek(in, 0, SEEK_SET);
 				if(length != (auxspi ? (int)(LEN * num_blocks) : size)) {
 					fclose(in);
-
-					saveWriteFailMsg(false);
+					dumpFailMsg("The size of this save doesn't match the size of the inserted game card.\n\nWrite cancelled!");
 					return;
 				}
 
@@ -478,12 +460,7 @@ void ndsCardDump(void) {
 		}
 
 		if (cardInit(&ndsCardHeader) != 0) {
-			font->clear(false);
-			font->print(0, 0, false, "Unable to dump the save.");
-			font->update(false);
-			for (int i = 0; i < 60 * 2; i++) {
-				swiWaitForVBlank();
-			}
+			dumpFailMsg("Unable to dump the save.");
 			return;
 		}
 		char gameTitle[13] = {0};
@@ -736,14 +713,14 @@ void ndsCardDump(void) {
 						cardRead (src+i, copyBuf+i, false);
 					}
 					if (fwrite(copyBuf, 1, (currentSize>=0x8000 ? 0x8000 : currentSize), destinationFile) < 1) {
-						dumpFailMsg(false);
+						dumpFailMsg("Failed to dump the ROM.");
 						break;
 					}
 					currentSize -= 0x8000;
 				}
 				fclose(destinationFile);
 			} else {
-				dumpFailMsg(false);
+				dumpFailMsg("Failed to dump the ROM.");
 			}
 			ndsCardSaveDump(destSavPath);
 		//}
@@ -797,17 +774,8 @@ void gbaCartSaveRestore(const char *filename) {
 			return;
 
 		FILE *sourceFile = fopen(filename, "rb");
-		u8 *buffer = new u8[size];
-		if(!buffer || !sourceFile) {
-			if(buffer) delete[] buffer;
-			if(sourceFile) fclose(sourceFile);
-
-			font->clear(false);
-			font->print(0, 0, false, "Failed to open save.");
-			font->update(false);
-
-			for (int i = 0; i < 60 * 2; i++)
-				swiWaitForVBlank();
+		if(!sourceFile) {
+			dumpFailMsg("Failed to open save.");
 			return;
 		}
 
@@ -815,23 +783,18 @@ void gbaCartSaveRestore(const char *filename) {
 		size_t length = ftell(sourceFile);
 		fseek(sourceFile, 0, SEEK_SET);
 		if(length != size) {
-			delete[] buffer;
 			fclose(sourceFile);
 
-			saveWriteFailMsg(true);
+			dumpFailMsg("The size of this save doesn't match the size of the inserted game pak.\n\nWrite cancelled!");
 			return;
 		}
 
+		u8 *buffer = new u8[size];
 		if (fread(buffer, 1, size, sourceFile) != size) {
 			delete[] buffer;
 			fclose(sourceFile);
 
-			font->clear(false);
-			font->print(0, 0, false, "Failed to read save.");
-			font->update(false);
-
-			for (int i = 0; i < 60 * 2; i++)
-				swiWaitForVBlank();
+			dumpFailMsg("Failed to read save.");
 			return;
 		}
 
@@ -980,7 +943,7 @@ void gbaCartDump(void) {
 				font->update(false);
 
 				if (fwrite(GBAROM + src / sizeof(u16), 1, 0x8000, destinationFile) != 0x8000) {
-					dumpFailMsg(false);
+					dumpFailMsg("Failed to dump the ROM.");
 					failed = true;
 					break;
 				}
@@ -1015,14 +978,14 @@ void gbaCartDump(void) {
 					writeChange(cmd);
 					readChange();
 					if (fwrite(GBAROM + (0x1000 >> 1), 0x1000, 1, destinationFile) < 1) {
-						dumpFailMsg(false);
+						dumpFailMsg("Failed to dump the ROM.");
 						break;
 					}
 				}
 			}
 			fclose(destinationFile);
 		} else {
-			dumpFailMsg(false);
+			dumpFailMsg("Failed to dump the ROM.");
 			return;
 		}
 	}
