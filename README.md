@@ -2,8 +2,8 @@
 	<img src="https://github.com/DS-Homebrew/GodMode9i/raw/master/resources/logo2_small.png"><br>
 	<b>A full access file browser for the DS and DSi consoles :godmode:</b>
 	<br>
-	<a href="https://dev.azure.com/DS-Homebrew/Builds/_build?definitionId=14" style="padding-right: 5px;">
-		<img src="https://dev.azure.com/DS-Homebrew/Builds/_apis/build/status/RocketRobz.GodMode9i?branchName=master" height="20">
+	<a href="https://github.com/DS-Homebrew/GodMode9i/actions/workflows/building.yml">
+		<img src="https://github.com/DS-Homebrew/GodMode9i/actions/workflows/building.yml/badge.svg" height="20" alt="Build status on GitHub Actions">
 	</a>
 	<a href="https://discord.gg/yD3spjv" style="padding-left: 5px; padding-right: 5px;">
 		<img src="https://img.shields.io/badge/Discord%20Server-%23GodMode9i-green.svg">
