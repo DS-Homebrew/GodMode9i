@@ -1,7 +1,7 @@
 /*
  * savegame_manager: a tool to backup and restore savegames from Nintendo
  *  DS cartridges. Nintendo DS and all derivative names are trademarks
- *  by Nintendo. EZFlash 3-in-1 is a trademark by EZFlash.
+ *  by Nintendo.
  *
  * gba.h: header file for gba.cpp
  *
@@ -46,4 +46,4 @@ bool gbaWriteSave(u32 dst, u8 *src, u32 len, saveTypeGBA type);
 bool gbaFormatSave(saveTypeGBA type);
 
 
-#endif // __SLOT2_H__
+#endif // __GBA_H__
