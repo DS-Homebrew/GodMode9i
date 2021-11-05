@@ -758,19 +758,6 @@ void gbaCartSaveDump(const char *filename) {
 	font->update(false);
 
 	saveTypeGBA type = gbaGetSaveType();
-
-	if(type == SAVE_GBA_EEPROM_05 || type == SAVE_GBA_EEPROM_8) {
-		font->clear(false);
-		font->print(0, 0, false, "EEPROM saves are not currently supported!\n\nUse GBA Backup Tool to backup/restore this game's save.\nhttps://gamebrew.org/wiki/GBA_Backup_Tool\n\n(<A> OK)");
-		font->update(false);
-
-		do {
-			scanKeys();
-			swiWaitForVBlank();
-		} while(!(keysDown() & KEY_A));
-		return;
-	}
-
 	u32 size = gbaGetSaveSize(type);
 	if(size == 0)
 		return;

@@ -30,6 +30,8 @@
 #include <nds.h>
 #include <string.h>
 
+#include "gba.h"
+
 void my_installSystemFIFO(void);
 void my_sdmmc_get_cid(int devicenumber, u32 *cid);
 
@@ -177,6 +179,19 @@ int main() {
 		}
 		*(u8*)(0x2FFFD08) = ((*(vu32*)(0x400481C) & BIT(3)) || !(*(vu32*)(0x400481C) & BIT(5)));	// Set if there's no SD inserted
 		resyncClock();
+
+		// Dump EEPROM save
+		if(fifoCheckAddress(FIFO_USER_01)) {
+			switch(fifoGetValue32(FIFO_USER_01)) {
+				case 0x44414552: // 'READ'
+					readEeprom((u8 *)fifoGetAddress(FIFO_USER_01), fifoGetValue32(FIFO_USER_01), fifoGetValue32(FIFO_USER_01));
+					break;
+				case 0x54495257: // 'WRITE'
+					writeEeprom(fifoGetValue32(FIFO_USER_01), (u8 *)fifoGetAddress(FIFO_USER_01), fifoGetValue32(FIFO_USER_01));
+					break;
+			}
+		}
+
 		swiWaitForVBlank();
 	}
 	return 0;

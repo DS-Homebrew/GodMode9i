@@ -41,11 +41,6 @@
 #include <dirent.h>
 
 #include "gba.h"
-// #include "dsCard.h"
-
-// #include "display.h"
-// #include "globals.h"
-// #include "strings.h"
 
 inline u32 min(u32 i, u32 j) { return (i < j) ? i : j;}
 inline u32 max(u32 i, u32 j) { return (i > j) ? i : j;}
@@ -58,9 +53,6 @@ inline u32 max(u32 i, u32 j) { return (i > j) ? i : j;}
 #define MAGIC_FLAS 0x53414c46
 
 #define MAGIC_H1M_ 0x5f4d3148
-
-#define EEPROM_ADDRESS (0x0DFFFF00)
-#define REG_EEPROM *(vu16 *)(EEPROM_ADDRESS)
 
 
 // -----------------------------------------------------------
@@ -77,94 +69,40 @@ bool gbaIsGame()
 	return false;
 }
 
-void EEPROM_SendPacket(u16 *packet, int size)
-{
-	REG_EXMEMCNT = (REG_EXMEMCNT & 0xFFE3) | 0x000C;
-	DMA3_SRC = (u32)packet;
-	DMA3_DEST = EEPROM_ADDRESS;
-	DMA3_CR = 0x80000000 + size;
-	while((DMA3_CR & 0x80000000) != 0);
-}
+void readEeprom(u8 *dst, u32 src, u32 len) {
+	// EEPROM reading needs to happen on ARM7
+	sysSetCartOwner(BUS_OWNER_ARM7);
+	fifoSendValue32(FIFO_USER_01, 0x44414552 /* 'READ' */);
+	fifoSendAddress(FIFO_USER_01, dst);
+	fifoSendValue32(FIFO_USER_01, src);
+	fifoSendValue32(FIFO_USER_01, len);
 
-void EEPROM_ReceivePacket(u16 *packet, int size)
-{
-	REG_EXMEMCNT = (REG_EXMEMCNT & 0xFFE3) | 0x000C;
-	DMA3_SRC = EEPROM_ADDRESS;
-	DMA3_DEST = (u32)packet;
-	DMA3_CR = 0x80000000 + size;
-	while((DMA3_CR & 0x80000000) != 0);
-}
-
-// local function
-void gbaEepromRead8Bytes(u8 *out, u16 addr, bool short_addr)
-{
-	u16 packet[68];
-
-	memset(packet, 0, 68 * 2);
-
-	// Read request
-	packet[0] = 1;
-	packet[1] = 1;
-
-	// 6 or 14 bytes eeprom address (MSB first)
-	for(int i = 2, shift = (short_addr ? 5 : 13); i < (short_addr ? 8 : 16); i++, shift--) {
-		packet[i] = (addr >> shift) & 1;
-	}
-
-	// End of request
-	packet[short_addr ? 8 : 16] = 0;
-
-	// Do transfers
-	EEPROM_SendPacket(packet, short_addr ? 9 : 17);
-	memset(packet, 0, 68 * 2);
-	EEPROM_ReceivePacket(packet, 68);
-
-	// Extract data
-	u16 *in_pos = &packet[4];
-	for(int byte = 7; byte >= 0; --byte) {
-		u8 out_byte = 0;
-		for(int bit = 7; bit >= 0; --bit) {
-			// out_byte += (*in_pos++) << bit;
-			out_byte += ((*in_pos++) & 1) << bit;
-		}
-		*out++ = out_byte;
-	}
-}
-
-// local function
-void gbaEepromWrite8Bytes(u8 *in, u16 addr, bool short_addr = false)
-{
-	u16 packet_length = short_addr ? 73 : 81;
-	u16 packet[packet_length];
-
-	memset( packet, 0, packet_length * 2);
-
-	// Write request
-	packet[0] = 1;
-	packet[1] = 0;
-
-	// 6 or 14 bytes eeprom address (MSB first)
-	for(int i = 2, shift = (short_addr ? 5 : 13); i < (short_addr ? 8 : 16); i++, shift--) {
-		packet[i] = (addr >> shift) & 1;
-	}
-
-	// Extract data
-	u16 *out_pos = &packet[short_addr ? 8 : 16];
-	for(int byte = 7; byte >= 0; --byte) {
-		u8 in_byte = *in++;
-		for(int bit = 7; bit >= 0; --bit) {
-			*out_pos++ = (in_byte >> bit) & 1;
+	// Read the data from FIFO
+	u8 *ptr = dst;
+	while(ptr < dst + len) {
+		if(fifoCheckDatamsg(FIFO_USER_02)) {
+			fifoGetDatamsg(FIFO_USER_02, 8, ptr);
+			ptr += 8;
 		}
 	}
 
-	// End of request
-	packet[packet_length - 1] = 0;
+	sysSetCartOwner(BUS_OWNER_ARM9);
+}
 
-	// Do transfers
-	EEPROM_SendPacket(packet, packet_length);
+void writeEeprom(u32 dst, u8 *src, u32 len) {
+	// EEPROM writing needs to happen on ARM7
+	sysSetCartOwner(BUS_OWNER_ARM7);
+	fifoSendValue32(FIFO_USER_01, 0x54495257 /* 'WRIT' */);
+	fifoSendValue32(FIFO_USER_01, dst);
+	fifoSendAddress(FIFO_USER_01, src);
+	fifoSendValue32(FIFO_USER_01, len);
 
-	// Wait for EEPROM to finish (should timeout after 10 ms)
-	while((REG_EEPROM & 1) == 0);
+	// Wait for it to finish
+	while(!(fifoCheckValue32(FIFO_USER_02) && fifoGetValue32(FIFO_USER_02) == 0x454E4F44 /* 'DONE' */)) {
+		swiWaitForVBlank();
+	}
+
+	sysSetCartOwner(BUS_OWNER_ARM9);
 }
 
 saveTypeGBA gbaGetSaveType() {
@@ -173,19 +111,17 @@ saveTypeGBA gbaGetSaveType() {
 	
 	for (int i = 0; i < (0x02000000 >> 2); i++, data++) {
 		if (*data == MAGIC_EEPR) {
-			u8 *buf = new u8[0x2000];
-			u8 *ptr = buf;
-			for (int j = 0; j < 0x400; j++, ptr += 8) {
-				gbaEepromRead8Bytes(ptr, j, false);
-				for(int sleep=0;sleep<512000;sleep++);
-			}
+			u8 *buffer = new u8[0x2000];
+			readEeprom(buffer, 0, 0x2000);
+
+			// Check if first 0x800 bytes are duplicates of the first 8
 			for(int j = 8; j < 0x800; j += 8) {
-				if(memcmp(buf, buf + j, 8) != 0) {
-					delete[] buf;
+				if(memcmp(buffer, buffer + j, 8) != 0) {
+					delete[] buffer;
 					return SAVE_GBA_EEPROM_8;
 				}
 			}
-			delete[] buf;
+			delete[] buffer;
 			return SAVE_GBA_EEPROM_05;
 		} else if (*data == MAGIC_SRAM) {
 			// *always* 32 kB
@@ -236,21 +172,11 @@ uint32 gbaGetSaveSize(saveTypeGBA type)
 bool gbaReadSave(u8 *dst, u32 src, u32 len, saveTypeGBA type)
 {
 	int nbanks = 2; // for type 4,5
-	bool eeprom_long = true;
 	
 	switch (type) {
-	case SAVE_GBA_EEPROM_05: {
-		eeprom_long = false;
-		}
+	case SAVE_GBA_EEPROM_05:
 	case SAVE_GBA_EEPROM_8: {
-		int start, end;
-		start = src >> 3;
-		end = (src + len) >> 3;
-		u8 *ptr = dst;
-		for (int j = start; j < end; j++, ptr += 8) {
-			gbaEepromRead8Bytes(ptr, j, !eeprom_long);
-			for(int sleep=0;sleep<512000;sleep++);
-		}
+		readEeprom(dst, src, len);
 		break;
 		}
 	case SAVE_GBA_SRAM_32: {
@@ -327,22 +253,11 @@ bool gbaIsAtmel()
 bool gbaWriteSave(u32 dst, u8 *src, u32 len, saveTypeGBA type)
 {
 	int nbanks = 2; // for type 4,5
-	bool eeprom_long = true;
 	
 	switch (type) {
-	case SAVE_GBA_EEPROM_05: {
-		eeprom_long = false;
-		}
+	case SAVE_GBA_EEPROM_05:
 	case SAVE_GBA_EEPROM_8: {
-	/*
-		int start, end;
-		start = dst >> 3;
-		end = (dst + len) >> 3;
-		u8 *ptr = src;
-		for (int j = start; j < end; j++, ptr+=8) {
-			gbaEepromWrite8Bytes(ptr, j, eeprom_long);
-		}
-		*/
+		writeEeprom(dst, src, len);
 		break;
 		}
 	case SAVE_GBA_SRAM_32: {
@@ -432,7 +347,7 @@ bool gbaFormatSave(saveTypeGBA type)
 	switch (type) {
 		case SAVE_GBA_EEPROM_05:
 		case SAVE_GBA_EEPROM_8:
-			// TODO: eeprom is not supported yet
+			// EEPROM doesn't need erasing
 			break;
 		case SAVE_GBA_SRAM_32:
 			{
