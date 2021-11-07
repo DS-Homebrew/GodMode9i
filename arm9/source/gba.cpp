@@ -299,7 +299,6 @@ bool gbaWriteSave(u32 dst, u8 *src, u32 len, saveTypeGBA type)
 	case SAVE_GBA_FLASH_128:
 		// FLASH - must be opend by register magic, erased and then rewritten
 		// FIXME: currently, you can only write "all or nothing"
-		nbanks = 2;
 		for (int j = 0; j < nbanks; j++) {
 			*(vu8*)0x0a005555 = 0xaa;
 			swiDelay(10);
