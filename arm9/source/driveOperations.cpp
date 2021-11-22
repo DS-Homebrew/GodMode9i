@@ -1,3 +1,5 @@
+#include "driveOperations.h"
+
 #include <nds.h>
 #include <nds/arm9/dldi.h>
 #include <fat.h>
@@ -30,9 +32,9 @@ bool ramdrive2Mounted = false;
 bool imgMounted = false;
 bool nitroMounted = false;
 
-int currentDrive = 0;						// 0 == SD card, 1 == Flashcard, 2 == RAMdrive 1, 3 == RAMdrive 2, 4 == NAND, 5 == NitroFS, 6 == FAT IMG
-int nitroCurrentDrive = 0;
-int imgCurrentDrive = 0;
+Drive currentDrive = Drive::sdCard;
+Drive nitroCurrentDrive = Drive::sdCard;
+Drive imgCurrentDrive = Drive::sdCard;
 
 char sdLabel[12];
 char fatLabel[12];
@@ -79,19 +81,19 @@ std::string getDriveBytes(u64 bytes)
 
 const char* getDrivePath(void) {
 	switch (currentDrive) {
-		case 0:
+		case Drive::sdCard:
 			return "sd:/";
-		case 1:
+		case Drive::flashcard:
 			return "fat:/";
-		case 2:
+		case Drive::ramDrive1:
 			return "ram1:/";
-		case 3:
+		case Drive::ramDrive2:
 			return "ram2:/";
-		case 4:
+		case Drive::nand:
 			return "nand:/";
-		case 5:
+		case Drive::nitroFS:
 			return "nitro:/";
-		case 6:
+		case Drive::fatImg:
 			return "img:/";
 	}
 	return "";

@@ -231,8 +231,8 @@ u32 search(u32 offset, FILE *file) {
 	return offset;
 }
 
-void hexEditor(const char *path, int drive) {
-	FILE *file = fopen(path, drive < 4 ? "rb+" : "rb");
+void hexEditor(const char *path, Drive drive) {
+	FILE *file = fopen(path, DRIVE_WRITABLE(drive) ? "rb+" : "rb");
 
 	if(!file)
 		return;
@@ -355,7 +355,7 @@ void hexEditor(const char *path, int drive) {
 				if((int)cursorPosition < bytesPerLine * maxLines - 1)
 					cursorPosition = std::min(cursorPosition + 1, fileSize - offset - 1);
 			} else if(pressed & KEY_A) {
-				if(drive < 4) {
+				if(DRIVE_WRITABLE(drive)) {
 					mode = 2;
 				}
 			} else if(pressed & KEY_B) {

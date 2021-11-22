@@ -95,7 +95,7 @@ void getDirectoryContents(std::vector<DirEntry>& dirContents) {
 
 			bool isApp = false;
 			if (extension(pent->d_name, {"nds", "argv", "dsi", "ids", "app", "srl"})) {
-				isApp = (currentDrive == 0 && sdMounted) || (currentDrive == 1 && flashcardMounted);
+				isApp = (currentDrive == Drive::sdCard && sdMounted) || (currentDrive == Drive::flashcard && flashcardMounted);
 			} else if (extension(pent->d_name, {"firm"})) {
 				isApp = (isDSiMode() && is3DS && sdMounted);
 			}
@@ -380,7 +380,7 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					if (nitroMounted) {
 						chdir("nitro:/");
 						nitroCurrentDrive = currentDrive;
-						currentDrive = 5;
+						currentDrive = Drive::nitroFS;
 					}
 					break;
 				} case FileOperation::ndsInfo: {
@@ -397,7 +397,7 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					if (imgMounted) {
 						chdir("img:/");
 						imgCurrentDrive = currentDrive;
-						currentDrive = 6;
+						currentDrive = Drive::fatImg;
 					}
 					break;
 				} case FileOperation::hexEdit: {
@@ -650,7 +650,7 @@ std::string browseForFile (void) {
 			}
 		} while (!pressed);
 
-		if (isDSiMode() && !pressed && currentDrive == 1 && REG_SCFG_MC == 0x11 && flashcardMounted) {
+		if (isDSiMode() && !pressed && currentDrive == Drive::flashcard && REG_SCFG_MC == 0x11 && flashcardMounted) {
 			flashcardUnmount();
 			screenMode = 0;
 			return "null";

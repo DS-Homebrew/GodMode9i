@@ -96,20 +96,20 @@ void dm_drawTopScreen(void) {
 				break;
 			case DriveMenuOperation::nitroFs:
 				font->print(0, i + 1, true, "[nitro:] NDS GAME IMAGE", Alignment::left, pal);
-				if (!((sdMounted && nitroCurrentDrive==0)
-				|| (flashcardMounted && nitroCurrentDrive==1)
-				|| (ramdrive1Mounted && nitroCurrentDrive==2)
-				|| (ramdrive2Mounted && nitroCurrentDrive==3)
-				|| (nandMounted && nitroCurrentDrive==4)
-				|| (imgMounted && nitroCurrentDrive==6)))
+				if (!((sdMounted && nitroCurrentDrive == Drive::sdCard)
+				|| (flashcardMounted && nitroCurrentDrive == Drive::flashcard)
+				|| (ramdrive1Mounted && nitroCurrentDrive == Drive::ramDrive1)
+				|| (ramdrive2Mounted && nitroCurrentDrive == Drive::ramDrive2)
+				|| (nandMounted && nitroCurrentDrive == Drive::nand)
+				|| (imgMounted && nitroCurrentDrive == Drive::fatImg)))
 					font->print(256 - font->width(), i + 1, true, "[x]", Alignment::right, pal);
 				break;
 			case DriveMenuOperation::fatImage:
-				if ((sdMounted && imgCurrentDrive==0)
-				|| (flashcardMounted && imgCurrentDrive==1)
-				|| (ramdrive1Mounted && imgCurrentDrive==2)
-				|| (ramdrive2Mounted && imgCurrentDrive==3)
-				|| (nandMounted && imgCurrentDrive==4)) {
+				if ((sdMounted && imgCurrentDrive == Drive::sdCard)
+				|| (flashcardMounted && imgCurrentDrive == Drive::flashcard)
+				|| (ramdrive1Mounted && imgCurrentDrive == Drive::ramDrive1)
+				|| (ramdrive2Mounted && imgCurrentDrive == Drive::ramDrive2)
+				|| (nandMounted && imgCurrentDrive == Drive::nand)) {
 					font->printf(0, i + 1, true, Alignment::left, pal, "[nitro:] FAT IMAGE (%s)", imgLabel[0] == 0 ? "UNTITLED" : imgLabel);
 				} else {
 					font->print(0, i + 1, true, "[nitro:] FAT IMAGE", Alignment::left, pal);
@@ -291,26 +291,26 @@ void driveMenu (void) {
 
 		if (pressed & KEY_A) {
 			if (dmOperations[dmCursorPosition] == DriveMenuOperation::sdCard && sdMounted) {
-				currentDrive = 0;
+				currentDrive = Drive::sdCard;
 				chdir("sd:/");
 				screenMode = 1;
 				break;
 			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::flashcard && flashcardMounted) {
-				currentDrive = 1;
+				currentDrive = Drive::flashcard;
 				chdir("fat:/");
 				screenMode = 1;
 				break;
 			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::gbaCart && isRegularDS && flashcardMounted && gbaFixedValue == 0x96) {
 				gbaCartDump();
 			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::nitroFs && nitroMounted) {
-				if ((sdMounted && nitroCurrentDrive==0)
-				|| (flashcardMounted && nitroCurrentDrive==1)
-				|| (ramdrive1Mounted && nitroCurrentDrive==2)
-				|| (ramdrive2Mounted && nitroCurrentDrive==3)
-				|| (nandMounted && nitroCurrentDrive==4)
-				|| (imgMounted && nitroCurrentDrive==6))
+				if ((sdMounted && nitroCurrentDrive == Drive::sdCard)
+				|| (flashcardMounted && nitroCurrentDrive == Drive::flashcard)
+				|| (ramdrive1Mounted && nitroCurrentDrive == Drive::ramDrive1)
+				|| (ramdrive2Mounted && nitroCurrentDrive == Drive::ramDrive2)
+				|| (nandMounted && nitroCurrentDrive == Drive::nand)
+				|| (imgMounted && nitroCurrentDrive == Drive::fatImg))
 				{
-					currentDrive = 5;
+					currentDrive = Drive::nitroFS;
 					chdir("nitro:/");
 					screenMode = 1;
 					break;
@@ -318,28 +318,28 @@ void driveMenu (void) {
 			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::ndsCard && (sdMounted || flashcardMounted)) {
 				ndsCardDump();
 			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::ramDrive1 && isDSiMode() && ramdrive1Mounted) {
-				currentDrive = 2;
+				currentDrive = Drive::ramDrive1;
 				chdir("ram1:/");
 				screenMode = 1;
 				break;
 			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::ramDrive2 && isDSiMode() && ramdrive2Mounted) {
-				currentDrive = 3;
+				currentDrive = Drive::ramDrive2;
 				chdir("ram2:/");
 				screenMode = 1;
 				break;
 			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::sysNand && isDSiMode() && nandMounted) {
-				currentDrive = 4;
+				currentDrive = Drive::nand;
 				chdir("nand:/");
 				screenMode = 1;
 				break;
 			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::fatImage && imgMounted) {
-				if ((sdMounted && imgCurrentDrive==0)
-				|| (flashcardMounted && imgCurrentDrive==1)
-				|| (ramdrive1Mounted && imgCurrentDrive==2)
-				|| (ramdrive2Mounted && imgCurrentDrive==3)
-				|| (nandMounted && imgCurrentDrive==4))
+				if ((sdMounted && imgCurrentDrive == Drive::sdCard)
+				|| (flashcardMounted && imgCurrentDrive == Drive::flashcard)
+				|| (ramdrive1Mounted && imgCurrentDrive == Drive::ramDrive1)
+				|| (ramdrive2Mounted && imgCurrentDrive == Drive::ramDrive2)
+				|| (nandMounted && imgCurrentDrive == Drive::nand))
 				{
-					currentDrive = 6;
+					currentDrive = Drive::fatImg;
 					chdir("img:/");
 					screenMode = 1;
 					break;
@@ -350,11 +350,11 @@ void driveMenu (void) {
 		// Unmount/Remount FAT image
 		if ((held & KEY_R) && (pressed & KEY_X)) {
 			if (nitroMounted) {
-				currentDrive = 5;
+				currentDrive = Drive::nitroFS;
 				chdir("nitro:/");
 				nitroUnmount();
 			} else if (imgMounted) {
-				currentDrive = 6;
+				currentDrive = Drive::fatImg;
 				chdir("img:/");
 				imgUnmount();
 			}
@@ -364,7 +364,7 @@ void driveMenu (void) {
 		if ((held & KEY_R) && (pressed & KEY_B)) {
 			if (isDSiMode() && sdMountedDone) {
 				if (sdMounted) {
-					currentDrive = 0;
+					currentDrive = Drive::sdCard;
 					chdir("sd:/");
 					sdUnmount();
 				} else if (isRegularDS) {
@@ -372,7 +372,7 @@ void driveMenu (void) {
 				}
 			} else {
 				if (flashcardMounted) {
-					currentDrive = 1;
+					currentDrive = Drive::flashcard;
 					chdir("fat:/");
 					flashcardUnmount();
 				} else {

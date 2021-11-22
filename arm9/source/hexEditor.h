@@ -1,6 +1,8 @@
 #ifndef HEX_EDITOR_H
 #define HEX_EDITOR_H
 
-void hexEditor(const char *path, int drive);
+#include "driveOperations.h"
+
+void hexEditor(const char *path, Drive drive);
 
 #endif
