@@ -72,10 +72,10 @@ std::string getDriveBytes(u64 bytes)
 		sniprintf(buffer, sizeof(buffer), STR_N_MB.c_str(), (int)bytes >> 20);
 
 	else if (bytes >= 0x40000000 && bytes < 0x10000000000)
-		snprintf(buffer, sizeof(buffer), STR_N_GB.c_str(), getGbNumber(bytes));
+		snprintf(buffer, sizeof(buffer), STR_N_GB_FLOAT.c_str(), getGbNumber(bytes));
 
 	else
-		snprintf(buffer, sizeof(buffer), STR_N_TB.c_str(), getTbNumber(bytes));
+		snprintf(buffer, sizeof(buffer), STR_N_TB_FLOAT.c_str(), getTbNumber(bytes));
 
 	return buffer;
 }

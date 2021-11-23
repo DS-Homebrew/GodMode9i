@@ -154,8 +154,9 @@ STRING(1_BYTE, "1 Byte")
 STRING(N_BYTES, "%d Bytes")
 STRING(N_KB, "%d KB")
 STRING(N_MB, "%d MB")
-STRING(N_GB, "%.1f GB")
-STRING(N_TB, "%.1f TB")
+STRING(N_GB, "%d GB")
+STRING(N_GB_FLOAT, "%.1f GB")
+STRING(N_TB_FLOAT, "%.1f TB")
 
 // Language names
 STRING(JAPANESE, "Japanese")
