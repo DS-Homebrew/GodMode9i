@@ -2,21 +2,22 @@
 
 #include "date.h"
 #include "font.h"
+#include "language.h"
 #include "screenshot.h"
 #include "tonccpy.h"
 
 #include <nds.h>
 #include <stdio.h>
 
-constexpr const char *langNames[8] {
-	"Japanese",
-	"English",
-	"French",
-	"German",
-	"Italian",
-	"Spanish",
-	"Chinese",
-	"Korean"
+constexpr std::string *langNames[8] {
+	&STR_JAPANESE,
+	&STR_ENGLISH,
+	&STR_FRENCH,
+	&STR_GERMAN,
+	&STR_ITALIAN,
+	&STR_SPANISH,
+	&STR_CHINESE,
+	&STR_KOREAN
 };
 
 void ndsInfo(const char *path) {
@@ -81,9 +82,9 @@ void ndsInfo(const char *path) {
 	int animationFrame = 0, frameDelay = 0, lang = 1;
 	while(1) {
 		font->clear(false);
-		font->printf(0, 0, false, Alignment::left, Palette::white, "Header Title: %s", headerTitle);
-		font->printf(0, 1, false, Alignment::left, Palette::white, "Title ID: %s", tid);
-		font->printf(0, 2, false, Alignment::left, Palette::white, "Title: (%s)", langNames[lang]);
+		font->printf(0, 0, false, Alignment::left, Palette::white, STR_HEADER_TITLE.c_str(), headerTitle);
+		font->printf(0, 1, false, Alignment::left, Palette::white, STR_TITLE_ID.c_str(), tid);
+		font->printf(0, 2, false, Alignment::left, Palette::white, STR_TITLE_IN_LANGUAGE.c_str(), langNames[lang]->c_str());
 		font->print(2, 3, false, titles + lang * 0x80);
 		font->update(false);
 

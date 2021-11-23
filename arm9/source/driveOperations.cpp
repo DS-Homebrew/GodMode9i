@@ -16,6 +16,7 @@
 #include "nandio.h"
 #include "imgio.h"
 #include "tonccpy.h"
+#include "language.h"
 
 static sNDSHeader nds;
 
@@ -65,16 +66,16 @@ std::string getDriveBytes(u64 bytes)
 {
 	char buffer[12];
 	if (bytes < (1024 * 1024))
-		sniprintf(buffer, sizeof(buffer), "%d KB", (int)bytes / 1024);
+		sniprintf(buffer, sizeof(buffer), STR_N_KB.c_str(), (int)bytes >> 10);
 
 	else if (bytes >= (1024 * 1024) && bytes < (1024 * 1024 * 1024))
-		sniprintf(buffer, sizeof(buffer), "%d MB", (int)bytes / 1024 / 1024);
+		sniprintf(buffer, sizeof(buffer), STR_N_MB.c_str(), (int)bytes >> 20);
 
 	else if (bytes >= 0x40000000 && bytes < 0x10000000000)
-		snprintf(buffer, sizeof(buffer), "%.1f GB", getGbNumber(bytes));
+		snprintf(buffer, sizeof(buffer), STR_N_GB.c_str(), getGbNumber(bytes));
 
 	else
-		snprintf(buffer, sizeof(buffer), "%.1f TB", getTbNumber(bytes));
+		snprintf(buffer, sizeof(buffer), STR_N_TB.c_str(), getTbNumber(bytes));
 
 	return buffer;
 }
@@ -225,10 +226,6 @@ TWL_CODE bool UpdateCardInfo(char* gameid, char* gamename) {
 	return true;
 }
 
-TWL_CODE void ShowGameInfo(const char gameid[], const char gamename[]) {
-	iprintf("Game id: %s\nName:    %s", gameid, gamename);
-}
-
 TWL_CODE bool twl_flashcardMount(void) {
 	if (REG_SCFG_MC != 0x11) {
 		sysSetCardOwner (BUS_OWNER_ARM9);
@@ -257,20 +254,7 @@ TWL_CODE bool twl_flashcardMount(void) {
 		char gamename[13];
 		char gameid[5];
 
-		/*fifoSendValue32(FIFO_USER_04, 1);
-		for (int i = 0; i < 10; i++) {
-			swiWaitForVBlank();
-		}
-		tonccpy(&nds, (void*)0x02000000, sizeof(nds));*/
 		UpdateCardInfo(&gameid[0], &gamename[0]);
-
-		/*consoleClear();
-		iprintf("REG_SCFG_MC: %x\n", REG_SCFG_MC);
-		ShowGameInfo(gameid, gamename);
-
-		for (int i = 0; i < 60*5; i++) {
-			swiWaitForVBlank();
-		}*/
 
 		sysSetCardOwner (BUS_OWNER_ARM7);	// 3DS fix
 

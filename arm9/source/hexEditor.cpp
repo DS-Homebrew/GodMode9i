@@ -3,6 +3,7 @@
 #include "date.h"
 #include "file_browse.h"
 #include "font.h"
+#include "language.h"
 #include "screenshot.h"
 #include "tonccpy.h"
 
@@ -17,7 +18,7 @@ u32 jumpToOffset(u32 offset) {
 		int y = (ENTRIES_PER_SCREEN - 4) / 2;
 		font->clear(false);
 		font->print(0, y, false, "--------------------", Alignment::center);
-		font->print(0, y + 1, false, "Jump to Offset", Alignment::center);
+		font->print(0, y + 1, false, STR_JUMP_TO_OFFSET, Alignment::center);
 		font->printf(0, y + 3, false, Alignment::center, Palette::blue, "%08lX", offset);
 		font->printf(3 - cursorPosition, y + 3, false, Alignment::center, Palette::red, "%lX", (offset >> ((cursorPosition + 1) * 4)) & 0xF);
 		font->print(0, y + 4, false, "--------------------", Alignment::center);
@@ -59,8 +60,8 @@ u32 search(u32 offset, FILE *file) {
 		int y = (ENTRIES_PER_SCREEN - 3) / 2;
 		font->clear(false);
 		font->print(0, y, false, "--------------------", Alignment::center);
-		font->printf(0, y + 1, false, Alignment::center, Palette::white, "%c Search for String %c", cursorPosition == 0 ? '>' : ' ', cursorPosition == 0 ? '<' : ' ');
-		font->printf(0, y + 2, false, Alignment::center, Palette::white, "%c  Search for Data  %c", cursorPosition == 1 ? '>' : ' ', cursorPosition == 1 ? '<' : ' ');
+		font->printf(0, y + 1, false, Alignment::center, Palette::white, "%c %s %c", cursorPosition == 0 ? '>' : ' ', STR_SEARCH_STRING.c_str(), cursorPosition == 0 ? '<' : ' ');
+		font->printf(0, y + 2, false, Alignment::center, Palette::white, "%c %s %c", cursorPosition == 1 ? '>' : ' ', STR_SEARCH_DATA.c_str(), cursorPosition == 1 ? '<' : ' ');
 		font->print(0, y + 3, false, "--------------------", Alignment::center);
 		font->update(false);
 
@@ -95,7 +96,7 @@ u32 search(u32 offset, FILE *file) {
 		kbd->OnKeyPressed = OnKeyPressed;
 
 		// keyboardShow();
-		printf("Search for:\n");
+		iprintf(STR_SEARCH_FOR.c_str());
 		fgets(str, sizeof(str), stdin);
 		keyboardHide();
 
@@ -118,7 +119,7 @@ u32 search(u32 offset, FILE *file) {
 			int y = (ENTRIES_PER_SCREEN - 4) / 2;
 			font->clear(false);
 			font->print(0, y, false, "--------------------", Alignment::center);
-			font->print(0, y + 1, false, "Enter value:", Alignment::center);
+			font->print(0, y + 1, false, STR_ENTER_VALUE, Alignment::center);
 			for(size_t i = 0; i < strLen * 2; i++)
 				font->printf(-strLen + i + 1, y + 3, false, Alignment::center, i == cursorPosition ? Palette::red : ((i / 2 % 2) ? Palette::greenAlt : Palette::green), "%X", str[i / 2] >> (!(i % 2) * 4) & 0xF);
 			font->print(0, y + 4, false, "--------------------", Alignment::center);
@@ -173,8 +174,8 @@ u32 search(u32 offset, FILE *file) {
 	int y = (ENTRIES_PER_SCREEN - 7) / 2;
 	font->clear(false);
 	font->print(0, y, false, "--------------------", Alignment::center);
-	font->print(0, y + 1, false, "Searching", Alignment::center);
-	font->print(0, y + 6, false, "Press B to cancel", Alignment::center);
+	font->print(0, y + 1, false, STR_SEARCHING, Alignment::center);
+	font->print(0, y + 6, false, STR_PRESS_B_TO_CANCEL, Alignment::center);
 	font->print(0, y + 7, false, "--------------------", Alignment::center);
 	font->update(false);
 
@@ -214,8 +215,7 @@ u32 search(u32 offset, FILE *file) {
 	y = (ENTRIES_PER_SCREEN - 3) / 2;
 	font->clear(false);
 	font->print(0, y, false, "--------------------", Alignment::center);
-	font->print(0, y + 1, false, "Reached end of file", Alignment::center);
-	font->print(0, y + 2, false, "with no results", Alignment::center);
+	font->print(0, y + 1, false, STR_EOF_NO_RESULTS, Alignment::center);
 	font->print(0, y + 3, false, "--------------------", Alignment::center);
 	font->update(false);
 
@@ -257,7 +257,7 @@ void hexEditor(const char *path, Drive drive) {
 		font->clear(false);
 
 		font->printf(0, 0, false, Alignment::left, Palette::blackGreen, "%*c", SCREEN_COLS, ' ');
-		font->print(0, 0, false, "Hex Editor", Alignment::center, Palette::blackGreen);
+		font->print(0, 0, false, STR_HEX_EDITOR, Alignment::center, Palette::blackGreen);
 
 		if(bytesPerLine < 16)
 			font->printf(0, 0, false, Alignment::left, Palette::blackBlue, "%04lX", offset >> 0x10);

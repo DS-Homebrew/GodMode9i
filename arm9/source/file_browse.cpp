@@ -44,6 +44,7 @@
 #include "nitrofs.h"
 #include "inifile.h"
 #include "nds_loader_arm9.h"
+#include "language.h"
 
 #define ENTRIES_START_ROW 1
 #define OPTIONS_ENTRIES_START_ROW 2
@@ -82,7 +83,7 @@ void getDirectoryContents(std::vector<DirEntry>& dirContents) {
 	DIR *pdir = opendir (".");
 
 	if (pdir == nullptr) {
-		font->print(0, 0, true, "Unable to open the directory.");
+		font->print(0, 0, true, STR_UNABLE_TO_OPEN_DIRECTORY);
 		font->update(true);
 	} else {
 		while (true) {
@@ -157,7 +158,7 @@ void showDirectoryContents(std::vector<DirEntry> &dirContents, int fileOffset, i
 		if (entry->name == "..") {
 			font->print(-1, i + 1, true, "(..)", Alignment::right, pal);
 		} else if (entry->isDirectory) {
-			font->print(-1, i + 1, true, " (dir)", Alignment::right, pal);
+			font->print(-1, i + 1, true, " " + STR_DIR, Alignment::right, pal);
 		} else {
 			font->printf(-1, i + 1, true, Alignment::right, pal, " (%s)", getBytes(entry->size).c_str());
 		}
@@ -221,43 +222,43 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 		for(FileOperation operation : operations) {
 			switch(operation) {
 				case FileOperation::bootFile:
-					font->print(3, row++, false, extension(entry->name, {"firm"}) ? "Boot file" : "Boot file (Direct)");
+					font->print(3, row++, false, extension(entry->name, {"firm"}) ? STR_BOOT_FILE : STR_BOOT_FILE_DIRECT);
 					break;
 				case FileOperation::bootstrapFile:
-					font->print(3, row++, false, "Bootstrap file");
+					font->print(3, row++, false, STR_BOOTSTRAP_FILE);
 					break;
 				case FileOperation::mountNitroFS:
-					font->print(3, row++, false, "Mount NitroFS");
+					font->print(3, row++, false, STR_MOUNT_NITROFS);
 					break;
 				case FileOperation::ndsInfo:
-					font->print(3, row++, false, "Show NDS file info");
+					font->print(3, row++, false, STR_SHOW_NDS_INFO);
 					break;
 				case FileOperation::trimNds:
-					font->print(3, row++, false, "Trim NDS file");
+					font->print(3, row++, false, STR_TRIM_NDS);
 					break;
 				case FileOperation::restoreSave:
-					font->print(3, row++, false, "Restore save");
+					font->print(3, row++, false, STR_RESTORE_SAVE);
 					break;
 				case FileOperation::mountImg:
-					font->print(3, row++, false, "Mount as FAT image");
+					font->print(3, row++, false, STR_MOUNT_FAT_IMG);
 					break;
 				case FileOperation::hexEdit:
-					font->print(3, row++, false, "Open in hex editor");
+					font->print(3, row++, false, STR_OPEN_HEX);
 					break;
 				case FileOperation::showInfo:
-					font->print(3, row++, false, entry->isDirectory ? "Show directory info" : "Show file info");
+					font->print(3, row++, false, entry->isDirectory ? STR_SHOW_DIRECTORY_INFO : STR_SHOW_FILE_INFO);
 					break;
 				case FileOperation::copySdOut:
-					font->print(3, row++, false, "Copy to sd:/gm9i/out");
+					font->print(3, row++, false, STR_COPY_SD_OUT);
 					break;
 				case FileOperation::copyFatOut:
-					font->print(3, row++, false, "Copy to fat:/gm9i/out");
+					font->print(3, row++, false, STR_COPY_FAT_OUT);
 					break;
 				case FileOperation::calculateSHA1:
-					font->print(3, row++, false, "Calculate SHA1 hash");
+					font->print(3, row++, false, STR_CALC_SHA1);
 					break;
 				case FileOperation::loadFont:
-					font->print(3, row++, false, "Load font");
+					font->print(3, row++, false, STR_LOAD_FONT);
 					break;
 				case FileOperation::none:
 					row++;
@@ -265,7 +266,7 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 			}
 		}
 
-		font->print(3, ++row, false, "(<A> select, <B> cancel)");
+		font->print(3, ++row, false, STR_A_SELECT_B_CANCEL);
 
 		// Show cursor
 		font->print(0, y + optionOffset, false, "->");
@@ -301,7 +302,7 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 			switch(operations[optionOffset]) {
 				case FileOperation::bootFile: {
 					applaunch = true;
-					font->print(3, optionOffset + y, false, "Now loading...");
+					font->print(3, optionOffset + y, false, STR_NOW_LOADING);
 					font->update(false);
 					break;
 				} case FileOperation::bootstrapFile: {
@@ -331,18 +332,18 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					break;
 				} case FileOperation::copySdOut: {
 					if (access("sd:/gm9i", F_OK) != 0) {
-						font->print(3, optionOffset + y, false, "Creating directory...");
+						font->print(3, optionOffset + y, false, STR_CREATING_DIRECTORY);
 						font->update(false);
 						mkdir("sd:/gm9i", 0777);
 					}
 					if (access("sd:/gm9i/out", F_OK) != 0) {
-						font->print(3, optionOffset + y, false, "Creating directory...");
+						font->print(3, optionOffset + y, false, STR_CREATING_DIRECTORY);
 						font->update(false);
 						mkdir("sd:/gm9i/out", 0777);
 					}
 					char destPath[256];
 					snprintf(destPath, sizeof(destPath), "sd:/gm9i/out/%s", entry->name.c_str());
-					font->print(3, optionOffset + y, false, "Copying...");
+					font->print(3, optionOffset + y, false, STR_COPYING);
 					font->update(false);
 					remove(destPath);
 					char sourceFolder[PATH_MAX];
@@ -354,18 +355,18 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					break;
 				} case FileOperation::copyFatOut: {
 					if (access("fat:/gm9i", F_OK) != 0) {
-						font->print(3, optionOffset + y, false, "Creating directory...");
+						font->print(3, optionOffset + y, false, STR_CREATING_DIRECTORY);
 						font->update(false);
 						mkdir("fat:/gm9i", 0777);
 					}
 					if (access("fat:/gm9i/out", F_OK) != 0) {
-						font->print(3, optionOffset + y, false, "Creating directory...");
+						font->print(3, optionOffset + y, false, STR_CREATING_DIRECTORY);
 						font->update(false);
 						mkdir("fat:/gm9i/out", 0777);
 					}
 					char destPath[256];
 					snprintf(destPath, sizeof(destPath), "fat:/gm9i/out/%s", entry->name.c_str());
-					font->print(3, (optionOffset + y), false, "Copying...");
+					font->print(3, (optionOffset + y), false, STR_COPYING);
 					font->update(false);
 					remove(destPath);
 					char sourceFolder[PATH_MAX];
@@ -406,6 +407,9 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 				} case FileOperation::loadFont: {
 					delete font;
 					font = new Font(entry->name.c_str());
+
+					// Reload language to update button characters
+					langInit(true);
 					break;
 				} case FileOperation::calculateSHA1: {
 					u8 sha1[20] = {0};
@@ -414,12 +418,12 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 						break;
 
 					font->clear(false);
-					font->print(0, 0, false, "SHA1 hash is:");
+					font->print(0, 0, false, STR_SHA1_HASH_IS);
 					char sha1Str[41];
 					for (int i = 0; i < 20; ++i)
 						sniprintf(sha1Str + i * 2, 3, "%02X", sha1[i]);
 					font->print(0, 1, false, sha1Str);
-					font->print(0, font->calcHeight(sha1Str) + 2, false, "(<A> to continue)");
+					font->print(0, font->calcHeight(sha1Str) + 2, false, STR_A_CONTINUE);
 					font->update(false);
 
 					// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
@@ -469,18 +473,18 @@ bool fileBrowse_paste(char dest[256]) {
 	while (true) {
 		font->clear(false);
 
-		font->print(0, 0, false, "Paste clipboard here?");
+		font->print(0, 0, false, STR_PASTE_CLIPBOARD_HERE);
 
 		int row = OPTIONS_ENTRIES_START_ROW, maxCursors = 0;
-		font->print(3, row++, false, "Copy files");
+		font->print(3, row++, false, STR_COPY_FILES);
 		for (auto &file : clipboard) {
 			if (file.nitro)
 				continue;
 			maxCursors++;
-			font->print(3, row++, false, "Move files");
+			font->print(3, row++, false, STR_MOVE_FILES);
 			break;
 		}
-		font->print(3, ++row, false, "(<A> select, <B> cancel)");
+		font->print(3, ++row, false, STR_A_SELECT_B_CANCEL);
 
 		// Show cursor
 		font->print(0, optionOffset + OPTIONS_ENTRIES_START_ROW, false, "->");
@@ -510,7 +514,7 @@ bool fileBrowse_paste(char dest[256]) {
 		if (optionOffset > maxCursors)		optionOffset = 0;		// Wrap around to top of list
 
 		if (pressed & KEY_A) {
-			font->print(3, optionOffset + OPTIONS_ENTRIES_START_ROW, false, optionOffset ? "Moving... " : "Copying...");
+			font->print(3, optionOffset + OPTIONS_ENTRIES_START_ROW, false, optionOffset ? STR_MOVING : STR_COPYING);
 			for (auto &file : clipboard) {
 				std::string destPath = dest + file.name;
 				if (file.path == destPath)
@@ -566,21 +570,21 @@ void fileBrowse_drawBottomScreen(DirEntry* entry) {
 	int row = -1;
 
 	if (!isDSiMode() && isRegularDS) {
-		font->print(0, row--, false, POWERTEXT_DS);
+		font->print(0, row--, false, STR_POWERTEXT_DS);
 	} else if (is3DS) {
-		font->print(0, row--, false, HOMETEXT);
-		font->print(0, row--, false, POWERTEXT_3DS);
+		font->print(0, row--, false, STR_HOMETEXT);
+		font->print(0, row--, false, STR_POWERTEXT_3DS);
 	} else {
-		font->print(0, row--, false, POWERTEXT);
+		font->print(0, row--, false, STR_POWERTEXT);
 	}
-	font->print(0, row--, false, clipboardOn ? "SELECT - Clear Clipboard" : "SELECT - Restore Clipboard");
+	font->print(0, row--, false, clipboardOn ? STR_CLEAR_CLIPBOARD : STR_RESTORE_CLIPBOARD);
 	if (sdMounted || flashcardMounted) {
-		font->print(0, row--, false, SCREENSHOTTEXT);
+		font->print(0, row--, false, STR_SCREENSHOTTEXT);
 	}
-	font->print(0, row--, false, "R+A - Directory options\n");
-	font->printf(0, row--, false, Alignment::left, Palette::white, "Y - %s file/[+R] CREATE entry", clipboardOn ? "PASTE" : "COPY");
-	font->printf(0, row--, false, Alignment::left, Palette::white, "L - %s files (with ↑↓→←)\n", entry->selected ? "DESELECT" : "SELECT");
-	font->print(0, row--, false, "X - DELETE/[+R] RENAME file\n");
+	font->print(0, row--, false, STR_DIRECTORY_OPTIONS);
+	font->print(0, row--, false, clipboardOn ? STR_PASTE_FILES_CREATE_ENTRY : STR_COPY_FILES_CREATE_ENTRY);
+	font->print(0, row--, false, entry->selected ? STR_DESELECT_FILES : STR_SELECT_FILES);
+	font->print(0, row--, false, STR_DELETE_RENAME_FILE);
 	font->print(0, row--, false, titleName);
 
 	// Load size if not loaded yet
@@ -591,20 +595,20 @@ void fileBrowse_drawBottomScreen(DirEntry* entry) {
 	font->print(0, 0, false, entry->name, Alignment::left, pal);
 	if (entry->name != "..") {
 		if (entry->isDirectory) {
-			font->print(0, font->calcHeight(entry->name), false, "(dir)", Alignment::left, pal);
+			font->print(0, font->calcHeight(entry->name), false, STR_DIR, Alignment::left, pal);
 		} else if (entry->size == 1) {
-			font->printf(0, font->calcHeight(entry->name), false, Alignment::left, pal, "%i Byte", entry->size);
+			font->print(0, font->calcHeight(entry->name), false, STR_1_BYTE, Alignment::left, pal);
 		} else {
-			font->printf(0, font->calcHeight(entry->name), false, Alignment::left, pal, "%i Bytes", entry->size);
+			font->printf(0, font->calcHeight(entry->name), false, Alignment::left, pal, STR_N_BYTES.c_str(), entry->size);
 		}
 	}
 	if (clipboardOn) {
-		font->print(0, 6, false, "[CLIPBOARD]");
+		font->print(0, 6, false, STR_CLIPBOARD);
 		for (size_t i = 0; i < clipboard.size(); ++i) {
 			if (i < 4) {
 				font->print(0, 7 + i, false, clipboard[i].name, Alignment::left, clipboard[i].folder ? Palette::blue : Palette::gray);
 			} else {
-				font->printf(0, 7 + i, false, Alignment::left, Palette::gray, "%d more files...", clipboard.size() - 4);
+				font->printf(0, 7 + i, false, Alignment::left, Palette::gray, STR_N_MORE_FILES.c_str(), clipboard.size() - 4);
 				break;
 			}
 		}
@@ -692,7 +696,7 @@ std::string browseForFile (void) {
 				screenMode = 0;
 				return "null";
 			} else if (entry->isDirectory) {
-				font->printf(0, fileOffset - screenOffset + ENTRIES_START_ROW, true, Alignment::left, Palette::white, "%-*s", SCREEN_COLS - 5, "Entering directory");
+				font->printf(0, fileOffset - screenOffset + ENTRIES_START_ROW, true, Alignment::left, Palette::white, "%-*s", SCREEN_COLS - 5, STR_ENTERING_DIRECTORY.c_str());
 				font->update(true);
 				// Enter selected directory
 				chdir (entry->name.c_str());
@@ -760,7 +764,7 @@ std::string browseForFile (void) {
 			kbd->OnKeyPressed = OnKeyPressed;
 
 			keyboardShow();
-			iprintf("Rename to:\n");
+			iprintf(STR_RENAME_TO.c_str());
 			fgets(newName, 256, stdin);
 			newName[strlen(newName)-1] = 0;
 			keyboardHide();
@@ -795,7 +799,7 @@ std::string browseForFile (void) {
 			font->clear(false);
 			int selections = std::count_if(dirContents.begin(), dirContents.end(), [](const DirEntry &x){ return x.selected; });
 			if (entry->selected && selections > 1) {
-				font->printf(0, 0, false, Alignment::left, Palette::white, "Delete %d paths?", selections);
+				font->printf(0, 0, false, Alignment::left, Palette::white, STR_DELETE_N_PATHS.c_str(), selections);
 				for (uint i = 0, printed = 0; i < dirContents.size() && printed < 5; i++) {
 					if (dirContents[i].selected) {
 						font->printf(0, printed + 2, false, Alignment::left, Palette::red, "- %s", dirContents[i].name.c_str());
@@ -803,11 +807,11 @@ std::string browseForFile (void) {
 					}
 				}
 				if(selections > 5)
-					font->printf(0, 7, false, Alignment::left, Palette::red, "- and %d more...", selections - 5);
+					font->printf(0, 7, false, Alignment::left, Palette::red, STR_AND_N_MORE.c_str(), selections - 5);
 			} else {
-				font->printf(0, 0, false, Alignment::left, Palette::white, "Delete \"%s\"?", entry->name.c_str());
+				font->printf(0, 0, false, Alignment::left, Palette::white, STR_DELETE_X.c_str(), entry->name.c_str());
 			}
-			font->print(0, (!entry->selected || selections == 1) ? 2 : (selections > 5 ? 9 : selections + 3), false, "(<A> yes, <B> no)");
+			font->print(0, (!entry->selected || selections == 1) ? 2 : (selections > 5 ? 9 : selections + 3), false, STR_A_YES_B_NO);
 			font->update(false);
 
 			while (true) {
@@ -821,7 +825,7 @@ std::string browseForFile (void) {
 				if (pressed & KEY_A) {
 					if (entry->selected) {
 						font->clear(false);
-						font->print(0, 0, false, "Deleting files, please wait...");
+						font->print(0, 0, false, STR_DELETING_FILES);
 						font->update(false);
 						struct stat st;
 						for (auto &item : dirContents) {
@@ -838,9 +842,9 @@ std::string browseForFile (void) {
 						fileOffset = 0;
 					} else if (FAT_getAttr(entry->name.c_str()) & ATTR_READONLY) {
 						font->clear(false);
-						font->print(0, 0, false, "Failed deleting:");
+						font->print(0, 0, false, STR_FAILED_DELETING);
 						font->print(0, 1, false, entry->name);
-						font->print(0, 3, false, "(<A> to continue)");
+						font->print(0, 3, false, STR_A_CONTINUE);
 						pressed = 0;
 
 						while (!(pressed & KEY_A)) {
@@ -856,12 +860,12 @@ std::string browseForFile (void) {
 					} else {
 						if (entry->isDirectory) {
 							font->clear(false);
-							font->print(0, 0, false, "Deleting folder, please wait...");
+							font->print(0, 0, false, STR_DELETING_FOLDER);
 							font->update(false);
 							recRemove(entry->name.c_str(), dirContents);
 						} else {
 							font->clear(false);
-							font->print(0, 0, false, "Deleting folder, please wait...");
+							font->print(0, 0, false, STR_DELETING_FOLDER);
 							font->update(false);
 							remove(entry->name.c_str());
 						}
@@ -891,7 +895,7 @@ std::string browseForFile (void) {
 			kbd->OnKeyPressed = OnKeyPressed;
 
 			keyboardShow();
-			iprintf("Name for new folder:\n");
+			iprintf(STR_NAME_FOR_NEW_FOLDER.c_str());
 			fgets(newName, 256, stdin);
 			newName[strlen(newName)-1] = 0;
 			keyboardHide();

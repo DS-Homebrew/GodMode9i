@@ -8,6 +8,7 @@
 #include "ndsheaderbanner.h"
 #include "read_card.h"
 #include "tonccpy.h"
+#include "language.h"
 
 #include <dirent.h>
 #include <nds.h>
@@ -21,10 +22,10 @@ extern bool expansionPakFound;
 
 static sNDSHeaderExt ndsCardHeader;
 
-void dumpFailMsg(const char *msg) {
+void dumpFailMsg(std::string_view msg) {
 	font->clear(false);
 	font->print(0, 0, false, msg, Alignment::left, Palette::red);
-	font->print(0, font->calcHeight(msg) + 1, false, "(<A> OK)");
+	font->print(0, font->calcHeight(msg) + 1, false, STR_A_OK);
 	font->update(false);
 
 	u16 pressed;
@@ -193,8 +194,8 @@ void ndsCardSaveDump(const char* filename) {
 	FILE *out = fopen(filename, "wb");
 	if(out) {
 		font->clear(false);
-		font->print(0, 0, false, "Dumping save...");
-		font->print(0, 1, false, "Do not remove the NDS card.");
+		font->print(0, 0, false, STR_DUMPING_SAVE);
+		font->print(0, 1, false, STR_DO_NOT_REMOVE_CARD);
 		font->update(false);
 
 		int type = cardEepromGetTypeFixed();
@@ -203,7 +204,7 @@ void ndsCardSaveDump(const char* filename) {
 			u32 saveSize = cardNandGetSaveSize();
 
 			if(saveSize == 0) {
-				dumpFailMsg("Failed to dump the save.");
+				dumpFailMsg(STR_FAILED_TO_DUMP_SAVE);
 				return;
 			}
 
@@ -211,7 +212,7 @@ void ndsCardSaveDump(const char* filename) {
 			FILE* destinationFile = fopen(filename, "wb");
 			if (destinationFile) {
 
-				font->print(0, 4, false, "Progress:");
+				font->print(0, 4, false, STR_PROGRESS);
 				font->print(0, 5, false, "[");
 				font->print(-1, 5, false, "]");
 				for (u32 src = 0; src < saveSize; src += 0x8000) {
@@ -220,21 +221,21 @@ void ndsCardSaveDump(const char* filename) {
 					font->update(true);
 
 					font->print((src / (saveSize / (SCREEN_COLS - 2))) + 1, 5, false, "=");
-					font->printf(0, 6, false, Alignment::left, Palette::white, "%d/%d Bytes", src, saveSize);
+					font->printf(0, 6, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), src, saveSize);
 					font->update(false);
 
 					for (u32 i = 0; i < 0x8000; i += 0x200) {
 						cardRead(cardNandRwStart + src + i, copyBuf + i, true);
 					}
 					if (fwrite(copyBuf, 1, (currentSize >= 0x8000 ? 0x8000 : currentSize), destinationFile) < 1) {
-						dumpFailMsg("Failed to dump the save.");
+						dumpFailMsg(STR_FAILED_TO_DUMP_SAVE);
 						break;
 					}
 					currentSize -= 0x8000;
 				}
 				fclose(destinationFile);
 			} else {
-				dumpFailMsg("Failed to dump the save.");
+				dumpFailMsg(STR_FAILED_TO_DUMP_SAVE);
 			}
 		} else { // SPI
 			unsigned char *buffer;
@@ -265,8 +266,7 @@ void ndsCardSaveDump(const char* filename) {
 
 void ndsCardSaveRestore(const char *filename) {
 	font->clear(false);
-	font->print(0, 0, false, "Restore the selected save to the inserted game card?");
-	font->print(0, 2, false, "(<A> yes, <B> no)\n");
+	font->print(0, 0, false, STR_RESTORE_SELECTED_SAVE_CARD);
 	font->update(false);
 
 	// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
@@ -287,7 +287,7 @@ void ndsCardSaveRestore(const char *filename) {
 		if(type == -1) { // NAND
 			if (cardInit(&ndsCardHeader) != 0) {
 				font->clear(false);
-				font->print(0, 0, false, "Unable to restore the save.");
+				font->print(0, 0, false, STR_UNABLE_TO_RESTORE_SAVE);
 				font->update(false);
 				for (int i = 0; i < 60 * 2; i++) {
 					swiWaitForVBlank();
@@ -298,7 +298,7 @@ void ndsCardSaveRestore(const char *filename) {
 			u32 saveSize = cardNandGetSaveSize();
 
 			if(saveSize == 0) {
-				dumpFailMsg("Unable to restore the save.");
+				dumpFailMsg(STR_UNABLE_TO_RESTORE_SAVE);
 				return;
 			}
 
@@ -310,13 +310,13 @@ void ndsCardSaveRestore(const char *filename) {
 			if(length != saveSize) {
 				fclose(in);
 
-				dumpFailMsg("The size of this save doesn't match the size of the inserted game card.\n\nWrite cancelled!");
+				dumpFailMsg(STR_SAVE_SIZE_MISMATCH_CARD);
 				return;
 			}
 
 			u32 currentSize = saveSize;
 			if (in) {
-				font->print(0, 4, false, "Progress:");
+				font->print(0, 4, false, STR_PROGRESS);
 				font->print(0, 5, false, "[");
 				font->print(-1, 5, false, "]");
 				for (u32 dest = 0; dest < saveSize; dest += 0x8000) {
@@ -325,7 +325,7 @@ void ndsCardSaveRestore(const char *filename) {
 					font->update(true);
 
 					font->print((dest / (saveSize / (SCREEN_COLS - 2))) + 1, 5, false, "=");
-					font->printf(0, 6, false, Alignment::left, Palette::white, "%d/%d Bytes", dest, saveSize);
+					font->printf(0, 6, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), dest, saveSize);
 					font->update(false);
 
 					fread(copyBuf, 1, 0x8000, in);
@@ -371,14 +371,14 @@ void ndsCardSaveRestore(const char *filename) {
 				fseek(in, 0, SEEK_SET);
 				if(length != (auxspi ? (int)(LEN * num_blocks) : size)) {
 					fclose(in);
-					dumpFailMsg("The size of this save doesn't match the size of the inserted game card.\n\nWrite cancelled!");
+					dumpFailMsg(STR_SAVE_SIZE_MISMATCH_CARD);
 					return;
 				}
 
 				font->clear(false);
-				font->print(0, 0, false, "Restoring save...");
-				font->print(0, 1, false, "Do not remove the NDS card.");
-				font->print(0, 4, false, "Progress:");
+				font->print(0, 0, false, STR_RESTORING_SAVE);
+				font->print(0, 1, false, STR_DO_NOT_REMOVE_CARD);
+				font->print(0, 4, false, STR_PROGRESS);
 				font->update(false);
 
 				if(type == 3) {
@@ -393,7 +393,7 @@ void ndsCardSaveRestore(const char *filename) {
 					font->print(-1, 5, false, "]");
 					for(unsigned int i = 0; i < num_blocks; i++) {
 						font->print((i * (SCREEN_COLS - 2) / num_blocks) + 1, 5, false, "=");
-						font->printf(0, 6, false, Alignment::left, Palette::white, "%d/%d Bytes", i * LEN, length);
+						font->printf(0, 6, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), i * LEN, length);
 						font->update(false);
 
 						fread(buffer, 1, LEN, in);
@@ -407,7 +407,7 @@ void ndsCardSaveRestore(const char *filename) {
 					font->print(-1, 5, false, "]");
 					for(unsigned int i = 0; i < 32; i++) {
 						font->print((i * (SCREEN_COLS - 2) / 32) + 1, 5, false, "=");
-						font->printf(0, 6, false, Alignment::left, Palette::white, "%d/%d Bytes", written, size);
+						font->printf(0, 6, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), written, size);
 						font->update(false);
 
 						fread(buffer, 1, blocks, in);
@@ -427,8 +427,8 @@ void ndsCardDump(void) {
 	//bool showGameCardMsgAgain = false;
 
 	font->clear(false);
-	font->printf(0, 0, false, Alignment::left, Palette::white, "Dump NDS card ROM to\n\"%s:/gm9i/out\"?", sdMounted ? "sd" : "fat");
-	font->print(0, 2, false, "(<A> yes, <Y> trim, <B> no, <X> save only)");
+	font->printf(0, 0, false, Alignment::left, Palette::white, STR_DUMP_NDS_ROM_TO.c_str(), sdMounted ? "sd" : "fat");
+	font->print(0, 2, false, STR_A_YES_Y_TRIM_B_NO_X_SAVE_ONLY);
 	font->update(false);
 
 	// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
@@ -448,19 +448,19 @@ void ndsCardDump(void) {
 		sprintf(folderPath[1], "%s:/gm9i/out", (sdMounted ? "sd" : "fat"));
 		if (access(folderPath[0], F_OK) != 0) {
 			font->clear(false);
-			font->print(0, 0, false, "Creating directory...");
+			font->print(0, 0, false, STR_CREATING_DIRECTORY);
 			font->update(false);
 			mkdir(folderPath[0], 0777);
 		}
 		if (access(folderPath[1], F_OK) != 0) {
 			font->clear(false);
-			font->print(0, 0, false, "Creating directory...");
+			font->print(0, 0, false, STR_CREATING_DIRECTORY);
 			font->update(false);
 			mkdir(folderPath[1], 0777);
 		}
 
 		if (cardInit(&ndsCardHeader) != 0) {
-			dumpFailMsg("Unable to dump the save.");
+			dumpFailMsg(STR_UNABLE_TO_DUMP_SAVE);
 			return;
 		}
 		char gameTitle[13] = {0};
@@ -477,13 +477,13 @@ void ndsCardDump(void) {
 		sprintf(folderPath[1], "%s:/gm9i/out", (sdMounted ? "sd" : "fat"));
 		if (access(folderPath[0], F_OK) != 0) {
 			font->clear(false);
-			font->print(0, 0, false, "Creating directory...");
+			font->print(0, 0, false, STR_CREATING_DIRECTORY);
 			font->update(false);
 			mkdir(folderPath[0], 0777);
 		}
 		if (access(folderPath[1], F_OK) != 0) {
 			font->clear(false);
-			font->print(0, 0, false, "Creating directory...");
+			font->print(0, 0, false, STR_CREATING_DIRECTORY);
 			font->update(false);
 			mkdir(folderPath[1], 0777);
 		}
@@ -541,12 +541,12 @@ void ndsCardDump(void) {
 
 		if (cardInited == 0) {
 			font->clear(false);
-			font->printf(0, 0, false, Alignment::left, Palette::white, "%s.nds\nis dumping...", fileName);
-			font->print(0, 2, false, "Do not remove the NDS card.");
+			font->printf(0, 0, false, Alignment::left, Palette::white, STR_NDS_IS_DUMPING.c_str(), fileName);
+			font->print(0, 2, false, STR_DO_NOT_REMOVE_CARD);
 			font->update(false);
 		} else {
 			font->clear(false);
-			font->print(0, 0, false, "Unable to dump the ROM.");
+			font->print(0, 0, false, STR_UNABLE_TO_DUMP_ROM);
 			font->update(false);
 			for (int i = 0; i < 60*2; i++) {
 				swiWaitForVBlank();
@@ -697,7 +697,7 @@ void ndsCardDump(void) {
 			FILE* destinationFile = fopen(destPath, "wb");
 			if (destinationFile) {
 
-				font->print(0, 4, false, "Progress:");
+				font->print(0, 4, false, STR_PROGRESS);
 				font->print(0, 5, false, "[");
 				font->print(-1, 5, false, "]");
 				for (u32 src = 0; src < romSize; src += 0x8000) {
@@ -706,21 +706,21 @@ void ndsCardDump(void) {
 					font->update(true);
 
 					font->print((src / (romSize / (SCREEN_COLS - 2))) + 1, 5, false, "=");
-					font->printf(0, 6, false, Alignment::left, Palette::white, "%d/%d Bytes", src, romSize);
+					font->printf(0, 6, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), src, romSize);
 					font->update(false);
 
 					for (u32 i = 0; i < 0x8000; i += 0x200) {
 						cardRead (src+i, copyBuf+i, false);
 					}
 					if (fwrite(copyBuf, 1, (currentSize>=0x8000 ? 0x8000 : currentSize), destinationFile) < 1) {
-						dumpFailMsg("Failed to dump the ROM.");
+						dumpFailMsg(STR_FAILED_TO_DUMP_ROM);
 						break;
 					}
 					currentSize -= 0x8000;
 				}
 				fclose(destinationFile);
 			} else {
-				dumpFailMsg("Failed to dump the ROM.");
+				dumpFailMsg(STR_FAILED_TO_DUMP_ROM);
 			}
 			ndsCardSaveDump(destSavPath);
 		//}
@@ -730,8 +730,8 @@ void ndsCardDump(void) {
 
 void gbaCartSaveDump(const char *filename) {
 	font->clear(false);
-	font->print(0, 0, false, "Dumping save...");
-	font->print(0, 1, false, "Do not remove the GBA cart.");
+	font->print(0, 0, false, STR_DUMPING_SAVE);
+	font->print(0, 1, false, STR_DO_NOT_REMOVE_CART);
 	font->update(false);
 
 	saveTypeGBA type = gbaGetSaveType();
@@ -751,8 +751,7 @@ void gbaCartSaveDump(const char *filename) {
 
 void gbaCartSaveRestore(const char *filename) {
 	font->clear(false);
-	font->print(0, 0, false, "Restore the selected save to the inserted game pak?");
-	font->print(0, 2, false, "(<A> yes, <B> no)\n");
+	font->print(0, 0, false, STR_RESTORE_SELECTED_SAVE_CART);
 	font->update(false);
 
 	// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
@@ -775,7 +774,7 @@ void gbaCartSaveRestore(const char *filename) {
 
 		FILE *sourceFile = fopen(filename, "rb");
 		if(!sourceFile) {
-			dumpFailMsg("Failed to open save.");
+			dumpFailMsg(STR_FAILED_TO_RESTORE_SAVE);
 			return;
 		}
 
@@ -785,7 +784,7 @@ void gbaCartSaveRestore(const char *filename) {
 		if(length != size) {
 			fclose(sourceFile);
 
-			dumpFailMsg("The size of this save doesn't match the size of the inserted game pak.\n\nWrite cancelled!");
+			dumpFailMsg(STR_SAVE_SIZE_MISMATCH_CART);
 			return;
 		}
 
@@ -794,13 +793,13 @@ void gbaCartSaveRestore(const char *filename) {
 			delete[] buffer;
 			fclose(sourceFile);
 
-			dumpFailMsg("Failed to read save.");
+			dumpFailMsg(STR_FAILED_TO_RESTORE_SAVE);
 			return;
 		}
 
 		font->clear(false);
-		font->print(0, 0, false, "Restoring save...");
-		font->print(0, 1, false, "Do not remove the GBA cart.");
+		font->print(0, 0, false, STR_RESTORING_SAVE);
+		font->print(0, 1, false, STR_DO_NOT_REMOVE_CART);
 		font->update(false);
 
 		gbaFormatSave(type);
@@ -829,8 +828,8 @@ void gbaCartDump(void) {
 	int pressed = 0;
 
 	font->clear(false);
-	font->printf(0, 0, false, Alignment::left, Palette::white, "Dump GBA cart ROM to\n\"%s:/gm9i/out\"?", sdMounted ? "sd" : "fat");
-	font->print(0, 2, false, "(<A> yes, <B> no, <X> save only)");
+	font->printf(0, 0, false, Alignment::left, Palette::white, STR_DUMP_GBA_ROM_TO.c_str(), sdMounted ? "sd" : "fat");
+	font->print(0, 2, false, STR_A_YES_B_NO_X_SAVE_ONLY);
 	font->update(false);
 
 	// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
@@ -882,13 +881,13 @@ void gbaCartDump(void) {
 	if (pressed & KEY_A) {
 		if (access("fat:/gm9i", F_OK) != 0) {
 			font->clear(false);
-			font->print(0, 0, false, "Creating directory...");
+			font->print(0, 0, false, STR_CREATING_DIRECTORY);
 			font->update(false);
 			mkdir("fat:/gm9i", 0777);
 		}
 		if (access("fat:/gm9i/out", F_OK) != 0) {
 			font->clear(false);
-			font->print(0, 0, false, "Creating directory...");
+			font->print(0, 0, false, STR_CREATING_DIRECTORY);
 			font->update(false);
 			mkdir("fat:/gm9i/out", 0777);
 		}
@@ -897,8 +896,8 @@ void gbaCartDump(void) {
 		sprintf(destPath, "fat:/gm9i/out/%s.gba", fileName);
 
 		font->clear(false);
-		font->printf(0, 0, false, Alignment::left, Palette::white, "%s.gba\nis dumping...", fileName);
-		font->print(0, 2, false, "Do not remove the GBA cart.");
+		font->printf(0, 0, false, Alignment::left, Palette::white, STR_GBA_IS_DUMPING.c_str(), fileName);
+		font->print(0, 2, false, STR_DO_NOT_REMOVE_CART);
 		font->update(false);
 
 		// Determine ROM size
@@ -930,7 +929,7 @@ void gbaCartDump(void) {
 		if (destinationFile) {
 			bool failed = false;
 
-			font->print(0, 4, false, "Progress:");
+			font->print(0, 4, false, STR_PROGRESS);
 			font->print(0, 5, false, "[");
 			font->print(-1, 5, false, "]");
 			for (u32 src = 0; src < romSize; src += 0x8000) {
@@ -939,11 +938,11 @@ void gbaCartDump(void) {
 				font->update(true);
 
 				font->print((src / (romSize / (SCREEN_COLS - 2))) + 1, 5, false, "=");
-				font->printf(0, 6, false, Alignment::left, Palette::white, "%d/%d Bytes", src, romSize);
+				font->printf(0, 6, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), src, romSize);
 				font->update(false);
 
 				if (fwrite(GBAROM + src / sizeof(u16), 1, 0x8000, destinationFile) != 0x8000) {
-					dumpFailMsg("Failed to dump the ROM.");
+					dumpFailMsg(STR_FAILED_TO_DUMP_ROM);
 					failed = true;
 					break;
 				}
@@ -971,21 +970,21 @@ void gbaCartDump(void) {
 					font->update(true);
 
 					font->print((i / (0x04000000 / (SCREEN_COLS - 2))) + 1, 5, false, "=");
-					font->printf(0, 7, false, Alignment::left, Palette::white, "%d/%d Bytes", i - 0x02000000, 0x04000000 - 0x02000000);
+					font->printf(0, 7, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), i - 0x02000000, 0x04000000 - 0x02000000);
 					font->update(false);
 
 					cmd[1] = i,
 					writeChange(cmd);
 					readChange();
 					if (fwrite(GBAROM + (0x1000 >> 1), 0x1000, 1, destinationFile) < 1) {
-						dumpFailMsg("Failed to dump the ROM.");
+						dumpFailMsg(STR_FAILED_TO_DUMP_ROM);
 						break;
 					}
 				}
 			}
 			fclose(destinationFile);
 		} else {
-			dumpFailMsg("Failed to dump the ROM.");
+			dumpFailMsg(STR_FAILED_TO_DUMP_ROM);
 			return;
 		}
 	}
@@ -993,13 +992,13 @@ void gbaCartDump(void) {
 	if(pressed & (KEY_A | KEY_X)) {
 		if (access("fat:/gm9i", F_OK) != 0) {
 			font->clear(false);
-			font->print(0, 0, false, "Creating directory...");
+			font->print(0, 0, false, STR_CREATING_DIRECTORY);
 			font->update(false);
 			mkdir("fat:/gm9i", 0777);
 		}
 		if (access("fat:/gm9i/out", F_OK) != 0) {
 			font->clear(false);
-			font->print(0, 0, false, "Creating directory...");
+			font->print(0, 0, false, STR_CREATING_DIRECTORY);
 			font->update(false);
 			mkdir("fat:/gm9i/out", 0777);
 		}

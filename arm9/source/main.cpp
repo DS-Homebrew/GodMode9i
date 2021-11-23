@@ -30,11 +30,14 @@
 #include <unistd.h>
 
 #include "nds_loader_arm9.h"
+#include "config.h"
 #include "driveMenu.h"
 #include "driveOperations.h"
 #include "file_browse.h"
 #include "fileOperations.h"
 #include "font.h"
+#include "language.h"
+#include "nitrofs.h"
 #include "tonccpy.h"
 #include "version.h"
 
@@ -118,11 +121,11 @@ int main(int argc, char **argv) {
 
 	if (isDSiMode()) {
 		if (!arm7SCFGLocked) {
-			font->print(-2, -4, false, "X Held - Disable NAND access", Alignment::right);
-			font->print(-2, -3, false, "Y Held - Disable cart access", Alignment::right);
+			font->print(-2, -4, false, " Held - Disable NAND access", Alignment::right);
+			font->print(-2, -3, false, " Held - Disable cart access", Alignment::right);
 			font->print(-2, -2, false, "Do these if it crashes here", Alignment::right);
 		} else {
-			font->print(-2, -3, false, "X Held - Disable NAND access", Alignment::right);
+			font->print(-2, -3, false, " Held - Disable NAND access", Alignment::right);
 			font->print(-2, -2, false, "Do this if it crashes here", Alignment::right);
 		}
 	}
@@ -175,11 +178,32 @@ int main(int argc, char **argv) {
 		flashcardMountSkipped = false;
 	}
 
+	// Try to init NitroFS
+	if (argc > 0 && nitroFSInit(argv[0]));
+	else if (nitroFSInit("GodMode9i.nds"));
+	else if (nitroFSInit("GodMode9i.dsi"));
+	else if (nitroFSInit("sd:/GodMode9i.nds"));
+	else if (nitroFSInit("sd:/GodMode9i.dsi"));
+	else if (nitroFSInit("fat:/GodMode9i.nds"));
+	else if (nitroFSInit("fat:/GodMode9i.dsi"));
+	else {
+		font->print(-2, -3, false, "NitroFS init failed...", Alignment::right);
+		font->update(false);
+		for (int i = 0; i < 30; i++)
+			swiWaitForVBlank();
+	}
+
+	// Load config
+	config = new Config();
+
 	bgHide(bg3);
 
 	// Reinit font, try to load default from SD this time
 	delete font;
-	font = new Font(sdFound() ? "sd:/gm9i/font.frf" : "fat:/gm9i/font.frf");
+	font = new Font(config->fontPath().c_str());
+
+	// Load translations
+	langInit(false);
 
 	keysSetRepeat(25,5);
 
@@ -231,9 +255,9 @@ int main(int argc, char **argv) {
 				free(argarray[0]);
 				argarray[0] = filePath;
 				font->clear(false);
-				font->printf(0, 0, false, Alignment::left, Palette::white, "Running %s with %d parameters\n", argarray[0], argarray.size());
+				font->printf(0, 0, false, Alignment::left, Palette::white, STR_RUNNING_X_WITH_N_PARAMETERS.c_str(), argarray[0], argarray.size());
 				int err = runNdsFile(argarray[0], argarray.size(), (const char **)&argarray[0]);
-				font->printf(0, 1, false, Alignment::left, Palette::white, "Start failed. Error %i\n", err);
+				font->printf(0, 1, false, Alignment::left, Palette::white, STR_START_FAILED_ERROR_N.c_str(), err);
 			}
 
 			if (extension(filename, {"firm"})) {
