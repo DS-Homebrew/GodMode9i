@@ -603,12 +603,12 @@ void fileBrowse_drawBottomScreen(DirEntry* entry) {
 		}
 	}
 	if (clipboardOn) {
-		font->print(0, 6, false, STR_CLIPBOARD);
+		font->print(0, 4, false, STR_CLIPBOARD);
 		for (size_t i = 0; i < clipboard.size(); ++i) {
 			if (i < 4) {
-				font->print(0, 7 + i, false, clipboard[i].name, Alignment::left, clipboard[i].folder ? Palette::blue : Palette::gray);
+				font->print(0, 5 + i, false, clipboard[i].name, Alignment::left, clipboard[i].folder ? Palette::blue : Palette::gray);
 			} else {
-				font->printf(0, 7 + i, false, Alignment::left, Palette::gray, STR_N_MORE_FILES.c_str(), clipboard.size() - 4);
+				font->printf(0, 5 + i, false, Alignment::left, Palette::gray, STR_N_MORE_FILES.c_str(), clipboard.size() - 4);
 				break;
 			}
 		}
