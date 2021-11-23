@@ -245,8 +245,8 @@ void changeFileAttribs(const DirEntry *entry) {
 			strftime(str, sizeof(str), "%Y-%m-%d %H:%M:%S", localtime(&st.st_mtime));
 			font->printf(0, cursorScreenPos + 3, false, Alignment::left, Palette::white, STR_MODIFIED.c_str(), str);
 		}
-		font->printf(0, cursorScreenPos + 5, false, Alignment::left, Palette::white, "[%c]↑%-12s[%c]↓%s", (newAttribs & ATTR_READONLY) ? 'X' : ' ', STR_READONLY.c_str(), (newAttribs & ATTR_HIDDEN) ? 'X' : ' ', STR_HIDDEN.c_str());
-		font->printf(0, cursorScreenPos + 6, false, Alignment::left, Palette::white, "[%c]→%-12s[%c]←%s", (newAttribs & ATTR_SYSTEM) ? 'X' : ' ', STR_SYSTEM.c_str(), (newAttribs & ATTR_ARCHIVE) ? 'X' : ' ', STR_ARCHIVE.c_str());
+		font->printf(0, cursorScreenPos + 5, false, Alignment::left, Palette::white, "[%c]%-13s[%c]%s", (newAttribs & ATTR_READONLY) ? 'X' : ' ', STR_UP_READONLY.c_str(), (newAttribs & ATTR_HIDDEN) ? 'X' : ' ', STR_LEFT_HIDDEN.c_str());
+		font->printf(0, cursorScreenPos + 6, false, Alignment::left, Palette::white, "[%c]%-13s[%c]%s", (newAttribs & ATTR_SYSTEM) ? 'X' : ' ', STR_DOWN_SYSTEM.c_str(), (newAttribs & ATTR_ARCHIVE) ? 'X' : ' ', STR_RIGHT_ARCHIVE.c_str());
 		font->printf(0, cursorScreenPos + 7, false, Alignment::left, Palette::white, "[%c] %s", (newAttribs & ATTR_VOLUME) ? 'X' : ' ', STR_VIRTUAL.c_str());
 		font->printf(0, cursorScreenPos + 8, false, Alignment::left, Palette::white, STR_UDLR_CHANGE_ATTRIBUTES.c_str());
 		font->print(0, cursorScreenPos + 10, false, (currentAttribs == newAttribs) ? STR_A_CONTINUE : STR_A_APPLY_B_CANCEL);
@@ -268,11 +268,11 @@ void changeFileAttribs(const DirEntry *entry) {
 		if (pressed & KEY_UP) {
 			newAttribs ^= ATTR_READONLY;
 		} else if (pressed & KEY_DOWN) {
-			newAttribs ^= ATTR_HIDDEN;
-		} else if (pressed & KEY_RIGHT) {
 			newAttribs ^= ATTR_SYSTEM;
-		} else if (pressed & KEY_LEFT) {
+		} else if (pressed & KEY_RIGHT) {
 			newAttribs ^= ATTR_ARCHIVE;
+		} else if (pressed & KEY_LEFT) {
+			newAttribs ^= ATTR_HIDDEN;
 		} else if ((pressed & KEY_A) && (currentAttribs != newAttribs)) {
 			FAT_setAttr(entry->name.c_str(), newAttribs);
 			break;

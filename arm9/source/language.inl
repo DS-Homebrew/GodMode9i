@@ -99,10 +99,10 @@ STRING(LOAD_FONT, "Load font")
 STRING(FILESIZE, "filesize: %s")
 STRING(CREATED, "created: %s")
 STRING(MODIFIED, "modified: %s")
-STRING(READONLY, "read-only") // Limit 11 characters
-STRING(HIDDEN, "hidden") // Limit 11 characters
-STRING(SYSTEM, "system") // Limit 11 characters
-STRING(ARCHIVE, "archive") // Limit 11 characters
+STRING(UP_READONLY, "\\DUread-only")
+STRING(DOWN_SYSTEM, "\\DDsystem")
+STRING(LEFT_HIDDEN, "\\DLhidden")
+STRING(RIGHT_ARCHIVE, "\\DRarchive")
 STRING(VIRTUAL, "virtual")
 
 // Hex editor
