@@ -193,6 +193,12 @@ int main(int argc, char **argv) {
 			swiWaitForVBlank();
 	}
 
+	// Ensure gm9i folder exists
+	char folderPath[10];
+	sprintf(folderPath, "%s:/gm9i", (sdMounted ? "sd" : "fat"));
+	if (access(folderPath, F_OK) != 0)
+		mkdir(folderPath, 0777);
+
 	// Load config
 	config = new Config();
 
