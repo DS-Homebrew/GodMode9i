@@ -11,6 +11,9 @@
 	<a href="https://gbatemp.net/threads/release-godmode9i-all-access-file-browser-for-the-ds-i-and-3ds.520096/" style="padding-left: 5px;">
 		<img src="https://img.shields.io/badge/GBAtemp-thread-blue.svg" height="20">
 	</a>
+	<a href="https://crowdin.com/project/godmode9i">
+		<img src="https://badges.crowdin.net/godmode9i/localized.svg" alt="localization status on Crowdin">
+	</a>
 </p>
 
 GodMode9i is a full access file browser for the Nintendo DS, Nintendo DSi and the Nintendo 3DS's TWL_FIRM.
