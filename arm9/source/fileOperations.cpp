@@ -22,12 +22,12 @@ bool clipboardOn = false;
 bool clipboardUsed = false;
 
 std::string getBytes(int bytes) {
-	char buffer[11];
+	char buffer[32];
 	if (bytes == 1)
 		sniprintf(buffer, sizeof(buffer), STR_1_BYTE.c_str());
 
 	else if (bytes < 1024)
-		sniprintf(buffer, sizeof(buffer), STR_N_BYTES.c_str());
+		sniprintf(buffer, sizeof(buffer), STR_N_BYTES.c_str(), bytes);
 
 	else if (bytes < (1024 * 1024))
 		sniprintf(buffer, sizeof(buffer), STR_N_KB.c_str(), bytes >> 10);

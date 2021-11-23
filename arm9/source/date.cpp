@@ -33,7 +33,7 @@ std::string RetTimeForFilename()
 	const struct tm *Time = localtime(&raw);
 
 	char tmp[8];
-	strftime(tmp, sizeof(tmp), "%k%M%S", Time);
+	strftime(tmp, sizeof(tmp), "%H%M%S", Time);
 
 	return tmp;
 }

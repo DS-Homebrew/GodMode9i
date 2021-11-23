@@ -64,7 +64,7 @@ static float getTbNumber(u64 bytes) {
 
 std::string getDriveBytes(u64 bytes)
 {
-	char buffer[12];
+	char buffer[32];
 	if (bytes < (1024 * 1024))
 		sniprintf(buffer, sizeof(buffer), STR_N_KB.c_str(), (int)bytes >> 10);
 

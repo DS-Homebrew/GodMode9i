@@ -108,7 +108,7 @@ std::string getString(CIniFile &ini, const std::string &item, const std::string 
  */
 void langInit(bool reloading) {
 	// If reloading then don't change if ini not found
-	if(reloading && access(config->fontPath().c_str(), F_OK) != 0)
+	if(reloading && access(config->languageIniPath().c_str(), F_OK) != 0)
 		return;
 
 	CIniFile languageini(config->languageIniPath());
