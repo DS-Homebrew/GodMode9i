@@ -81,8 +81,7 @@ bool calculateSHA1(const char *fileName, u8 *sha1) {
 	swiSHA1Init(&ctx);
 
 	font->clear(false);
-	font->print(0, 0, false, STR_CALCULATING_SHA1);
-	font->print(0, 1, false, fileName);
+	font->printf(0, 0, false, Alignment::left, Palette::white, STR_CALCULATING_SHA1.c_str(), fileName);
 
 	int nameHeight = font->calcHeight(fileName);
 	font->print(0, nameHeight + 2, false, STR_START_CANCEL);

@@ -842,8 +842,7 @@ std::string browseForFile (void) {
 						fileOffset = 0;
 					} else if (FAT_getAttr(entry->name.c_str()) & ATTR_READONLY) {
 						font->clear(false);
-						font->print(0, 0, false, STR_FAILED_DELETING);
-						font->print(0, 1, false, entry->name);
+						font->printf(0, 0, false, Alignment::left, Palette::white, STR_FAILED_DELETING.c_str(), entry->name.c_str());
 						font->print(0, 3, false, STR_A_CONTINUE);
 						pressed = 0;
 
