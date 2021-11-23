@@ -202,7 +202,7 @@ int fcopy(const char *sourcePath, const char *destinationPath) {
 			font->update(true);
 
 			font->print((offset / (fsize / (SCREEN_COLS - 2))) + 1, 1, false, "=");
-			font->printf(0, 2, false, Alignment::left, Palette::white, STR_N_BYTES.c_str(), offset, fsize);
+			font->printf(0, 2, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), (int)offset, (int)fsize);
 			font->update(false);
 
 			// Copy file to destination path
