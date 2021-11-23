@@ -60,3 +60,4 @@ When loading GodMode9i will try to load `/gm9i/font.frf` on your SD card and if 
 * [zoogie](https://github.com/zoogie): ConsoleID code (originating from dumpTool).
 * [devkitPro](https://github.com/devkitPro): devkitARM, libnds, original nds-hb-menu code, and screenshot code.
 * [d0k3](https://github.com/d0k3): Developer of GodMode9 for the Nintendo 3DS, which this is inspired by.
+* [門真 なむ (Num Kadoma)](https://littlelimit.net): k6x8 font used for the default font's Kanji and 美咲ゴシック font in resources folder

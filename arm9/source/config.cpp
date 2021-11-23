@@ -30,7 +30,7 @@ const char *Config::getSystemLanguage() {
 }
 
 Config::Config() {
-	_configPath = sdFound() ? "sd:/gm9i/config.ini" : "fat:/gm9i/config.ini";
+	_configPath = sdMounted ? "sd:/gm9i/config.ini" : "fat:/gm9i/config.ini";
 
 	// Load from config file
 	CIniFile ini(_configPath);
