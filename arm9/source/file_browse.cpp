@@ -41,6 +41,7 @@
 #include "font.h"
 #include "hexEditor.h"
 #include "ndsInfo.h"
+#include "startMenu.h"
 #include "nitrofs.h"
 #include "inifile.h"
 #include "nds_loader_arm9.h"
@@ -577,6 +578,7 @@ void fileBrowse_drawBottomScreen(DirEntry* entry) {
 	} else {
 		font->print(0, row--, false, STR_POWERTEXT);
 	}
+	font->print(0, row--, false, STR_START_START_MENU);
 	font->print(0, row--, false, clipboardOn ? STR_CLEAR_CLIPBOARD : STR_RESTORE_CLIPBOARD);
 	if (sdMounted || flashcardMounted) {
 		font->print(0, row--, false, STR_SCREENSHOTTEXT);
@@ -1012,6 +1014,11 @@ std::string browseForFile (void) {
 
 		if ((pressed & KEY_SELECT) && !clipboardUsed) {
 			clipboardOn = !clipboardOn;
+		}
+
+		// START menu
+		if (pressed & KEY_START) {
+			startMenu();
 		}
 
 #ifdef SCREENSWAP

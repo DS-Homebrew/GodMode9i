@@ -19,7 +19,7 @@ u32 copyBuf[copyBufSize];
 
 std::vector<ClipboardFile> clipboard;
 bool clipboardOn = false;
-bool clipboardUsed = false;
+bool clipboardUsed = true;
 
 std::string getBytes(int bytes) {
 	char buffer[32];

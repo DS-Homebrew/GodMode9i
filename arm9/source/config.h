@@ -18,6 +18,8 @@ public:
 	void save(void);
 
 	const std::string &languageIniPath(void) { return _languageIniPath; }
+	void languageIniPath(const std::string &languageIniPath) { _languageIniPath = languageIniPath; }
+
 	const std::string &fontPath(void) { return _fontPath; }
 };
 

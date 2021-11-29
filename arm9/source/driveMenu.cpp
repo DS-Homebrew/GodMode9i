@@ -35,6 +35,7 @@
 #include "fileOperations.h"
 #include "font.h"
 #include "language.h"
+#include "startMenu.h"
 
 #define ENTRIES_START_ROW 1
 #define ENTRY_PAGE_LENGTH 10
@@ -146,6 +147,8 @@ void dm_drawBottomScreen(void) {
 	} else {
 		font->print(0, row--, false, STR_POWERTEXT);
 	}
+
+	font->print(0, row--, false, STR_START_START_MENU);
 
 	if (sdMountedDone) {
 		if (isRegularDS || sdMounted) {
@@ -264,7 +267,7 @@ void driveMenu (void) {
 					break;
 				}
 			}
-		} while (!(pressed & (KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT | KEY_A | KEY_R
+		} while (!(pressed & (KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT | KEY_A | KEY_R | KEY_START
 #ifdef SCREENSWAP
 				| KEY_TOUCH
 #endif
@@ -380,6 +383,10 @@ void driveMenu (void) {
 					flashcardMounted = flashcardMount();
 				}
 			}
+		}
+
+		if (pressed & KEY_START) {
+			startMenu();
 		}
 
 #ifdef SCREENSWAP
