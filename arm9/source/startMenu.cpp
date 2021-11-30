@@ -23,10 +23,13 @@ constexpr std::array<std::string *, 3> startMenuStrings = {
 	&STR_LANGUAGE
 };
 
-constexpr std::array<std::pair<const char *, const char *>, 3> languageList = {{
+constexpr std::array<std::pair<const char *, const char *>, 6> languageList = {{
 	{"en-US", "English"},
 	{"es-ES", "Español"},
-	{"ja-JP", "日本語"}
+	{"fr-FR", "Français"},
+	{"ru-RU", "Русский"},
+	{"ja-JP", "日本語"},
+	{"ja-KANA", "にほんご"}
 }};
 
 void startMenu() {
@@ -98,7 +101,7 @@ void languageMenu() {
 	int cursorPosition = 0, scrollPosition = 0;
 
 	for(int i = 0; i < (int)languageList.size(); i++) {
-		char iniPath[36];
+		char iniPath[40];
 		snprintf(iniPath, sizeof(iniPath), "nitro:/languages/%s/language.ini", languageList[i].first);
 		if(config->languageIniPath() == iniPath) {
 			cursorPosition = i;
@@ -141,7 +144,7 @@ void languageMenu() {
 			if(cursorPosition >= (int)languageList.size())
 				cursorPosition = 0;
 		} else if(pressed & KEY_A) {
-			char iniPath[36];
+			char iniPath[40];
 			snprintf(iniPath, sizeof(iniPath), "nitro:/languages/%s/language.ini", languageList[cursorPosition].first);
 			config->languageIniPath(iniPath);
 			config->save();

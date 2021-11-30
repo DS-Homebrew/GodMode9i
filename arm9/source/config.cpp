@@ -35,7 +35,7 @@ Config::Config() {
 	// Load from config file
 	CIniFile ini(_configPath);
 
-	char defaultLanguagePath[36];
+	char defaultLanguagePath[40];
 	sniprintf(defaultLanguagePath, sizeof(defaultLanguagePath), "nitro:/languages/%s/language.ini", getSystemLanguage());
 	_languageIniPath = ini.GetString("GODMODE9I", "LANGUAGE_INI_PATH", defaultLanguagePath);
 	_fontPath = ini.GetString("GODMODE9I", "FONT_PATH", "sd:/gm9i/font.frf");
