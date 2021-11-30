@@ -7,10 +7,17 @@
 
 #include <array>
 #include <nds.h>
+#include <vector>
 
 #define ITEMS_PER_SCREEN 8
 
-constexpr std::array<std::string *, 3> startMenuItems = {
+enum class StartMenuItem : u8 {
+	powerOff = 0,
+	reboot = 1,
+	langauge = 2
+};
+
+constexpr std::array<std::string *, 3> startMenuStrings = {
 	&STR_POWER_OFF,
 	&STR_REBOOT,
 	&STR_LANGUAGE
@@ -23,6 +30,20 @@ constexpr std::array<std::pair<const char *, const char *>, 3> languageList = {{
 }};
 
 void startMenu() {
+	std::vector<StartMenuItem> startMenuItems;
+	if(isDSiMode()) {
+		startMenuItems = {
+			StartMenuItem::powerOff,
+			StartMenuItem::reboot,
+			StartMenuItem::langauge
+		};
+	} else {
+		startMenuItems = {
+			StartMenuItem::powerOff,
+			StartMenuItem::langauge
+		};
+	}
+
 	int cursorPosition = 0;
 	u16 pressed, held;
 	while(1) {
@@ -30,9 +51,9 @@ void startMenu() {
 		font->print(0, 3, false, STR_START_MENU, Alignment::center);
 		for(int i = 0; i < (int)startMenuItems.size(); i++) {
 			if(cursorPosition == i)
-				font->printf(0, 5 + i, false, Alignment::center, Palette::white, "> %s <", startMenuItems[i]->c_str());
+				font->printf(0, 5 + i, false, Alignment::center, Palette::white, "> %s <", startMenuStrings[u8(startMenuItems[i])]->c_str());
 			else
-				font->print(0, 5 + i, false, startMenuItems[i]->c_str(), Alignment::center);
+				font->print(0, 5 + i, false, startMenuStrings[u8(startMenuItems[i])]->c_str(), Alignment::center);
 		}
 		font->print(0, 5 + startMenuItems.size() + 1, false, STR_A_SELECT_B_CANCEL, Alignment::center);
 		font->update(false);
@@ -53,15 +74,15 @@ void startMenu() {
 			if(cursorPosition >= (int)startMenuItems.size())
 				cursorPosition = 0;
 		} else if(pressed & KEY_A) {
-			switch(cursorPosition) {
-				case 0: // Power off
-					// TODO
+			switch(startMenuItems[cursorPosition]) {
+				case StartMenuItem::powerOff:
+					systemShutDown();
 					break;
-				case 1: // Reboot
+				case StartMenuItem::reboot:
 					fifoSendValue32(FIFO_USER_02, 1);
 					while(1) swiWaitForVBlank();
 					break;
-				case 2: // language
+				case StartMenuItem::langauge:
 					languageMenu();
 					break;
 			}
