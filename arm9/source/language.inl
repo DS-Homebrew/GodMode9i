@@ -121,7 +121,7 @@ STRING(SEARCH_DATA, "Search for Data")
 STRING(SEARCH_FOR, "Search for:\n") // ASCII only
 STRING(ENTER_VALUE, "Enter value:")
 STRING(SEARCHING, "Searching")
-STRING(PRESS_B_TO_CANCEL, "Press B to cancel")
+STRING(PRESS_B_TO_CANCEL, "Press \\B to cancel")
 STRING(EOF_NO_RESULTS, "Reached end of file\nwith no results")
 
 // Dumping
