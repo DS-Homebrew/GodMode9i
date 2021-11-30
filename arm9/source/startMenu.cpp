@@ -3,6 +3,7 @@
 #include "config.h"
 #include "font.h"
 #include "language.h"
+#include "screenshot.h"
 
 #include <array>
 #include <nds.h>
@@ -66,6 +67,8 @@ void startMenu() {
 			}
 		} else if(pressed & KEY_B) {
 			return;
+		} else if(keysHeld() & KEY_R && pressed & KEY_L) {
+			screenshot();
 		}
 	}
 }
@@ -125,6 +128,8 @@ void languageMenu() {
 			return;
 		} else if(pressed & KEY_B) {
 			return;
+		} else if(keysHeld() & KEY_R && pressed & KEY_L) {
+			screenshot();
 		}
 	}
 }
