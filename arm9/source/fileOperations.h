@@ -1,5 +1,6 @@
 #include <nds.h>
 
+#include "driveOperations.h"
 #include "file_browse.h"
 
 #ifndef FILE_COPY
@@ -9,10 +10,10 @@ struct ClipboardFile {
 	std::string path;
 	std::string name;
 	bool folder;
-	int drive; // 0 == SD card, 1 == Flashcard, 2 == RAMdrive 1, 3 == RAMdrive 2
+	Drive drive;
 	bool nitro;
 
-	ClipboardFile(std::string path, std::string name, bool folder, int drive, bool nitro) : path(std::move(path)), name(std::move(name)), folder(folder), drive(drive), nitro(nitro) {}
+	ClipboardFile(std::string path, std::string name, bool folder, Drive drive, bool nitro) : path(std::move(path)), name(std::move(name)), folder(folder), drive(drive), nitro(nitro) {}
 };
 
 extern std::vector<ClipboardFile> clipboard;

@@ -10,6 +10,7 @@
 #include "font.h"
 #include "ndsheaderbanner.h"
 #include "screenshot.h"
+#include "language.h"
 
 #define copyBufSize 0x8000
 #define shaChunkSize 0x10000
@@ -18,24 +19,24 @@ u32 copyBuf[copyBufSize];
 
 std::vector<ClipboardFile> clipboard;
 bool clipboardOn = false;
-bool clipboardUsed = false;
+bool clipboardUsed = true;
 
 std::string getBytes(int bytes) {
-	char buffer[11];
+	char buffer[32];
 	if (bytes == 1)
-		sniprintf(buffer, sizeof(buffer), "%d Byte", bytes);
+		sniprintf(buffer, sizeof(buffer), STR_1_BYTE.c_str());
 
 	else if (bytes < 1024)
-		sniprintf(buffer, sizeof(buffer), "%d Bytes", bytes);
+		sniprintf(buffer, sizeof(buffer), STR_N_BYTES.c_str(), bytes);
 
 	else if (bytes < (1024 * 1024))
-		sniprintf(buffer, sizeof(buffer), "%d KB", bytes / 1024);
+		sniprintf(buffer, sizeof(buffer), STR_N_KB.c_str(), bytes >> 10);
 
 	else if (bytes < (1024 * 1024 * 1024))
-		sniprintf(buffer, sizeof(buffer), "%d MB", bytes / 1024 / 1024);
+		sniprintf(buffer, sizeof(buffer), STR_N_MB.c_str(), bytes >> 20);
 
 	else
-		sniprintf(buffer, sizeof(buffer), "%d GB", bytes / 1024 / 1024 / 1024);
+		sniprintf(buffer, sizeof(buffer), STR_N_GB.c_str(), bytes >> 30);
 
 	return buffer;
 }
@@ -58,7 +59,7 @@ bool calculateSHA1(const char *fileName, u8 *sha1) {
 	u8 *buf = (u8*) malloc(shaChunkSize);
 	if (!buf) {
 		font->clear(false);
-		font->print(0, 0, false, "Could not allocate buffer");
+		font->print(0, 0, false, STR_COULD_NOT_ALLOCATE_BUFFER);
 		font->update(false);
 		for(int i = 0; i < 60 * 2; i++)
 			swiWaitForVBlank();
@@ -67,7 +68,7 @@ bool calculateSHA1(const char *fileName, u8 *sha1) {
 	FILE* fp = fopen(fileName, "rb");
 	if (!fp) {
 		font->clear(false);
-		font->print(0, 0, false, "Could not open file for reading");
+		font->print(0, 0, false, STR_COULD_NOT_OPEN_FILE_READING);
 		font->update(false);
 		for(int i = 0; i < 60 * 2; i++)
 			swiWaitForVBlank();
@@ -80,13 +81,12 @@ bool calculateSHA1(const char *fileName, u8 *sha1) {
 	swiSHA1Init(&ctx);
 
 	font->clear(false);
-	font->print(0, 0, false, "Calculating SHA1 hash of:");
-	font->print(0, 1, false, fileName);
+	font->printf(0, 0, false, Alignment::left, Palette::white, STR_CALCULATING_SHA1.c_str(), fileName);
 
 	int nameHeight = font->calcHeight(fileName);
-	font->print(0, nameHeight + 2, false, "(<START> to cancel)");
+	font->print(0, nameHeight + 2, false, STR_START_CANCEL);
 
-	font->print(0, nameHeight + 4, false, "Progress:");
+	font->print(0, nameHeight + 4, false, STR_PROGRESS);
 	font->print(0, nameHeight + 5, false, "[");
 	font->print(-1, nameHeight + 5, false, "]");
 
@@ -103,7 +103,7 @@ bool calculateSHA1(const char *fileName, u8 *sha1) {
 		}
 
 		font->print((ftell(fp) / (fsize / (SCREEN_COLS - 2))) + 1, nameHeight + 5, false, "=");
-		font->printf(0, nameHeight + 6, false, Alignment::left, Palette::white, "%d/%d bytes processed", ftell(fp), fsize);
+		font->printf(0, nameHeight + 6, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES_PROCESSED.c_str(), ftell(fp), fsize);
 		font->update(false);
 	}
 	swiSHA1Final(sha1, &ctx);
@@ -181,7 +181,7 @@ int fcopy(const char *sourcePath, const char *destinationPath) {
 		}
 
 		font->clear(false);
-		font->print(0, 0, false, "Progress:");
+		font->print(0, 0, false, STR_PROGRESS);
 		font->print(0, 1, false, "[");
 		font->print(-1, 1, false, "]");
 
@@ -202,7 +202,7 @@ int fcopy(const char *sourcePath, const char *destinationPath) {
 			font->update(true);
 
 			font->print((offset / (fsize / (SCREEN_COLS - 2))) + 1, 1, false, "=");
-			font->printf(0, 2, false, Alignment::left, Palette::white, "%lld/%lld Bytes", offset, fsize);
+			font->printf(0, 2, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), (int)offset, (int)fsize);
 			font->update(false);
 
 			// Copy file to destination path
@@ -236,19 +236,19 @@ void changeFileAttribs(const DirEntry *entry) {
 		font->clear(false);
 		font->print(0, 0, false, entry->name);
 		if (!entry->isDirectory) {
-			font->printf(0, cursorScreenPos + 1, false, Alignment::left, Palette::white, "filesize: %s", getBytes(entry->size).c_str());
+			font->printf(0, cursorScreenPos + 1, false, Alignment::left, Palette::white, STR_FILESIZE.c_str(), getBytes(entry->size).c_str());
 
 			char str[32];
 			strftime(str, sizeof(str), "%Y-%m-%d %H:%M:%S", localtime(&st.st_ctime));
-			font->printf(0, cursorScreenPos + 2, false, Alignment::left, Palette::white, "created: %s", str);
+			font->printf(0, cursorScreenPos + 2, false, Alignment::left, Palette::white, STR_CREATED.c_str(), str);
 			strftime(str, sizeof(str), "%Y-%m-%d %H:%M:%S", localtime(&st.st_mtime));
-			font->printf(0, cursorScreenPos + 3, false, Alignment::left, Palette::white, "modified: %s", str);
+			font->printf(0, cursorScreenPos + 3, false, Alignment::left, Palette::white, STR_MODIFIED.c_str(), str);
 		}
-		font->printf(0, cursorScreenPos + 5, false, Alignment::left, Palette::white, "[%c] ↑ read-only  [%c] ↓ hidden", (newAttribs & ATTR_READONLY) ? 'X' : ' ', (newAttribs & ATTR_HIDDEN) ? 'X' : ' ');
-		font->printf(0, cursorScreenPos + 6, false, Alignment::left, Palette::white, "[%c] → system     [%c] ← archive", (newAttribs & ATTR_SYSTEM) ? 'X' : ' ', (newAttribs & ATTR_ARCHIVE) ? 'X' : ' ');
-		font->printf(0, cursorScreenPos + 7, false, Alignment::left, Palette::white, "[%c]   virtual", (newAttribs & ATTR_VOLUME) ? 'X' : ' ');
-		font->printf(0, cursorScreenPos + 8, false, Alignment::left, Palette::white, "(↑↓→← to change attributes)");
-		font->print(0, cursorScreenPos + 10, false, (currentAttribs == newAttribs) ? "(<A> to continue)" : "(<A> to apply, <B> to cancel)");
+		font->printf(0, cursorScreenPos + 5, false, Alignment::left, Palette::white, "[%c]%-13s[%c]%s", (newAttribs & ATTR_READONLY) ? 'X' : ' ', STR_UP_READONLY.c_str(), (newAttribs & ATTR_HIDDEN) ? 'X' : ' ', STR_LEFT_HIDDEN.c_str());
+		font->printf(0, cursorScreenPos + 6, false, Alignment::left, Palette::white, "[%c]%-13s[%c]%s", (newAttribs & ATTR_SYSTEM) ? 'X' : ' ', STR_DOWN_SYSTEM.c_str(), (newAttribs & ATTR_ARCHIVE) ? 'X' : ' ', STR_RIGHT_ARCHIVE.c_str());
+		font->printf(0, cursorScreenPos + 7, false, Alignment::left, Palette::white, "[%c] %s", (newAttribs & ATTR_VOLUME) ? 'X' : ' ', STR_VIRTUAL.c_str());
+		font->printf(0, cursorScreenPos + 8, false, Alignment::left, Palette::white, STR_UDLR_CHANGE_ATTRIBUTES.c_str());
+		font->print(0, cursorScreenPos + 10, false, (currentAttribs == newAttribs) ? STR_A_CONTINUE : STR_A_APPLY_B_CANCEL);
 		font->update(false);
 
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
@@ -267,11 +267,11 @@ void changeFileAttribs(const DirEntry *entry) {
 		if (pressed & KEY_UP) {
 			newAttribs ^= ATTR_READONLY;
 		} else if (pressed & KEY_DOWN) {
-			newAttribs ^= ATTR_HIDDEN;
-		} else if (pressed & KEY_RIGHT) {
 			newAttribs ^= ATTR_SYSTEM;
-		} else if (pressed & KEY_LEFT) {
+		} else if (pressed & KEY_RIGHT) {
 			newAttribs ^= ATTR_ARCHIVE;
+		} else if (pressed & KEY_LEFT) {
+			newAttribs ^= ATTR_HIDDEN;
 		} else if ((pressed & KEY_A) && (currentAttribs != newAttribs)) {
 			FAT_setAttr(entry->name.c_str(), newAttribs);
 			break;

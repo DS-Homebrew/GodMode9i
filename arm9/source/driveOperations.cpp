@@ -1,3 +1,5 @@
+#include "driveOperations.h"
+
 #include <nds.h>
 #include <nds/arm9/dldi.h>
 #include <fat.h>
@@ -14,6 +16,7 @@
 #include "nandio.h"
 #include "imgio.h"
 #include "tonccpy.h"
+#include "language.h"
 
 static sNDSHeader nds;
 
@@ -30,9 +33,9 @@ bool ramdrive2Mounted = false;
 bool imgMounted = false;
 bool nitroMounted = false;
 
-int currentDrive = 0;						// 0 == SD card, 1 == Flashcard, 2 == RAMdrive 1, 3 == RAMdrive 2, 4 == NAND, 5 == NitroFS, 6 == FAT IMG
-int nitroCurrentDrive = 0;
-int imgCurrentDrive = 0;
+Drive currentDrive = Drive::sdCard;
+Drive nitroCurrentDrive = Drive::sdCard;
+Drive imgCurrentDrive = Drive::sdCard;
 
 char sdLabel[12];
 char fatLabel[12];
@@ -61,37 +64,37 @@ static float getTbNumber(u64 bytes) {
 
 std::string getDriveBytes(u64 bytes)
 {
-	char buffer[12];
+	char buffer[32];
 	if (bytes < (1024 * 1024))
-		sniprintf(buffer, sizeof(buffer), "%d KB", (int)bytes / 1024);
+		sniprintf(buffer, sizeof(buffer), STR_N_KB.c_str(), (int)bytes >> 10);
 
 	else if (bytes >= (1024 * 1024) && bytes < (1024 * 1024 * 1024))
-		sniprintf(buffer, sizeof(buffer), "%d MB", (int)bytes / 1024 / 1024);
+		sniprintf(buffer, sizeof(buffer), STR_N_MB.c_str(), (int)bytes >> 20);
 
 	else if (bytes >= 0x40000000 && bytes < 0x10000000000)
-		snprintf(buffer, sizeof(buffer), "%.1f GB", getGbNumber(bytes));
+		snprintf(buffer, sizeof(buffer), STR_N_GB_FLOAT.c_str(), getGbNumber(bytes));
 
 	else
-		snprintf(buffer, sizeof(buffer), "%.1f TB", getTbNumber(bytes));
+		snprintf(buffer, sizeof(buffer), STR_N_TB_FLOAT.c_str(), getTbNumber(bytes));
 
 	return buffer;
 }
 
 const char* getDrivePath(void) {
 	switch (currentDrive) {
-		case 0:
+		case Drive::sdCard:
 			return "sd:/";
-		case 1:
+		case Drive::flashcard:
 			return "fat:/";
-		case 2:
+		case Drive::ramDrive1:
 			return "ram1:/";
-		case 3:
+		case Drive::ramDrive2:
 			return "ram2:/";
-		case 4:
+		case Drive::nand:
 			return "nand:/";
-		case 5:
+		case Drive::nitroFS:
 			return "nitro:/";
-		case 6:
+		case Drive::fatImg:
 			return "img:/";
 	}
 	return "";
@@ -223,10 +226,6 @@ TWL_CODE bool UpdateCardInfo(char* gameid, char* gamename) {
 	return true;
 }
 
-TWL_CODE void ShowGameInfo(const char gameid[], const char gamename[]) {
-	iprintf("Game id: %s\nName:    %s", gameid, gamename);
-}
-
 TWL_CODE bool twl_flashcardMount(void) {
 	if (REG_SCFG_MC != 0x11) {
 		sysSetCardOwner (BUS_OWNER_ARM9);
@@ -255,20 +254,7 @@ TWL_CODE bool twl_flashcardMount(void) {
 		char gamename[13];
 		char gameid[5];
 
-		/*fifoSendValue32(FIFO_USER_04, 1);
-		for (int i = 0; i < 10; i++) {
-			swiWaitForVBlank();
-		}
-		tonccpy(&nds, (void*)0x02000000, sizeof(nds));*/
 		UpdateCardInfo(&gameid[0], &gamename[0]);
-
-		/*consoleClear();
-		iprintf("REG_SCFG_MC: %x\n", REG_SCFG_MC);
-		ShowGameInfo(gameid, gamename);
-
-		for (int i = 0; i < 60*5; i++) {
-			swiWaitForVBlank();
-		}*/
 
 		sysSetCardOwner (BUS_OWNER_ARM7);	// 3DS fix
 

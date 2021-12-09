@@ -2,6 +2,19 @@
 #define FLASHCARD_H
 
 #include <string>
+#include <nds/ndstypes.h>
+
+enum class Drive : u8 {
+	sdCard = 0,
+	flashcard,
+	ramDrive1,
+	ramDrive2,
+	nand,
+	nitroFS,
+	fatImg
+};
+
+#define DRIVE_WRITABLE(drive) (drive < Drive::nand)
 
 extern u8 stored_SCFG_MC;
 
@@ -14,9 +27,9 @@ extern bool ramdrive2Mounted;
 extern bool imgMounted;
 extern bool nitroMounted;
 
-extern int currentDrive;				// 0 == SD card, 1 == Flashcard, 2 == RAMdrive 1, 3 == RAMdrive 2, 4 == NAND, 5 == NitroFS, 6 == FAT IMG
-extern int nitroCurrentDrive;
-extern int imgCurrentDrive;
+extern Drive currentDrive;
+extern Drive nitroCurrentDrive;
+extern Drive imgCurrentDrive;
 
 extern char sdLabel[12];
 extern char fatLabel[12];

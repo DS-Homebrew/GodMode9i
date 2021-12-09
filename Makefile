@@ -13,6 +13,8 @@ export TARGET := GodMode9i
 
 export GAME_TITLE := $(TARGET)
 
+export NITRODATA := nitrofiles
+
 .PHONY: all bootloader bootstub clean dsi arm7/$(TARGET).elf arm9/$(TARGET).elf
 
 all:	bootloader bootstub $(TARGET).nds
@@ -20,13 +22,13 @@ all:	bootloader bootstub $(TARGET).nds
 dsi:	$(TARGET).dsi
 
 $(TARGET).nds:	arm7/$(TARGET).elf arm9/$(TARGET).elf
-	ndstool	-c $(TARGET).nds -7 arm7/$(TARGET).elf -9 arm9/$(TARGET).elf \
+	ndstool	-c $(TARGET).nds -7 arm7/$(TARGET).elf -9 arm9/$(TARGET).elf -d $(NITRODATA) \
 			-b icon.bmp "GodMode9i;Rocket Robz" \
 			-z 80040000 -u 00030004
 	python fix_ndsheader.py $(CURDIR)/$(TARGET).nds
 
 $(TARGET).dsi:	arm7/$(TARGET).elf arm9/$(TARGET).elf
-	ndstool	-c $(TARGET).dsi -7 arm7/$(TARGET).elf -9 arm9/$(TARGET).elf \
+	ndstool	-c $(TARGET).dsi -7 arm7/$(TARGET).elf -9 arm9/$(TARGET).elf -d $(NITRODATA) \
 			-b icon.bmp "GodMode9i;Rocket Robz" \
 			-g HGMA 00 "GODMODE9I" -z 80040000 -u 00030004
 	python fix_ndsheader.py $(CURDIR)/$(TARGET).dsi

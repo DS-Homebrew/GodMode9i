@@ -419,8 +419,17 @@ ITCM_CODE void Font::print(int xPos, int yPos, bool top, std::u16string_view tex
 				case '>':
 					index = getCharIndex('<');
 					break;
+				case u'ا':
+					// لا ligature
+					if(it > text.begin() && *(it - 1) == u'ل') {
+						index = getCharIndex(arabicForm(u'ﻻ', it - 1 > text.begin() ? *(it - 2) : 0, it < text.end() - 1 ? *(it + 1) : 0));
+						--it;
+						break;
+					}
+
+					// fall through
 				default:
-					index = getCharIndex(arabicForm(*it, *(it - 1), *(it + 1)));
+					index = getCharIndex(arabicForm(*it, it > text.begin() ? *(it - 1) : 0, it < text.end() - 1 ? *(it + 1) : 0));
 					break;
 			}
 		} else {

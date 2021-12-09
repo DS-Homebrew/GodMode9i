@@ -11,6 +11,9 @@
 	<a href="https://gbatemp.net/threads/release-godmode9i-all-access-file-browser-for-the-ds-i-and-3ds.520096/" style="padding-left: 5px;">
 		<img src="https://img.shields.io/badge/GBAtemp-thread-blue.svg" height="20">
 	</a>
+	<a href="https://crowdin.com/project/godmode9i">
+		<img src="https://badges.crowdin.net/godmode9i/localized.svg" alt="localization status on Crowdin">
+	</a>
 </p>
 
 GodMode9i is a full access file browser for the Nintendo DS, Nintendo DSi and the Nintendo 3DS's TWL_FIRM.
@@ -57,3 +60,4 @@ When loading GodMode9i will try to load `/gm9i/font.frf` on your SD card and if 
 * [zoogie](https://github.com/zoogie): ConsoleID code (originating from dumpTool).
 * [devkitPro](https://github.com/devkitPro): devkitARM, libnds, original nds-hb-menu code, and screenshot code.
 * [d0k3](https://github.com/d0k3): Developer of GodMode9 for the Nintendo 3DS, which this is inspired by.
+* [門真 なむ (Num Kadoma)](https://littlelimit.net): k6x8 font used for the default font's Kanji and 美咲ゴシック font in resources folder

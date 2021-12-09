@@ -123,6 +123,8 @@ public:
 
 	~Font(void);
 
+	bool charExists(char16_t c) { return getCharIndex(c) != questionMark || c == '?'; }
+
 	u8 width(void) { return tileWidth; }
 	u8 height(void) { return tileHeight; }
 
