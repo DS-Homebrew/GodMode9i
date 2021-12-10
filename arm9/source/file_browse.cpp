@@ -866,7 +866,7 @@ std::string browseForFile (void) {
 							recRemove(entry->name.c_str(), dirContents);
 						} else {
 							font->clear(false);
-							font->print(0, 0, false, STR_DELETING_FOLDER);
+							font->print(0, 0, false, STR_DELETING_FILES);
 							font->update(false);
 							remove(entry->name.c_str());
 						}
