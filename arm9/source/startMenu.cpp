@@ -23,8 +23,9 @@ constexpr std::array<std::string *, 3> startMenuStrings = {
 	&STR_LANGUAGE
 };
 
-constexpr std::array<std::pair<const char *, const char *>, 6> languageList = {{
+constexpr std::array<std::pair<const char *, const char *>, 7> languageList = {{
 	{"en-US", "English"},
+	{"de-DE", "Deutsch"},
 	{"es-ES", "Español"},
 	{"fr-FR", "Français"},
 	{"ru-RU", "Русский"},
