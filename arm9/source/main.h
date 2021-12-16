@@ -13,6 +13,7 @@ extern bool screenSwapped;
 extern bool arm7SCFGLocked;
 extern bool isRegularDS;
 extern bool is3DS;
+extern int ownNitroFSMounted;
 
 extern bool applaunch;
 

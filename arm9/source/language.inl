@@ -85,6 +85,8 @@ STRING(POWER_OFF, "Power off")
 STRING(REBOOT, "Reboot")
 STRING(LANGUAGE, "Language...")
 STRING(SELECT_LANGUAGE, "Select Language")
+STRING(NITROFS_NOT_MOUNTED, "NitroFS could not be mounted, please load GodMode9i from TWiLight Menu++ or nds-hb-menu.")
+STRING(NITROFS_UNMOUNTED, "Another title's NitroFS has been mounted, please reload GodMode9i to change the language.")
 
 // File options
 STRING(BOOT_FILE, "Boot file")

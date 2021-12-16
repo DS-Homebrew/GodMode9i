@@ -1,8 +1,10 @@
 #include "startMenu.h"
 
 #include "config.h"
+#include "date.h"
 #include "font.h"
 #include "language.h"
+#include "main.h"
 #include "screenshot.h"
 
 #include <array>
@@ -100,6 +102,24 @@ void startMenu() {
 }
 
 void languageMenu() {
+	if(ownNitroFSMounted != 0) {
+		font->clear(false);
+		font->print(0, 0, false, ownNitroFSMounted == 1 ? STR_NITROFS_NOT_MOUNTED : STR_NITROFS_UNMOUNTED);
+		font->print(0, font->calcHeight(ownNitroFSMounted == 1 ? STR_NITROFS_NOT_MOUNTED : STR_NITROFS_UNMOUNTED) + 1, false, STR_A_CONTINUE);
+		font->update(false);
+
+		do {
+			// Print time
+			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
+			font->update(true);
+
+			scanKeys();
+			swiWaitForVBlank();
+		} while (!(keysDownRepeat() & KEY_A));
+
+		return;
+	}
+
 	int cursorPosition = 0, scrollPosition = 0;
 
 	for(int i = 0; i < (int)languageList.size(); i++) {

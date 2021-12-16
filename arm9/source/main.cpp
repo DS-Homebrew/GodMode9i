@@ -56,6 +56,7 @@ bool arm7SCFGLocked = false;
 bool isRegularDS = true;
 bool expansionPakFound = false;
 bool is3DS = false;
+int ownNitroFSMounted;
 
 bool applaunch = false;
 
@@ -179,6 +180,7 @@ int main(int argc, char **argv) {
 	}
 
 	// Try to init NitroFS
+	ownNitroFSMounted = 0;
 	if (argc > 0 && nitroFSInit(argv[0]));
 	else if (nitroFSInit("GodMode9i.nds"));
 	else if (nitroFSInit("GodMode9i.dsi"));
@@ -187,6 +189,7 @@ int main(int argc, char **argv) {
 	else if (nitroFSInit("fat:/GodMode9i.nds"));
 	else if (nitroFSInit("fat:/GodMode9i.dsi"));
 	else {
+		ownNitroFSMounted = 1;
 		font->print(-2, -3, false, "NitroFS init failed...", Alignment::right);
 		font->update(false);
 		for (int i = 0; i < 30; i++)

@@ -378,6 +378,7 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					chdir(sourceFolder);	// For after copying a folder
 					break;
 				} case FileOperation::mountNitroFS: {
+					ownNitroFSMounted = 2;
 					nitroMounted = nitroFSInit(entry->name.c_str());
 					if (nitroMounted) {
 						chdir("nitro:/");
