@@ -773,6 +773,8 @@ std::string browseForFile (void) {
 
 			videoSetModeSub(MODE_5_2D);
 			bgShow(bgInitSub(2, BgType_Bmp8, BgSize_B8_256x256, 3, 0));
+			BG_PALETTE_SUB[0] = 0x0000;
+			BG_PALETTE_SUB[1] = 0x7FFF;
 
 			if (newName[0] != '\0') {
 				// Check for unsupported characters
@@ -903,6 +905,8 @@ std::string browseForFile (void) {
 
 			videoSetModeSub(MODE_5_2D);
 			bgShow(bgInitSub(2, BgType_Bmp8, BgSize_B8_256x256, 3, 0));
+			BG_PALETTE_SUB[0] = 0x0000;
+			BG_PALETTE_SUB[1] = 0x7FFF;
 
 			if (newName[0] != '\0') {
 				// Check for unsupported characters
