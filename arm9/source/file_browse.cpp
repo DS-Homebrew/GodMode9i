@@ -650,11 +650,7 @@ std::string browseForFile (void) {
 			if (REG_SCFG_MC != stored_SCFG_MC) {
 				break;
 			}
-
-			if ((held & KEY_R) && (pressed & KEY_L)) {
-				break;
-			}
-		} while (!pressed);
+		} while (!(pressed & ~(KEY_R | KEY_TOUCH | KEY_LID)));
 
 		if (isDSiMode() && !pressed && currentDrive == Drive::flashcard && REG_SCFG_MC == 0x11 && flashcardMounted) {
 			flashcardUnmount();
