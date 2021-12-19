@@ -267,7 +267,7 @@ void driveMenu (void) {
 					break;
 				}
 			}
-		} while (!(pressed & (KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT | KEY_A | KEY_R | KEY_START
+		} while (!(pressed & (KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT | KEY_A | KEY_B | KEY_X | KEY_L | KEY_START
 #ifdef SCREENSWAP
 				| KEY_TOUCH
 #endif
