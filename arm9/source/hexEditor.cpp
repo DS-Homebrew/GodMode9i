@@ -102,6 +102,8 @@ u32 search(u32 offset, FILE *file) {
 
 		videoSetModeSub(MODE_5_2D);
 		bgShow(bgInitSub(2, BgType_Bmp8, BgSize_B8_256x256, 3, 0));
+		BG_PALETTE_SUB[0] = 0x0000;
+		BG_PALETTE_SUB[1] = 0x7FFF;
 
 		BG_PALETTE_SUB[0x1F] = 0x9CF7;
 		BG_PALETTE_SUB[0x2F] = 0xB710;

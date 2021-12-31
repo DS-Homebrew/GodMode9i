@@ -378,6 +378,7 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					chdir(sourceFolder);	// For after copying a folder
 					break;
 				} case FileOperation::mountNitroFS: {
+					ownNitroFSMounted = 2;
 					nitroMounted = nitroFSInit(entry->name.c_str());
 					if (nitroMounted) {
 						chdir("nitro:/");
@@ -610,7 +611,7 @@ void fileBrowse_drawBottomScreen(DirEntry* entry) {
 			if (i < 4) {
 				font->print(0, 5 + i, false, clipboard[i].name, Alignment::left, clipboard[i].folder ? Palette::blue : Palette::gray);
 			} else {
-				font->printf(0, 5 + i, false, Alignment::left, Palette::gray, STR_N_MORE_FILES.c_str(), clipboard.size() - 4);
+				font->printf(0, 5 + i, false, Alignment::left, Palette::gray, clipboard.size() - 4 == 1 ? STR_1_MORE_FILE.c_str() : STR_N_MORE_FILES.c_str(), clipboard.size() - 4);
 				break;
 			}
 		}
@@ -650,11 +651,7 @@ std::string browseForFile (void) {
 			if (REG_SCFG_MC != stored_SCFG_MC) {
 				break;
 			}
-
-			if ((held & KEY_R) && (pressed & KEY_L)) {
-				break;
-			}
-		} while (!pressed);
+		} while (!(pressed & ~(KEY_R | KEY_TOUCH | KEY_LID)));
 
 		if (isDSiMode() && !pressed && currentDrive == Drive::flashcard && REG_SCFG_MC == 0x11 && flashcardMounted) {
 			flashcardUnmount();
@@ -773,6 +770,8 @@ std::string browseForFile (void) {
 
 			videoSetModeSub(MODE_5_2D);
 			bgShow(bgInitSub(2, BgType_Bmp8, BgSize_B8_256x256, 3, 0));
+			BG_PALETTE_SUB[0] = 0x0000;
+			BG_PALETTE_SUB[1] = 0x7FFF;
 
 			if (newName[0] != '\0') {
 				// Check for unsupported characters
@@ -809,7 +808,7 @@ std::string browseForFile (void) {
 					}
 				}
 				if(selections > 5)
-					font->printf(0, 7, false, Alignment::left, Palette::red, STR_AND_N_MORE.c_str(), selections - 5);
+					font->printf(0, 7, false, Alignment::left, Palette::red, selections - 5 == 1 ? STR_AND_1_MORE.c_str() : STR_AND_N_MORE.c_str(), selections - 5);
 			} else {
 				font->printf(0, 0, false, Alignment::left, Palette::white, STR_DELETE_X.c_str(), entry->name.c_str());
 			}
@@ -866,7 +865,7 @@ std::string browseForFile (void) {
 							recRemove(entry->name.c_str(), dirContents);
 						} else {
 							font->clear(false);
-							font->print(0, 0, false, STR_DELETING_FOLDER);
+							font->print(0, 0, false, STR_DELETING_FILES);
 							font->update(false);
 							remove(entry->name.c_str());
 						}
@@ -903,6 +902,8 @@ std::string browseForFile (void) {
 
 			videoSetModeSub(MODE_5_2D);
 			bgShow(bgInitSub(2, BgType_Bmp8, BgSize_B8_256x256, 3, 0));
+			BG_PALETTE_SUB[0] = 0x0000;
+			BG_PALETTE_SUB[1] = 0x7FFF;
 
 			if (newName[0] != '\0') {
 				// Check for unsupported characters

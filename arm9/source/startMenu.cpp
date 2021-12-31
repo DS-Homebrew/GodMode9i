@@ -1,8 +1,10 @@
 #include "startMenu.h"
 
 #include "config.h"
+#include "date.h"
 #include "font.h"
 #include "language.h"
+#include "main.h"
 #include "screenshot.h"
 
 #include <array>
@@ -23,11 +25,15 @@ constexpr std::array<std::string *, 3> startMenuStrings = {
 	&STR_LANGUAGE
 };
 
-constexpr std::array<std::pair<const char *, const char *>, 6> languageList = {{
+constexpr std::array<std::pair<const char *, const char *>, 10> languageList = {{
+	{"de-DE", "Deutsch"},
 	{"en-US", "English"},
 	{"es-ES", "Español"},
 	{"fr-FR", "Français"},
+	{"it-IT", "Italiano"},
+	{"hu-HU", "Magyar"},
 	{"ru-RU", "Русский"},
+	{"zh-CN", "中文 (简体)"},
 	{"ja-JP", "日本語"},
 	{"ja-KANA", "にほんご"}
 }};
@@ -98,6 +104,24 @@ void startMenu() {
 }
 
 void languageMenu() {
+	if(ownNitroFSMounted != 0) {
+		font->clear(false);
+		font->print(0, 0, false, ownNitroFSMounted == 1 ? STR_NITROFS_NOT_MOUNTED : STR_NITROFS_UNMOUNTED);
+		font->print(0, font->calcHeight(ownNitroFSMounted == 1 ? STR_NITROFS_NOT_MOUNTED : STR_NITROFS_UNMOUNTED) + 1, false, STR_A_CONTINUE);
+		font->update(false);
+
+		do {
+			// Print time
+			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
+			font->update(true);
+
+			scanKeys();
+			swiWaitForVBlank();
+		} while (!(keysDownRepeat() & KEY_A));
+
+		return;
+	}
+
 	int cursorPosition = 0, scrollPosition = 0;
 
 	for(int i = 0; i < (int)languageList.size(); i++) {
