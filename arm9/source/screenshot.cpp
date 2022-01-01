@@ -102,7 +102,7 @@ bool screenshot(void) {
 		mkdir((sdMounted ? "sd:/gm9i/out" : "fat:/gm9i/out"), 0777);
 	}
 
-	std::string fileTimeText = RetTimeForFilename();
+	std::string fileTimeText = RetTime("%H%M%S");
 	char snapPath[40];
 	// Take top screenshot
 	snprintf(snapPath, sizeof(snapPath), "%s:/gm9i/out/snap_%s_top.bmp", (sdMounted ? "sd" : "fat"), fileTimeText.c_str());

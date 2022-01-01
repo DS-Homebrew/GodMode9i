@@ -303,7 +303,7 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 			switch(operations[optionOffset]) {
 				case FileOperation::bootFile: {
 					applaunch = true;
-					font->print(3, optionOffset + y, false, STR_NOW_LOADING);
+					font->print(3, optionOffset + y, false, STR_LOADING);
 					font->update(false);
 					break;
 				} case FileOperation::bootstrapFile: {

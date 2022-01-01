@@ -35,6 +35,7 @@
 #include "fileOperations.h"
 #include "font.h"
 #include "language.h"
+#include "read_card.h"
 #include "startMenu.h"
 
 #define ENTRIES_START_ROW 1
@@ -59,6 +60,8 @@ bool flashcardMountSkipped = true;
 static bool flashcardMountRan = true;
 static int dmCursorPosition = 0;
 static std::vector<DriveMenuOperation> dmOperations;
+static char romTitle[13] = {0};
+static u32 romSize, romSizeTrimmed;
 
 static u8 gbaFixedValue = 0;
 
@@ -104,7 +107,7 @@ void dm_drawTopScreen(void) {
 				|| (ramdrive2Mounted && nitroCurrentDrive == Drive::ramDrive2)
 				|| (nandMounted && nitroCurrentDrive == Drive::nand)
 				|| (imgMounted && nitroCurrentDrive == Drive::fatImg)))
-					font->print(256 - font->width(), i + 1, true, "[x]", Alignment::right, pal);
+					font->print(-1, i + 1, true, "[x]", Alignment::right, pal);
 				break;
 			case DriveMenuOperation::fatImage:
 				if ((sdMounted && imgCurrentDrive == Drive::sdCard)
@@ -115,16 +118,14 @@ void dm_drawTopScreen(void) {
 					font->printf(0, i + 1, true, Alignment::left, pal, STR_FAT_LABEL_NAMED.c_str(), imgLabel[0] == 0 ? STR_UNTITLED.c_str() : imgLabel);
 				} else {
 					font->print(0, i + 1, true, STR_FAT_LABEL, Alignment::left, pal);
-					font->print(256 - font->width(), i + 1, true, "[x]", Alignment::right, pal);
+					font->print(-1, i + 1, true, "[x]", Alignment::right, pal);
 				}
 				break;
 			case DriveMenuOperation::gbaCart:
-				font->print(0, i + 1, true, STR_GBA_GAMECART, Alignment::left, pal);
-				if (gbaFixedValue != 0x96)
-					font->print(256 - font->width(), i + 1, true, "[x]", Alignment::right, pal);
+				font->printf(0, i + 1, true, Alignment::left, pal, STR_GBA_GAMECART.c_str(), romTitle);
 				break;
 			case DriveMenuOperation::ndsCard:
-				font->print(0, i + 1, true, STR_NDS_GAMECARD, Alignment::left, pal);
+				font->printf(0, i + 1, true, Alignment::left, pal, STR_NDS_GAMECARD.c_str(), romTitle);
 				break;
 			case DriveMenuOperation::none:
 				break;
@@ -176,16 +177,16 @@ void dm_drawBottomScreen(void) {
 			font->printf(0, 2, false, Alignment::left, Palette::white, STR_N_FREE.c_str(), getDriveBytes(getBytesFree("fat:/")).c_str());
 			break;
 		case DriveMenuOperation::gbaCart:
-			font->print(0, 0, false, STR_GBA_GAMECART);
-			font->print(0, 1, false, STR_GBA_GAME);
+			font->printf(0, 0, false, Alignment::left, Palette::white, STR_GBA_GAMECART.c_str(), romTitle);
+			font->printf(0, 1, false, Alignment::left, Palette::white, STR_GBA_GAME.c_str(), getBytes(romSize).c_str());
 			break;
 		case DriveMenuOperation::nitroFs:
 			font->print(0, 0, false, STR_NITROFS_LABEL);
 			font->print(0, 1, false, STR_GAME_VIRTUAL);
 			break;
 		case DriveMenuOperation::ndsCard:
-			font->print(0, 0, false, STR_NDS_GAMECARD);
-			font->print(0, 1, false, STR_NDS_GAME);
+			font->printf(0, 0, false, Alignment::left, Palette::white, STR_NDS_GAMECARD.c_str(), romTitle);
+			font->printf(0, 1, false, Alignment::left, Palette::white, STR_NDS_GAME.c_str(), getBytes(romSize).c_str(), getBytes(romSizeTrimmed).c_str());
 			break;
 		case DriveMenuOperation::ramDrive1:
 			font->print(0, 0, false, STR_RAMDRIVE1_LABEL);
@@ -237,10 +238,39 @@ void driveMenu (void) {
 			dmOperations.push_back(DriveMenuOperation::nitroFs);
 		if (expansionPakFound
 		|| (io_dldi_data->ioInterface.features & FEATURE_SLOT_GBA)
-		|| (isDSiMode() && !arm7SCFGLocked && !(REG_SCFG_MC & BIT(0))))
+		|| (isDSiMode() && !arm7SCFGLocked && !(REG_SCFG_MC & BIT(0)))) {
 			dmOperations.push_back(DriveMenuOperation::ndsCard);
-		if (!isDSiMode() && isRegularDS)
+			if(romTitle[0] == 0) {
+				sNDSHeaderExt ndsHeader;
+				cardInit(&ndsHeader);
+				tonccpy(romTitle, ndsHeader.gameTitle, 12);
+				romSize = 0x20000 << ndsHeader.deviceSize;
+				romSizeTrimmed = (isDSiMode() && (ndsHeader.unitCode != 0) && (ndsHeader.twlRomSize > 0))
+										? ndsHeader.twlRomSize : ndsHeader.romSize + 0x88;
+			}
+		} else if (!isDSiMode() && isRegularDS && gbaFixedValue == 0x96) {
 			dmOperations.push_back(DriveMenuOperation::gbaCart);
+			if(romTitle[0] == 0) {
+				tonccpy(romTitle, (char*)0x080000A0, 12);
+				romSize = 0;
+				for (romSize = (1 << 20); romSize < (1 << 25); romSize <<= 1) {
+					vu16 *rompos = (vu16*)(0x08000000 + romSize);
+					bool romend = true;
+					for (int j = 0; j < 0x1000; j++) {
+						if (rompos[j] != j) {
+							romend = false;
+							break;
+						}
+					}
+					if (romend)
+						break;
+				}
+				romSizeTrimmed = romSize;
+			}
+		} else if (romTitle[0] != 0) {
+			romTitle[0] = 0;
+			romSizeTrimmed = romSize = 0;
+		}
 
 		dm_drawBottomScreen();
 		dm_drawTopScreen();

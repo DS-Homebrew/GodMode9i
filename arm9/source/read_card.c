@@ -66,6 +66,7 @@ static bool normalChip = false;	// As defined by GBAtek, normal chip secure area
 static u32 portFlags = 0;
 static u32 headerData[0x1000/sizeof(u32)] = {0};
 static u32 secureArea[CARD_SECURE_AREA_SIZE/sizeof(u32)] = {0};
+static u32 iCardId;
 
 static bool nandChip = false;
 static int nandSection = -1; // -1 = ROM, above that is the current 128 KiB section in RW
@@ -355,7 +356,7 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 
 	toncset(headerData, 0, 0x1000);
 
-	u32 iCardId=cardReadID(CARD_CLK_SLOW);
+	iCardId=cardReadID(CARD_CLK_SLOW);
 	while(REG_ROMCTRL & CARD_BUSY);
 
 	normalChip = (iCardId & BIT(31)) != 0; // ROM chip ID MSB
@@ -508,6 +509,10 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 	}
 
 	return ERR_NONE;
+}
+
+u32 cardGetId() {
+	return iCardId;
 }
 
 void cardRead (u32 src, void* dest, bool nandSave)
