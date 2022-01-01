@@ -682,7 +682,7 @@ void ndsCardDump(void) {
 				"Save Type    : %s\n",
 				gameTitle, gameCode, ndsCardHeader.romversion, cardGetId(),
 				(ndsCardHeader.unitCode == 0x2) ? "DSi Enhanced" : (ndsCardHeader.unitCode == 0x3) ? "DSi Exclusive" : "DS",
-				spiSave ? "SPI" : (nandSave ? "RETAIL_NAND" : "UNK"));
+				spiSave ? "SPI" : (nandSave ? "RETAIL_NAND" : "NONE"));
 
 			if(spiSave)
 				fprintf(destinationFile, "Save chip ID : 0x%06lX\n", cardEepromReadID());
