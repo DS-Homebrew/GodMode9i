@@ -542,7 +542,7 @@ void ndsCardDump(void) {
 	char gameCode[7] = {0};
 	char fileName[32] = {0};
 	bool spiSave = cardEepromGetTypeFixed() != -1;
-	bool nandSave = cardNandGetSaveSize() != 0;
+	bool nandSave = false;
 
 	int cardInited = cardInit(&ndsCardHeader);
 	if(cardInited == 0) {
@@ -550,6 +550,8 @@ void ndsCardDump(void) {
 		allowedOptions.push_back(DumpOption::rom);
 		allowedOptions.push_back(DumpOption::romTrimmed);
 		allowedBitfield |= DumpOption::rom | DumpOption::romTrimmed;
+
+		nandSave = cardNandGetSaveSize() != 0;
 
 		if(spiSave || nandSave) {
 			allowedOptions.push_back(DumpOption::save);
