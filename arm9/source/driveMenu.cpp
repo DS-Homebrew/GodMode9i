@@ -79,7 +79,7 @@ void dm_drawTopScreen(void) {
 	font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
 
 	if (dmOperations.size() == 0) {
-		font->print(0, 1, true, STR_NO_DRIVES_FOUND, Alignment::left, Palette::blackGreen);
+		font->print(0, 1, true, STR_NO_DRIVES_FOUND);
 	} else
 	for (int i = 0; i < (int)dmOperations.size(); i++) {
 		Palette pal = dmCursorPosition == i ? Palette::white : Palette::gray;
