@@ -222,7 +222,7 @@ bool gbaReadSave(u8 *dst, u32 src, u32 len, saveTypeGBA type)
 	return true;
 }
 
-bool gbaIsAtmel()
+u16 gbaGetFlashId()
 {
 	*(vu8*)0x0a005555 = 0xaa;
 	swiDelay(10);
@@ -244,10 +244,13 @@ bool gbaIsAtmel()
 	//char txt[128];
 	// sprintf(txt, "Man: %x, Dev: %x", man, dev);
 	// displayStateF(STR_STR, txt);
-	if ((man == 0x3d) && (dev == 0x1f))
-		return true;
-	else
-		return false;
+
+	return dev << 8 | man;
+}
+
+bool gbaIsAtmel()
+{
+	return gbaGetFlashId() == 0x3d1f;
 }
 
 bool gbaWriteSave(u32 dst, u8 *src, u32 len, saveTypeGBA type)

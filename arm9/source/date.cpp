@@ -23,17 +23,17 @@ std::string RetTime()
 }
 
 /**
- * Get the current time formatted for filenames.
+ * Get the current time formatted as specified.
  * @return std::string containing the time.
  */
-std::string RetTimeForFilename()
+std::string RetTime(const char *format)
 {
 	time_t raw;
 	time(&raw);
 	const struct tm *Time = localtime(&raw);
 
-	char tmp[8];
-	strftime(tmp, sizeof(tmp), "%H%M%S", Time);
+	char tmp[64];
+	strftime(tmp, sizeof(tmp), format, Time);
 
 	return tmp;
 }

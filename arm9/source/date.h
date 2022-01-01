@@ -10,9 +10,9 @@
 std::string RetTime();
 
 /**
- * Get the current time formatted for filenames.
+ * Get the current time formatted as specified.
  * @return std::string containing the time.
  */
-std::string RetTimeForFilename();
+std::string RetTime(const char *format);
 
 #endif // DATE_H

@@ -43,6 +43,8 @@ int cardInit (sNDSHeaderExt* ndsHeader);
 
 void cardRead (u32 src, void* dest, bool nandSave);
 
+u32 cardGetId (void);
+
 void cardWriteNand (void* src, u32 dest);
 
 #ifdef __cplusplus

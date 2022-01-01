@@ -9,18 +9,127 @@
 #include "read_card.h"
 #include "tonccpy.h"
 #include "language.h"
+#include "screenshot.h"
+#include "version.h"
 
 #include <dirent.h>
 #include <nds.h>
 #include <nds/arm9/dldi.h>
-#include <unistd.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <vector>
 
 extern u8 copyBuf[];
 
 extern bool expansionPakFound;
 
 static sNDSHeaderExt ndsCardHeader;
+
+enum DumpOption {
+	none = 0,
+	rom = 1,
+	romTrimmed = 2,
+	save = 4,
+	metadata = 8,
+	all = rom | save | metadata,
+	allTrimmed = romTrimmed | save | metadata
+};
+
+DumpOption dumpMenu(std::vector<DumpOption> allowedOptions, const char *dumpName) {
+	u16 pressed = 0, held = 0;
+	int optionOffset = 0;
+
+	char dumpToStr[256];
+	snprintf(dumpToStr, sizeof(dumpToStr), STR_DUMP_TO.c_str(), dumpName, sdMounted ? "sd" : "fat");
+
+	int y = font->calcHeight(dumpToStr) + 1;
+
+	while (true) {
+		font->clear(false);
+
+		font->print(0, 0, false, dumpToStr);
+
+		int row = y;
+		for(DumpOption option : allowedOptions) {
+			switch(option) {
+				case DumpOption::all:
+					font->print(3, row++, false, STR_DUMP_ALL);
+					break;
+				case DumpOption::allTrimmed:
+					font->print(3, row++, false, STR_DUMP_ALL_TRIMMED);
+					break;
+				case DumpOption::rom:
+					font->print(3, row++, false, STR_DUMP_ROM);
+					break;
+				case DumpOption::romTrimmed:
+					font->print(3, row++, false, STR_DUMP_ROM_TRIMMED);
+					break;
+				case DumpOption::save:
+					font->print(3, row++, false, STR_DUMP_SAVE);
+					break;
+				case DumpOption::metadata:
+					font->print(3, row++, false, STR_DUMP_METADATA);
+					break;
+				case DumpOption::none:
+					row++;
+					break;
+			}
+		}
+
+		font->print(3, ++row, false, STR_A_SELECT_B_CANCEL);
+
+		// Show cursor
+		font->print(0, y + optionOffset, false, "->");
+
+		font->update(false);
+
+		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
+		do {
+			// Print time
+			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
+			font->update(true);
+
+			scanKeys();
+			pressed = keysDownRepeat();
+			held = keysHeld();
+			swiWaitForVBlank();
+		} while (!(pressed & (KEY_UP| KEY_DOWN | KEY_A | KEY_B | KEY_L))
+#ifdef SCREENSWAP
+				&& !(pressed & KEY_TOUCH)
+#endif
+				);
+
+		if (pressed & KEY_UP)
+			optionOffset--;
+		if (pressed & KEY_DOWN)
+			optionOffset++;
+
+		if (optionOffset < 0) // Wrap around to bottom of list
+			optionOffset = allowedOptions.size() - 1;
+
+		if (optionOffset >= (int)allowedOptions.size()) // Wrap around to top of list
+			optionOffset = 0;
+
+		if (pressed & KEY_A)
+			return allowedOptions[optionOffset];
+
+		if (pressed & KEY_B)
+			return DumpOption::none;
+
+#ifdef SCREENSWAP
+		// Swap screens
+		if (pressed & KEY_TOUCH) {
+			screenSwapped = !screenSwapped;
+			screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
+		}
+#endif
+
+		// Make a screenshot
+		if ((held & KEY_R) && (pressed & KEY_L)) {
+			screenshot();
+		}
+	}
+}
 
 void dumpFailMsg(std::string_view msg) {
 	font->clear(false);
@@ -423,26 +532,66 @@ void ndsCardSaveRestore(const char *filename) {
 }
 
 void ndsCardDump(void) {
-	int pressed = 0;
-	//bool showGameCardMsgAgain = false;
-
 	font->clear(false);
-	font->printf(0, 0, false, Alignment::left, Palette::white, STR_DUMP_NDS_ROM_TO.c_str(), sdMounted ? "sd" : "fat");
-	font->print(0, 2, false, STR_A_YES_Y_TRIM_B_NO_X_SAVE_ONLY);
+	font->print(0, 0, false, STR_LOADING);
 	font->update(false);
 
-	// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
-	do {
-		// Print time
-		font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-		font->update(true);
+	std::vector allowedOptions = {DumpOption::all};
+	u8 allowedBitfield = DumpOption::metadata;
+	char gameTitle[13] = {0};
+	char gameCode[7] = {0};
+	char fileName[32] = {0};
+	bool spiSave = cardEepromGetTypeFixed() != -1;
+	bool nandSave = false;
 
-		scanKeys();
-		pressed = keysDownRepeat();
-		swiWaitForVBlank();
-	} while (!(pressed & (KEY_A | KEY_Y | KEY_B | KEY_X)));
+	int cardInited = cardInit(&ndsCardHeader);
+	if(cardInited == 0) {
+		allowedOptions.push_back(DumpOption::allTrimmed);
+		allowedOptions.push_back(DumpOption::rom);
+		allowedOptions.push_back(DumpOption::romTrimmed);
+		allowedBitfield |= DumpOption::rom | DumpOption::romTrimmed;
 
-	if (pressed & KEY_X) {
+		nandSave = cardNandGetSaveSize() != 0;
+
+		if(spiSave || nandSave) {
+			allowedOptions.push_back(DumpOption::save);
+			allowedBitfield |= DumpOption::save;
+		}
+	}
+	allowedOptions.push_back(DumpOption::metadata);
+
+	tonccpy(gameTitle, ndsCardHeader.gameTitle, 12);
+	tonccpy(gameCode, ndsCardHeader.gameCode, 6);
+	if (gameTitle[0] == 0 || gameTitle[0] == 0x2E || gameTitle[0] == 0xFF) {
+		sprintf(gameTitle, "NO-TITLE");
+	} else {
+		for(uint i = 0; i < sizeof(gameTitle); i++) {
+			switch(gameTitle[i]) {
+				case '>':
+				case '<':
+				case ':':
+				case '"':
+				case '/':
+				case '\x5C':
+				case '|':
+				case '?':
+				case '*':
+					gameTitle[i] = '_';
+			}
+		}
+	}
+	if (gameCode[0] == 0 || gameCode[0] == 0x23 || gameCode[0] == 0xFF) {
+		sprintf(gameCode, "NONE00");
+	}
+	sprintf(fileName, "%s_%s_%02X", gameTitle, gameCode, ndsCardHeader.romversion);
+
+	DumpOption dumpOption = dumpMenu(allowedOptions, fileName);
+
+	if(dumpOption & DumpOption::romTrimmed)
+		strcat(fileName, "_trim");
+
+	// Ensure directories exist
+	if((dumpOption & allowedBitfield) != DumpOption::none) {
 		char folderPath[2][256];
 		sprintf(folderPath[0], "%s:/gm9i", (sdMounted ? "sd" : "fat"));
 		sprintf(folderPath[1], "%s:/gm9i/out", (sdMounted ? "sd" : "fat"));
@@ -458,272 +607,95 @@ void ndsCardDump(void) {
 			font->update(false);
 			mkdir(folderPath[1], 0777);
 		}
+	}
 
-		if (cardInit(&ndsCardHeader) != 0) {
-			dumpFailMsg(STR_UNABLE_TO_DUMP_SAVE);
-			return;
-		}
-		char gameTitle[13] = {0};
-		tonccpy(gameTitle, ndsCardHeader.gameTitle, 12);
-		char gameCode[7] = {0};
-		tonccpy(gameCode, ndsCardHeader.gameCode, 6);
-		char destSavPath[256];
-		sprintf(destSavPath, "%s:/gm9i/out/%s_%s_%02x.sav", (sdMounted ? "sd" : "fat"), gameTitle, gameCode, ndsCardHeader.romversion);
-		ndsCardSaveDump(destSavPath);
-	} else if ((pressed & KEY_A) || (pressed & KEY_Y)) {
-		bool trimRom = (pressed & KEY_Y);
-		char folderPath[2][256];
-		sprintf(folderPath[0], "%s:/gm9i", (sdMounted ? "sd" : "fat"));
-		sprintf(folderPath[1], "%s:/gm9i/out", (sdMounted ? "sd" : "fat"));
-		if (access(folderPath[0], F_OK) != 0) {
-			font->clear(false);
-			font->print(0, 0, false, STR_CREATING_DIRECTORY);
-			font->update(false);
-			mkdir(folderPath[0], 0777);
-		}
-		if (access(folderPath[1], F_OK) != 0) {
-			font->clear(false);
-			font->print(0, 0, false, STR_CREATING_DIRECTORY);
-			font->update(false);
-			mkdir(folderPath[1], 0777);
-		}
-		/*if (expansionPakFound) {
-			font->clear(false)
-			font->print(0, 0, false, "Please switch to the game card, then press A.");
-			font->update(false);
-			//flashcardUnmount();
-			io_dldi_data->ioInterface.shutdown();
+	// Dump ROM
+	if((dumpOption & allowedBitfield) & (DumpOption::rom | DumpOption::romTrimmed)) {
+		font->clear(false);
+		font->printf(0, 0, false, Alignment::left, Palette::white, STR_NDS_IS_DUMPING.c_str(), fileName);
+		font->print(0, 2, false, STR_DO_NOT_REMOVE_CARD);
+		font->update(false);
 
-			// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
-			do {
+		// Determine ROM size
+		u32 romSize;
+		if (dumpOption & DumpOption::romTrimmed) {
+			romSize = (isDSiMode() && (ndsCardHeader.unitCode != 0) && (ndsCardHeader.twlRomSize > 0))
+						? ndsCardHeader.twlRomSize : ndsCardHeader.romSize+0x88;
+		} else {
+			romSize = 0x20000 << ndsCardHeader.deviceSize;
+		}
+
+		// Dump!
+		char destPath[256];
+		sprintf(destPath, "%s:/gm9i/out/%s.nds", (sdMounted ? "sd" : "fat"), fileName);
+		u32 currentSize = romSize;
+		FILE* destinationFile = fopen(destPath, "wb");
+		if (destinationFile) {
+			font->print(0, 4, false, STR_PROGRESS);
+			font->print(0, 5, false, "[");
+			font->print(-1, 5, false, "]");
+			for (u32 src = 0; src < romSize; src += 0x8000) {
 				// Print time
 				font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
 				font->update(true);
 
-				scanKeys();
-				pressed = keysDownRepeat();
-				swiWaitForVBlank();
-			} while (!(pressed & KEY_A));
-		}*/
+				font->print((src / (romSize / (SCREEN_COLS - 2))) + 1, 5, false, "=");
+				font->printf(0, 6, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), src, romSize);
+				font->update(false);
 
-		int cardInited = cardInit(&ndsCardHeader);
-		char gameTitle[13] = {0};
-		char gameCode[7] = {0};
-		char destPath[256] = {0};
-		char destSavPath[256] = {0};
-		char fileName[32] = {0};
-		tonccpy(gameTitle, ndsCardHeader.gameTitle, 12);
-		tonccpy(gameCode, ndsCardHeader.gameCode, 6);
-		if (gameTitle[0] == 0 || gameTitle[0] == 0x2E || gameTitle[0] == 0xFF) {
-			sprintf(gameTitle, "NO-TITLE");
-		} else {
-			for(uint i = 0; i < sizeof(gameTitle); i++) {
-				switch(gameTitle[i]) {
-					case '>':
-					case '<':
-					case ':':
-					case '"':
-					case '/':
-					case '\x5C':
-					case '|':
-					case '?':
-					case '*':
-						gameTitle[i] = '_';
+				for (u32 i = 0; i < 0x8000; i += 0x200) {
+					cardRead (src+i, copyBuf+i, false);
 				}
-			}
-		}
-		if (gameCode[0] == 0 || gameCode[0] == 0x23 || gameCode[0] == 0xFF) {
-			sprintf(gameCode, "NONE00");
-		}
-		sprintf(fileName, "%s_%s_%02x%s", gameTitle, gameCode, ndsCardHeader.romversion, (trimRom ? "_trim" : ""));
-		sprintf(destPath, "%s:/gm9i/out/%s.nds", (sdMounted ? "sd" : "fat"), fileName);
-		sprintf(destSavPath, "%s:/gm9i/out/%s.sav", (sdMounted ? "sd" : "fat"), fileName);
-
-		if (cardInited == 0) {
-			font->clear(false);
-			font->printf(0, 0, false, Alignment::left, Palette::white, STR_NDS_IS_DUMPING.c_str(), fileName);
-			font->print(0, 2, false, STR_DO_NOT_REMOVE_CARD);
-			font->update(false);
-		} else {
-			font->clear(false);
-			font->print(0, 0, false, STR_UNABLE_TO_DUMP_ROM);
-			font->update(false);
-			for (int i = 0; i < 60*2; i++) {
-				swiWaitForVBlank();
-			}
-			return;
-		}
-		// Determine ROM size
-		u32 romSize = 0;
-		if (trimRom) {
-			romSize = (isDSiMode() && (ndsCardHeader.unitCode != 0) && (ndsCardHeader.twlRomSize > 0))
-						? ndsCardHeader.twlRomSize : ndsCardHeader.romSize+0x88;
-		} else switch (ndsCardHeader.deviceSize) {
-			case 0x00:
-				romSize = 0x20000;
-				break;
-			case 0x01:
-				romSize = 0x40000;
-				break;
-			case 0x02:
-				romSize = 0x80000;
-				break;
-			case 0x03:
-				romSize = 0x100000;
-				break;
-			case 0x04:
-				romSize = 0x200000;
-				break;
-			case 0x05:
-				romSize = 0x400000;
-				break;
-			case 0x06:
-				romSize = 0x800000;
-				break;
-			case 0x07:
-				romSize = 0x1000000;
-				break;
-			case 0x08:
-				romSize = 0x2000000;
-				break;
-			case 0x09:
-				romSize = 0x4000000;
-				break;
-			case 0x0A:
-				romSize = 0x8000000;
-				break;
-			case 0x0B:
-				romSize = 0x10000000;
-				break;
-			case 0x0C:
-				romSize = 0x20000000;
-				break;
-		}
-		// Dump!
-		/*if (expansionPakFound) {
-			u32 currentSize = ((expansionPakFound && romSize > 0x800000) ? 0x800000 : romSize);
-			u32 src = 0;
-			u32 writeSrc = 0;
-			FILE* destinationFile;
-			bool destinationFileOpened = false;
-			while (currentSize > 0) {
-				if (showGameCardMsgAgain) {
-					iprintf ("\x1b[8;0H");
-					iprintf ("          \n");
-
-					iprintf("\x1b[15;0H");
-					iprintf("Please switch to the\ngame card, then press A.\n");
-					//flashcardUnmount();
-					io_dldi_data->ioInterface.shutdown();
-
-					// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
-					do {
-						// Print time
-						font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-						font->update(true);
-
-						scanKeys();
-						pressed = keysDownRepeat();
-						swiWaitForVBlank();
-					} while (!(pressed & KEY_A));
-
-					consoleSelect(&bottomConsole);
-					iprintf ("\x1b[15;0H");
-					iprintf("                    \n                        \n");
-					cardInit(&ndsCardHeader);
+				if (fwrite(copyBuf, 1, (currentSize>=0x8000 ? 0x8000 : currentSize), destinationFile) < 1) {
+					dumpFailMsg(STR_FAILED_TO_DUMP_ROM);
+					break;
 				}
-				showGameCardMsgAgain = true;
-
-				// Read from game card
-				for (src = src; src < currentSize; src += 0x200) {
-					// Print time
-					font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-					font->update(true);
-
-					consoleSelect(&bottomConsole);
-					iprintf ("\x1B[47m");		// Print foreground white color
-					iprintf ("\x1b[8;0H");
-					iprintf ("Read:\n");
-					iprintf ("%i/%i Bytes                       ", (int)src, (int)romSize);
-					cardRead (src, (void*)0x09000000+(src % 0x800000), false);
-				}
-				iprintf("\x1b[15;0H");
-				iprintf("Please switch to the\nflashcard, then press A.\n");
-				// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
-				do {
-					// Print time
-					font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-					font->update(true);
-
-					scanKeys();
-					pressed = keysDownRepeat();
-					swiWaitForVBlank();
-				} while (!(pressed & KEY_A));
-
-				consoleSelect(&bottomConsole);
-				iprintf("\x1b[15;0H");
-				iprintf("                    \n                        \n");
-
-				iprintf ("\x1B[47m");		// Print foreground white color
-				iprintf ("\x1b[11;0H");
-				iprintf ("Written:\n");
-
-				// Write back to flashcard
-				cardInit(&ndsCardHeader);
-				io_dldi_data->ioInterface.startup();
-				//flashcardMounted = flashcardMount();
-				if (!destinationFileOpened) {
-					destinationFile = fopen(destPath, "wb");
-					destinationFileOpened = true;
-				}
-				for (writeSrc = writeSrc; writeSrc < currentSize; writeSrc += 0x200) {
-					// Print time
-					font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-					font->update(true);
-
-					consoleSelect(&bottomConsole);
-					printf ("\x1B[47m");		// Print foreground white color
-					printf ("\x1b[12;0H");
-					printf ("%i/%i Bytes                       ", (int)writeSrc, (int)romSize);
-					fwrite((void*)0x09000000+(writeSrc % 0x800000), 1, currentSize, destinationFile);
-				}
-
-				currentSize -= 0x800000;
+				currentSize -= 0x8000;
 			}
 			fclose(destinationFile);
-		} else {*/
-			remove(destPath);
-			u32 currentSize = romSize;
-			FILE* destinationFile = fopen(destPath, "wb");
-			if (destinationFile) {
+		} else {
+			dumpFailMsg(STR_FAILED_TO_DUMP_ROM);
+		}
+	}
 
-				font->print(0, 4, false, STR_PROGRESS);
-				font->print(0, 5, false, "[");
-				font->print(-1, 5, false, "]");
-				for (u32 src = 0; src < romSize; src += 0x8000) {
-					// Print time
-					font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-					font->update(true);
+	// Dump save
+	if ((dumpOption & allowedBitfield) & DumpOption::save) {
+		char destPath[256];
+		sprintf(destPath, "%s:/gm9i/out/%s.sav", (sdMounted ? "sd" : "fat"), fileName);
+		ndsCardSaveDump(destPath);
+	}
 
-					font->print((src / (romSize / (SCREEN_COLS - 2))) + 1, 5, false, "=");
-					font->printf(0, 6, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), src, romSize);
-					font->update(false);
+	// Dump metadata
+	if ((dumpOption & allowedBitfield) & DumpOption::metadata) {
+		font->clear(false);
+		font->print(0, 0, false, STR_DUMPING_METADATA);
+		font->update(false);
 
-					for (u32 i = 0; i < 0x8000; i += 0x200) {
-						cardRead (src+i, copyBuf+i, false);
-					}
-					if (fwrite(copyBuf, 1, (currentSize>=0x8000 ? 0x8000 : currentSize), destinationFile) < 1) {
-						dumpFailMsg(STR_FAILED_TO_DUMP_ROM);
-						break;
-					}
-					currentSize -= 0x8000;
-				}
-				fclose(destinationFile);
-			} else {
-				dumpFailMsg(STR_FAILED_TO_DUMP_ROM);
-			}
-			ndsCardSaveDump(destSavPath);
-		//}
+		char destPath[256];
+		sprintf(destPath, "%s:/gm9i/out/%s.txt", (sdMounted ? "sd" : "fat"), fileName);
+		FILE* destinationFile = fopen(destPath, "wb");
+		if (destinationFile) {
+			fprintf(destinationFile,
+				"Title String : %.12s\n"
+				"Product Code : %.6s\n"
+				"Revision     : %u\n"
+				"Cart ID      : %08lX\n"
+				"Platform     : %s\n"
+				"Save Type    : %s\n",
+				gameTitle, gameCode, ndsCardHeader.romversion, cardGetId(),
+				(ndsCardHeader.unitCode == 0x2) ? "DSi Enhanced" : (ndsCardHeader.unitCode == 0x3) ? "DSi Exclusive" : "DS",
+				spiSave ? "SPI" : (nandSave ? "RETAIL_NAND" : "NONE"));
+
+			if(spiSave)
+				fprintf(destinationFile, "Save chip ID : 0x%06lX\n", cardEepromReadID());
+
+			fprintf(destinationFile,
+				"Timestamp    : %s\n"
+				"GM9i Version : " VER_NUMBER "\n",
+				RetTime("%Y-%m-%d %H:%M:%S").c_str());
+
+			fclose(destinationFile);
+		}
 	}
 }
 
@@ -742,7 +714,6 @@ void gbaCartSaveDump(const char *filename) {
 	u8 *buffer = new u8[size];
 	gbaReadSave(buffer, 0, size, type);
 
-	remove(filename);
 	FILE *destinationFile = fopen(filename, "wb");
 	fwrite(buffer, 1, size, destinationFile);
 	fclose(destinationFile);
@@ -825,36 +796,31 @@ void readChange(void) {
 }
 
 void gbaCartDump(void) {
-	int pressed = 0;
-
 	font->clear(false);
-	font->printf(0, 0, false, Alignment::left, Palette::white, STR_DUMP_GBA_ROM_TO.c_str(), sdMounted ? "sd" : "fat");
-	font->print(0, 2, false, STR_A_YES_B_NO_X_SAVE_ONLY);
+	font->print(0, 0, false, STR_LOADING);
 	font->update(false);
 
-	// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
-	do {
-		// Print time
-		font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-		font->update(true);
+	std::vector allowedOptions = {DumpOption::all, DumpOption::rom};
+	u8 allowedBitfield = DumpOption::rom | DumpOption::metadata;
+	char gameTitle[13] = {0};
+	char gameCode[7] = {0};
+	char fileName[32] = {0};
+	saveTypeGBA saveType = gbaGetSaveType();
 
-		scanKeys();
-		pressed = keysDownRepeat();
-		swiWaitForVBlank();
-	} while (!(pressed & (KEY_A | KEY_B | KEY_X)));
+	if(saveType != saveTypeGBA::SAVE_GBA_NONE) {
+		allowedOptions.push_back(DumpOption::save);
+		allowedBitfield |= DumpOption::save;
+	}
+	allowedOptions.push_back(DumpOption::metadata);
 
 	// Get name
-	char gbaHeaderGameTitle[13] = {0};
-	tonccpy(gbaHeaderGameTitle, (u8*)(0x080000A0), 12);
-	char gbaHeaderGameCode[5] = {0};
-	tonccpy(gbaHeaderGameCode, (u8*)(0x080000AC), 4);
-	char gbaHeaderMakerCode[3] = {0};
-	tonccpy(gbaHeaderMakerCode, (u8*)(0x080000B0), 2);
-	if (gbaHeaderGameTitle[0] == 0 || gbaHeaderGameTitle[0] == 0xFF) {
-		sprintf(gbaHeaderGameTitle, "NO-TITLE");
+	tonccpy(gameTitle, (u8*)(0x080000A0), 12);
+	tonccpy(gameCode, (u8*)(0x080000AC), 6);
+	if (gameTitle[0] == 0 || gameTitle[0] == 0xFF) {
+		sprintf(gameTitle, "NO-TITLE");
 	} else {
-		for(uint i = 0; i < sizeof(gbaHeaderGameTitle); i++) {
-			switch(gbaHeaderGameTitle[i]) {
+		for(uint i = 0; i < sizeof(gameTitle); i++) {
+			switch(gameTitle[i]) {
 				case '>':
 				case '<':
 				case ':':
@@ -864,37 +830,39 @@ void gbaCartDump(void) {
 				case '|':
 				case '?':
 				case '*':
-					gbaHeaderGameTitle[i] = '_';
+					gameTitle[i] = '_';
 			}
 		}
 	}
-	if (gbaHeaderGameCode[0] == 0 || gbaHeaderGameCode[0] == 0xFF) {
-		sprintf(gbaHeaderGameCode, "NONE");
+	if (gameCode[0] == 0 || gameCode[0] == 0xFF) {
+		sprintf(gameCode, "NONE00");
 	}
-	if (gbaHeaderMakerCode[0] == 0 || gbaHeaderMakerCode[0] == 0xFF) {
-		sprintf(gbaHeaderMakerCode, "00");
-	}
-	u8 gbaHeaderSoftwareVersion = *(u8*)(0x080000BC);
-	char fileName[32] = {0};
-	sprintf(fileName, "%s_%s%s_%x", gbaHeaderGameTitle, gbaHeaderGameCode, gbaHeaderMakerCode, gbaHeaderSoftwareVersion);
+	u8 romVersion = *(u8*)(0x080000BC);
+	sprintf(fileName, "%s_%s_%02X", gameTitle, gameCode, romVersion);
 
-	if (pressed & KEY_A) {
-		if (access("fat:/gm9i", F_OK) != 0) {
+	DumpOption dumpOption = dumpMenu(allowedOptions, fileName);
+
+	// Ensure directories exist
+	if((dumpOption & allowedBitfield) != DumpOption::none) {
+		char folderPath[2][256];
+		sprintf(folderPath[0], "%s:/gm9i", (sdMounted ? "sd" : "fat"));
+		sprintf(folderPath[1], "%s:/gm9i/out", (sdMounted ? "sd" : "fat"));
+		if (access(folderPath[0], F_OK) != 0) {
 			font->clear(false);
 			font->print(0, 0, false, STR_CREATING_DIRECTORY);
 			font->update(false);
-			mkdir("fat:/gm9i", 0777);
+			mkdir(folderPath[0], 0777);
 		}
-		if (access("fat:/gm9i/out", F_OK) != 0) {
+		if (access(folderPath[1], F_OK) != 0) {
 			font->clear(false);
 			font->print(0, 0, false, STR_CREATING_DIRECTORY);
 			font->update(false);
-			mkdir("fat:/gm9i/out", 0777);
+			mkdir(folderPath[1], 0777);
 		}
+	}
 
-		char destPath[256] = {0};
-		sprintf(destPath, "fat:/gm9i/out/%s.gba", fileName);
-
+	// Dump ROM
+	if ((dumpOption & allowedBitfield) & DumpOption::rom) {
 		font->clear(false);
 		font->printf(0, 0, false, Alignment::left, Palette::white, STR_GBA_IS_DUMPING.c_str(), fileName);
 		font->print(0, 2, false, STR_DO_NOT_REMOVE_CART);
@@ -916,7 +884,6 @@ void gbaCartDump(void) {
 		}
 
 		// Dump!
-		remove(destPath);
 		// Reset data at virtual address
 		u32 rstCmd[4] = {
 			0x11, // Command
@@ -925,6 +892,9 @@ void gbaCartDump(void) {
 			0x8, // Size (in 0x200 byte blocks)
 		};
 		writeChange(rstCmd);
+
+		char destPath[256];
+		sprintf(destPath, "fat:/gm9i/out/%s.gba", fileName);
 		FILE* destinationFile = fopen(destPath, "wb");
 		if (destinationFile) {
 			bool failed = false;
@@ -989,23 +959,48 @@ void gbaCartDump(void) {
 		}
 	}
 
-	if(pressed & (KEY_A | KEY_X)) {
-		if (access("fat:/gm9i", F_OK) != 0) {
-			font->clear(false);
-			font->print(0, 0, false, STR_CREATING_DIRECTORY);
-			font->update(false);
-			mkdir("fat:/gm9i", 0777);
-		}
-		if (access("fat:/gm9i/out", F_OK) != 0) {
-			font->clear(false);
-			font->print(0, 0, false, STR_CREATING_DIRECTORY);
-			font->update(false);
-			mkdir("fat:/gm9i/out", 0777);
-		}
+	// Dump save
+	if((dumpOption & allowedBitfield) & DumpOption::save) {
+		char destPath[256];
+		sprintf(destPath, "fat:/gm9i/out/%s.sav", fileName);
+		gbaCartSaveDump(destPath);
+	}
 
-		char destSavPath[256] = {0};
-		sprintf(destSavPath, "fat:/gm9i/out/%s.sav", fileName);
+	// Dump metadata
+	if ((dumpOption & allowedBitfield) & DumpOption::metadata) {
+		font->clear(false);
+		font->print(0, 0, false, STR_DUMPING_METADATA);
+		font->update(false);
 
-		gbaCartSaveDump(destSavPath);
+		char destPath[256];
+		sprintf(destPath, "%s:/gm9i/out/%s.txt", (sdMounted ? "sd" : "fat"), fileName);
+		FILE* destinationFile = fopen(destPath, "wb");
+		if (destinationFile) {
+			fprintf(destinationFile,
+				"Title String : %.12s\n"
+				"Product Code : %.6s\n"
+				"Revision     : %u\n"
+				"Platform     : GBA\n",
+				gameTitle, gameCode, romVersion);
+
+			fprintf(destinationFile,
+				"Save Type    : %s\n",
+				saveType == SAVE_GBA_NONE ? "NONE" :
+				saveType == SAVE_GBA_EEPROM_05 ? "EEPROM 4K" :
+				saveType == SAVE_GBA_EEPROM_8 ? "EEPROM 64K" :
+				saveType == SAVE_GBA_SRAM_32 ? "SRAM" :
+				saveType == SAVE_GBA_FLASH_64 ? "FLASH 512K" :
+				saveType == SAVE_GBA_FLASH_128 ? "FLASH 1M" : "UNK");
+
+			if(saveType == SAVE_GBA_FLASH_64 || saveType == SAVE_GBA_FLASH_128)
+				fprintf(destinationFile, "Save chip ID : 0x%04X\n", gbaGetFlashId());
+
+			fprintf(destinationFile,
+				"Timestamp    : %s\n"
+				"GM9i Version : " VER_NUMBER "\n",
+				RetTime("%Y-%m-%d %H:%M:%S").c_str());
+
+			fclose(destinationFile);
+		}
 	}
 }
