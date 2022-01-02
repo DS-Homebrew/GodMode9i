@@ -325,7 +325,7 @@ void flashcardUnmount(void) {
 }
 
 void ramdriveMount(bool ram32MB) {
-	if(REG_SCFG_EXT != 0) {
+	if(isDSiMode() || REG_SCFG_EXT != 0) {
 		ramdSectors = ram32MB ? 0xC800 : 0x4800;
 
 		fatMountSimple("ram", &io_ram_drive);
