@@ -13,8 +13,6 @@ enum class Drive : u8 {
 	fatImg
 };
 
-#define DRIVE_WRITABLE(drive) (drive < Drive::nand)
-
 extern u8 stored_SCFG_MC;
 
 extern bool nandMounted;
@@ -58,5 +56,6 @@ extern void nitroUnmount(void);
 extern bool imgMount(const char* imgName);
 extern void imgUnmount(void);
 extern u64 getBytesFree(const char* drivePath);
+extern bool driveWritable(Drive drive);
 
 #endif //FLASHCARD_H

@@ -12,6 +12,7 @@
 #include "dldi-include.h"
 #include "lzss.h"
 #include "ramd.h"
+#include "my_sd.h"
 #include "nandio.h"
 #include "imgio.h"
 #include "tonccpy.h"
@@ -154,9 +155,7 @@ TWL_CODE void nandUnmount(void) {
 }
 
 bool sdMount(void) {
-	extern const DISC_INTERFACE __my_io_dsisd;
-
-	fatMountSimple("sd", &__my_io_dsisd);
+	fatMountSimple("sd", __my_io_dsisd());
 	if (sdFound()) {
 		sdMountedDone = true;
 		fatGetVolumeLabel("sd", sdLabel);
@@ -178,6 +177,7 @@ u64 getBytesFree(const char* drivePath) {
 
 void sdUnmount(void) {
 	fatUnmount("sd");
+	my_sdio_Shutdown();
 	sdLabel[0] = '\0';
 	sdSize = 0;
 	sdMounted = false;
@@ -417,4 +417,23 @@ void imgUnmount(void) {
 	imgLabel[0] = '\0';
 	imgSize = 0;
 	imgMounted = false;
+}
+
+bool driveWritable(Drive drive) {
+	switch(drive) {
+		case Drive::sdCard:
+			return __my_io_dsisd()->features & FEATURE_MEDIUM_CANWRITE;
+		case Drive::flashcard:
+			return dldiGetInternal()->features & FEATURE_MEDIUM_CANWRITE;
+		case Drive::ramDrive:
+			return io_ram_drive.features & FEATURE_MEDIUM_CANWRITE;
+		case Drive::nand:
+			return io_dsi_nand.features & FEATURE_MEDIUM_CANWRITE;
+		case Drive::nitroFS:
+			return false;
+		case Drive::fatImg:
+			return io_img.features & FEATURE_MEDIUM_CANWRITE;
+	}
+
+	return false;
 }

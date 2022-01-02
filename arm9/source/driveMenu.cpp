@@ -35,6 +35,7 @@
 #include "fileOperations.h"
 #include "font.h"
 #include "language.h"
+#include "my_sd.h"
 #include "read_card.h"
 #include "startMenu.h"
 
@@ -84,24 +85,33 @@ void dm_drawTopScreen(void) {
 		switch(dmOperations[i]) {
 			case DriveMenuOperation::sdCard:
 				font->printf(0, i + 1, true, Alignment::left, pal, STR_SDCARD_LABEL.c_str(), sdLabel[0] == 0 ? STR_UNTITLED.c_str() : sdLabel);
+				if(!driveWritable(Drive::sdCard))
+					font->print(-1, i + 1, true, "[R]", Alignment::right, pal);
 				break;
 			case DriveMenuOperation::flashcard:
 				font->printf(0, i + 1, true, Alignment::left, pal, STR_FLASHCARD_LABEL.c_str(), fatLabel[0] == 0 ? STR_UNTITLED.c_str() : fatLabel);
+				if(!driveWritable(Drive::flashcard))
+					font->print(-1, i + 1, true, "[R]", Alignment::right, pal);
 				break;
 			case DriveMenuOperation::ramDrive:
 				font->print(0, i + 1, true, STR_RAMDRIVE_LABEL, Alignment::left, pal);
 				break;
 			case DriveMenuOperation::sysNand:
 				font->print(0, i + 1, true, STR_SYSNAND_LABEL, Alignment::left, pal);
+				if(!driveWritable(Drive::nand))
+					font->print(-1, i + 1, true, "[R]", Alignment::right, pal);
 				break;
 			case DriveMenuOperation::nitroFs:
 				font->print(0, i + 1, true, STR_NITROFS_LABEL, Alignment::left, pal);
+
 				if (!((sdMounted && nitroCurrentDrive == Drive::sdCard)
 				|| (flashcardMounted && nitroCurrentDrive == Drive::flashcard)
 				|| (ramdriveMounted && nitroCurrentDrive == Drive::ramDrive)
 				|| (nandMounted && nitroCurrentDrive == Drive::nand)
 				|| (imgMounted && nitroCurrentDrive == Drive::fatImg)))
 					font->print(-1, i + 1, true, "[x]", Alignment::right, pal);
+				else
+					font->print(-1, i + 1, true, "[R]", Alignment::right, pal);
 				break;
 			case DriveMenuOperation::fatImage:
 				if ((sdMounted && imgCurrentDrive == Drive::sdCard)
@@ -109,6 +119,7 @@ void dm_drawTopScreen(void) {
 				|| (ramdriveMounted && imgCurrentDrive == Drive::ramDrive)
 				|| (nandMounted && imgCurrentDrive == Drive::nand)) {
 					font->printf(0, i + 1, true, Alignment::left, pal, STR_FAT_LABEL_NAMED.c_str(), imgLabel[0] == 0 ? STR_UNTITLED.c_str() : imgLabel);
+					font->print(-1, i + 1, true, "[R]", Alignment::right, pal);
 				} else {
 					font->print(0, i + 1, true, STR_FAT_LABEL, Alignment::left, pal);
 					font->print(-1, i + 1, true, "[x]", Alignment::right, pal);
@@ -186,7 +197,7 @@ void dm_drawBottomScreen(void) {
 			break;
 		case DriveMenuOperation::sysNand:
 			font->print(0, 0, false, STR_SYSNAND_LABEL);
-			font->printf(0, 1, false, Alignment::left, Palette::white, STR_SYSNAND_FAT.c_str(), getDriveBytes(fatSize).c_str());
+			font->printf(0, 1, false, Alignment::left, Palette::white, STR_SYSNAND_FAT.c_str(), getDriveBytes(nandSize).c_str());
 			font->printf(0, 2, false, Alignment::left, Palette::white, STR_N_FREE.c_str(), getDriveBytes(getBytesFree("nand:/")).c_str());
 			break;
 		case DriveMenuOperation::fatImage:
@@ -279,6 +290,12 @@ void driveMenu (void) {
 				}
 			} else if (isDSiMode()) {
 				if (REG_SCFG_MC != stored_SCFG_MC) {
+					break;
+				}
+				if (sdMounted && sdRemoved) {
+					currentDrive = Drive::sdCard;
+					chdir("sd:/");
+					sdUnmount();
 					break;
 				}
 			}
@@ -379,7 +396,7 @@ void driveMenu (void) {
 					currentDrive = Drive::sdCard;
 					chdir("sd:/");
 					sdUnmount();
-				} else {
+				} else if(!sdRemoved) {
 					sdMounted = sdMount();
 				}
 			} else {

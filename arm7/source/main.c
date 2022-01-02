@@ -32,6 +32,8 @@
 
 #include "gba.h"
 
+#define SD_IRQ_STATUS (*(vu32*)0x400481C)
+
 void my_installSystemFIFO(void);
 void my_sdmmc_get_cid(int devicenumber, u32 *cid);
 
@@ -177,8 +179,10 @@ int main() {
 			my_sdmmc_get_cid(true, (u32*)0x2FFD7BC);	// Get eMMC CID
 			*(u32*)(0x2FFFD0C) = 0;
 		}
-		*(u8*)(0x2FFFD08) = ((*(vu32*)(0x400481C) & BIT(3)) || !(*(vu32*)(0x400481C) & BIT(5)));	// Set if there's no SD inserted
 		resyncClock();
+
+		// Send SD status
+		fifoSendValue32(FIFO_USER_04, SD_IRQ_STATUS);
 
 		// Dump EEPROM save
 		if(fifoCheckAddress(FIFO_USER_01)) {

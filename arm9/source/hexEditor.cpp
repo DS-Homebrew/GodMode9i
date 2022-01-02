@@ -4,6 +4,7 @@
 #include "file_browse.h"
 #include "font.h"
 #include "language.h"
+#include "my_sd.h"
 #include "screenshot.h"
 #include "tonccpy.h"
 
@@ -234,7 +235,7 @@ u32 search(u32 offset, FILE *file) {
 }
 
 void hexEditor(const char *path, Drive drive) {
-	FILE *file = fopen(path, DRIVE_WRITABLE(drive) ? "rb+" : "rb");
+	FILE *file = fopen(path, driveWritable(drive) ? "rb+" : "rb");
 
 	if(!file)
 		return;
@@ -305,6 +306,9 @@ void hexEditor(const char *path, Drive drive) {
 			// Print time
 			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
 			font->update(true);
+
+			if(currentDrive == Drive::sdCard && sdRemoved)
+				return;
 		} while(!held);
 
 		if(mode == 0) {
@@ -357,7 +361,7 @@ void hexEditor(const char *path, Drive drive) {
 				if((int)cursorPosition < bytesPerLine * maxLines - 1)
 					cursorPosition = std::min(cursorPosition + 1, fileSize - offset - 1);
 			} else if(pressed & KEY_A) {
-				if(DRIVE_WRITABLE(drive)) {
+				if(driveWritable(drive)) {
 					mode = 2;
 				}
 			} else if(pressed & KEY_B) {
