@@ -155,7 +155,7 @@ void dm_drawBottomScreen(void) {
 
 	font->print(0, row--, false, STR_START_START_MENU);
 
-	if (sdMountedDone) {
+	if (!arm7SCFGLocked) {
 		font->print(0, row--, false, sdMounted ? STR_UNMOUNT_SDCARD : STR_REMOUNT_SDCARD);
 	} else {
 		font->print(0, row--, false, flashcardMounted ? STR_UNMOUNT_FLASHCARD : STR_REMOUNT_FLASHCARD);
@@ -391,7 +391,7 @@ void driveMenu (void) {
 
 		// Unmount/Remount SD card
 		if ((held & KEY_R) && (pressed & KEY_B)) {
-			if (isDSiMode() && sdMountedDone) {
+			if (!arm7SCFGLocked) {
 				if (sdMounted) {
 					currentDrive = Drive::sdCard;
 					chdir("sd:/");
