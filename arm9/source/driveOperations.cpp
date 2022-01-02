@@ -17,6 +17,11 @@
 #include "tonccpy.h"
 #include "language.h"
 
+#include "io_m3_common.h"
+#include "io_g6_common.h"
+#include "io_sc_common.h"
+#include "exptools.h"
+
 static sNDSHeader nds;
 
 u8 stored_SCFG_MC = 0;
@@ -320,13 +325,61 @@ void flashcardUnmount(void) {
 }
 
 void ramdriveMount(bool ram32MB) {
-	if(isDSiMode()) {
+	if(REG_SCFG_EXT != 0) {
 		ramdSectors = ram32MB ? 0xC800 : 0x4800;
-	} else {
+
+		fatMountSimple("ram", &io_ram_drive);
+	} else if (isRegularDS) {
 		ramdSectors = 0x8 + 0x4000;
+		ramdLocMep = (u8*)0x09000000;
+
+		if (*(u16*)(0x020000C0) != 0x334D && *(u16*)(0x020000C0) != 0x3647 && *(u16*)(0x020000C0) != 0x4353 && *(u16*)(0x020000C0) != 0x5A45) {
+			*(u16*)(0x020000C0) = 0;	// Clear Slot-2 flashcard flag
+		}
+
+		if (*(u16*)(0x020000C0) == 0) {
+			*(vu16*)(0x08000000) = 0x4D54;	// Write test
+			if (*(vu16*)(0x08000000) != 0x4D54) {	// If not writeable
+				_M3_changeMode(M3_MODE_RAM);	// Try again with M3
+				*(u16*)(0x020000C0) = 0x334D;
+				*(vu16*)(0x08000000) = 0x4D54;
+			}
+			if (*(vu16*)(0x08000000) != 0x4D54) {
+				_G6_SelectOperation(G6_MODE_RAM);	// Try again with G6
+				*(u16*)(0x020000C0) = 0x3647;
+				*(vu16*)(0x08000000) = 0x4D54;
+			}
+			if (*(vu16*)(0x08000000) != 0x4D54) {
+				_SC_changeMode(SC_MODE_RAM);	// Try again with SuperCard
+				*(u16*)(0x020000C0) = 0x4353;
+				*(vu16*)(0x08000000) = 0x4D54;
+			}
+			if (*(vu16*)(0x08000000) != 0x4D54) {
+				cExpansion::SetRompage(381);	// Try again with EZ Flash
+				cExpansion::OpenNorWrite();
+				cExpansion::SetSerialMode();
+				*(u16*)(0x020000C0) = 0x5A45;
+				*(vu16*)(0x08000000) = 0x4D54;
+			}
+			if (*(vu16*)(0x08000000) != 0x4D54) {
+				*(u16*)(0x020000C0) = 0;
+				*(vu16*)(0x08240000) = 1; // Try again with Nintendo Memory Expansion Pak
+			}
+		}
+
+		if (*(u16*)(0x020000C0) == 0x334D || *(u16*)(0x020000C0) == 0x3647 || *(u16*)(0x020000C0) == 0x4353) {
+			ramdLocMep = (u8*)0x08000000;
+			ramdSectors = 0x8 + 0x10000;
+		} else if (*(u16*)(0x020000C0) == 0x5A45) {
+			ramdLocMep = (u8*)0x08000000;
+			ramdSectors = 0x8 + 0x8000;
+		}
+
+		if (*(u16*)(0x020000C0) != 0 || *(vu16*)(0x08240000) == 1) {
+			fatMountSimple("ram", &io_ram_drive);
+		}
 	}
 
-	fatMountSimple("ram", &io_ram_drive);
 	ramdriveMounted = (access("ram:/", F_OK) == 0);
 
 	if (ramdriveMounted) {

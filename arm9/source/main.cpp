@@ -54,7 +54,6 @@ bool screenSwapped = false;
 
 bool arm7SCFGLocked = false;
 bool isRegularDS = true;
-bool expansionPakFound = false;
 bool is3DS = false;
 int ownNitroFSMounted;
 
@@ -170,11 +169,12 @@ int main(int argc, char **argv) {
 		/*FILE* cidFile = fopen("sd:/gm9i/ConsoleID.bin", "wb");
 		fwrite((void*)0x2FFFD00, 1, 8, cidFile);
 		fclose(cidFile);*/
+	} else if (REG_SCFG_EXT != 0) {
+		*(vu32*)(0x0DFFFE0C) = 0x474D3969;		// Check for 32MB of RAM
+		bool ram32MB = *(vu32*)(0x0DFFFE0C) == 0x474D3969;
+		ramdriveMount(ram32MB);
 	} else if (isRegularDS && (io_dldi_data->ioInterface.features & FEATURE_SLOT_NDS)) {
-		*(vu32*)(0x08240000) = 1;
-		expansionPakFound = ((*(vu32*)(0x08240000) == 1));
-		if(expansionPakFound)
-			ramdriveMount(false);
+		ramdriveMount(false);
 	}
 	if (!isDSiMode() || !yHeld) {
 		flashcardMounted = flashcardMount();

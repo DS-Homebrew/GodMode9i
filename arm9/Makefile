@@ -37,8 +37,8 @@ endif
 #---------------------------------------------------------------------------------
 TARGET		:=	GodMode9i
 BUILD		:=	build
-SOURCES		:=	source source/graphics dldi-include mbedtls
-INCLUDES	:=	include dldi-include source source/graphics
+SOURCES		:=	source source/flashcard source/graphics dldi-include mbedtls
+INCLUDES	:=	include dldi-include source source/flashcard source/graphics
 DATA		:=	../data
 GRAPHICS	:=  ../gfx
 
