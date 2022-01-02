@@ -17,8 +17,8 @@ STRING(N_MORE_FILES, "%d more files...")
 STRING(PASTE_CLIPBOARD_HERE, "Paste clipboard here?")
 STRING(COPY_FILES, "Copy files")
 STRING(MOVE_FILES, "Move files")
-STRING(RENAME_TO, "Rename to:\n") // ASCII only
-STRING(NAME_FOR_NEW_FOLDER, "Name for new folder:\n") // ASCII only
+STRING(RENAME_TO, "Rename to:")
+STRING(NAME_FOR_NEW_FOLDER, "Name for new folder:")
 STRING(DELETE_N_PATHS, "Delete %d paths?")
 STRING(AND_1_MORE, "- and %d more...")
 STRING(AND_N_MORE, "- and %d more...")
@@ -120,7 +120,7 @@ STRING(HEX_EDITOR, "Hex Editor")
 STRING(JUMP_TO_OFFSET, "Jump to Offset")
 STRING(SEARCH_STRING, "Search for String")
 STRING(SEARCH_DATA, "Search for Data")
-STRING(SEARCH_FOR, "Search for:\n") // ASCII only
+STRING(SEARCH_FOR, "Search for:")
 STRING(ENTER_VALUE, "Enter value:")
 STRING(SEARCHING, "Searching")
 STRING(PRESS_B_TO_CANCEL, "Press \\B to cancel")
@@ -162,6 +162,7 @@ STRING(A_SELECT_B_CANCEL, "(\\A select, \\B cancel)")
 STRING(START_CANCEL, "(START cancel)")
 STRING(UDLR_CHANGE_ATTRIBUTES, "(\\D change attributes)")
 STRING(A_APPLY_B_CANCEL, "(\\A apply, \\B cancel)")
+STRING(START_RETURN_B_BACKSPACE, "(START Return, \\B Backspace)")
 
 // Byte counts
 STRING(1_BYTE, "1 Byte")

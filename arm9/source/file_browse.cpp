@@ -41,6 +41,7 @@
 #include "font.h"
 #include "hexEditor.h"
 #include "my_sd.h"
+#include "keyboard.h"
 #include "ndsInfo.h"
 #include "startMenu.h"
 #include "nitrofs.h"
@@ -61,11 +62,6 @@ bool extension(const std::string_view filename, const std::vector<std::string_vi
 	}
 
 	return false;
-}
-
-void OnKeyPressed(int key) {
-	if(key > 0)
-		iprintf("%c", key);
 }
 
 bool dirEntryPredicate (const DirEntry& lhs, const DirEntry& rhs) {
@@ -766,39 +762,26 @@ std::string browseForFile (void) {
 			font->update(true);
 
 			pressed = 0;
-			consoleDemoInit();
-			Keyboard *kbd = keyboardDemoInit();
-			char newName[256];
-			kbd->OnKeyPressed = OnKeyPressed;
 
-			keyboardShow();
-			iprintf(STR_RENAME_TO.c_str());
-			fgets(newName, 256, stdin);
-			newName[strlen(newName)-1] = 0;
-			keyboardHide();
+			std::string newName = kbdGetString(STR_RENAME_TO, -1, entry->name);
 
-			videoSetModeSub(MODE_5_2D);
-			bgShow(bgInitSub(2, BgType_Bmp8, BgSize_B8_256x256, 3, 0));
-			BG_PALETTE_SUB[0] = 0x0000;
-			BG_PALETTE_SUB[1] = 0x7FFF;
-
-			if (newName[0] != '\0') {
+			if (newName.length() > 0) {
 				// Check for unsupported characters
-				for (int i = 0; i < (int)sizeof(newName); i++) {
-					if (newName[i] == '>'
-					|| newName[i] == '<'
-					|| newName[i] == ':'
-					|| newName[i] == '"'
-					|| newName[i] == '/'
-					|| newName[i] == '\x5C'
-					|| newName[i] == '|'
-					|| newName[i] == '?'
-					|| newName[i] == '*')
-					{
-						newName[i] = '_';	// Remove unsupported character
+				for (uint i = 0; i < newName.length(); i++) {
+					switch(newName[i]) {
+						case '>':
+						case '<':
+						case ':':
+						case '"':
+						case '/':
+						case '\\':
+						case '|':
+						case '?':
+						case '*':
+						newName[i] = '_'; // Remove unsupported character
 					}
 				}
-				if (rename(entry->name.c_str(), newName) == 0) {
+				if (rename(entry->name.c_str(), newName.c_str()) == 0) {
 					getDirectoryContents(dirContents);
 				}
 			}
@@ -898,39 +881,26 @@ std::string browseForFile (void) {
 			font->update(true);
 
 			pressed = 0;
-			consoleDemoInit();
-			Keyboard *kbd = keyboardDemoInit();
-			char newName[256];
-			kbd->OnKeyPressed = OnKeyPressed;
 
-			keyboardShow();
-			iprintf(STR_NAME_FOR_NEW_FOLDER.c_str());
-			fgets(newName, 256, stdin);
-			newName[strlen(newName)-1] = 0;
-			keyboardHide();
+			std::string newName = kbdGetString(STR_NAME_FOR_NEW_FOLDER);
 
-			videoSetModeSub(MODE_5_2D);
-			bgShow(bgInitSub(2, BgType_Bmp8, BgSize_B8_256x256, 3, 0));
-			BG_PALETTE_SUB[0] = 0x0000;
-			BG_PALETTE_SUB[1] = 0x7FFF;
-
-			if (newName[0] != '\0') {
+			if (newName.length() > 0) {
 				// Check for unsupported characters
-				for (int i = 0; i < (int)sizeof(newName); i++) {
-					if (newName[i] == '>'
-					|| newName[i] == '<'
-					|| newName[i] == ':'
-					|| newName[i] == '"'
-					|| newName[i] == '/'
-					|| newName[i] == '\x5C'
-					|| newName[i] == '|'
-					|| newName[i] == '?'
-					|| newName[i] == '*')
-					{
-						newName[i] = '_';	// Remove unsupported character
+				for (uint i = 0; i < newName.length(); i++) {
+					switch(newName[i]) {
+						case '>':
+						case '<':
+						case ':':
+						case '"':
+						case '/':
+						case '\\':
+						case '|':
+						case '?':
+						case '*':
+						newName[i] = '_'; // Remove unsupported character
 					}
 				}
-				if (mkdir(newName, 0777) == 0) {
+				if (mkdir(newName.c_str(), 0777) == 0) {
 					getDirectoryContents (dirContents);
 				}
 			}
