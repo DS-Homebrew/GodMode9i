@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
 	} else if (isRegularDS && (io_dldi_data->ioInterface.features & FEATURE_SLOT_NDS)) {
 		*(vu32*)(0x08240000) = 1;
 		expansionPakFound = ((*(vu32*)(0x08240000) == 1));
-		if(expansionPakFound);
+		if(expansionPakFound)
 			ramdriveMount(false);
 	}
 	if (!isDSiMode() || !yHeld) {
