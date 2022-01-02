@@ -3,6 +3,7 @@
 #include "date.h"
 #include "file_browse.h"
 #include "font.h"
+#include "keyboard.h"
 #include "language.h"
 #include "screenshot.h"
 #include "tonccpy.h"
@@ -91,30 +92,11 @@ u32 search(u32 offset, FILE *file) {
 	size_t strLen = 1;
 
 	if(cursorPosition == 0) {
-		consoleDemoInit();
-		Keyboard *kbd = keyboardDemoInit();
-		kbd->OnKeyPressed = OnKeyPressed;
+		strcpy(str, kbdGetString(STR_SEARCH_FOR, sizeof(str)).c_str());
 
-		// keyboardShow();
-		iprintf(STR_SEARCH_FOR.c_str());
-		fgets(str, sizeof(str), stdin);
-		keyboardHide();
-
-		videoSetModeSub(MODE_5_2D);
-		bgShow(bgInitSub(2, BgType_Bmp8, BgSize_B8_256x256, 3, 0));
-		BG_PALETTE_SUB[0] = 0x0000;
-		BG_PALETTE_SUB[1] = 0x7FFF;
-
-		BG_PALETTE_SUB[0x1F] = 0x9CF7;
-		BG_PALETTE_SUB[0x2F] = 0xB710;
-		BG_PALETTE_SUB[0x3F] = 0xAE8D;
-		BG_PALETTE_SUB[0x7F] = 0xEA2D;
-
-		strLen = strlen(str) - 1;
+		strLen = strlen(str);
 		if(strLen == 0)
 			return offset;
-
-		str[strLen] = 0; // Remove ending \n that fgets has
 	} else {
 		cursorPosition = 0;
 		while(1) {
