@@ -152,9 +152,7 @@ void dm_drawBottomScreen(void) {
 	font->print(0, row--, false, STR_START_START_MENU);
 
 	if (sdMountedDone) {
-		if (isRegularDS || sdMounted) {
-			font->print(0, row--, false, sdMounted ? STR_UNMOUNT_SDCARD : STR_REMOUNT_SDCARD);
-		}
+		font->print(0, row--, false, sdMounted ? STR_UNMOUNT_SDCARD : STR_REMOUNT_SDCARD);
 	} else {
 		font->print(0, row--, false, flashcardMounted ? STR_UNMOUNT_FLASHCARD : STR_REMOUNT_FLASHCARD);
 	}
@@ -401,7 +399,7 @@ void driveMenu (void) {
 					currentDrive = Drive::sdCard;
 					chdir("sd:/");
 					sdUnmount();
-				} else if (isRegularDS) {
+				} else {
 					sdMounted = sdMount();
 				}
 			} else {

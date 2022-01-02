@@ -594,7 +594,7 @@ int my_sdmmc_nand_startup() {
 //---------------------------------------------------------------------------------
 int my_sdmmc_sd_startup() {
 //---------------------------------------------------------------------------------
-    my_sdmmc_controller_init(false);
+    my_sdmmc_controller_init(true);
     return my_sdmmc_sdcard_init();
 }
 
