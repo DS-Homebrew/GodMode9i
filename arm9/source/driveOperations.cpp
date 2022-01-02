@@ -101,11 +101,9 @@ const char* getDrivePath(void) {
 }
 
 void fixLabel(char* label) {
-	for (int i = 0; i < 12; i++) {
-		if (((label[i] == ' ') && (label[i+1] == ' ') && (label[i+2] == ' '))
-		|| ((label[i] == ' ') && (label[i+1] == ' '))
-		|| (label[i] == ' ')) {
-			label[i] = '\0';
+	for (int i = strlen(label) - 1; i >= 0; i--) {
+		if(label[i] != ' ') {
+			label[i + 1] = '\0';
 			break;
 		}
 	}
@@ -160,7 +158,7 @@ bool sdMount(void) {
 	if (sdFound()) {
 		sdMountedDone = true;
 		fatGetVolumeLabel("sd", sdLabel);
-		fixLabel(&sdLabel[0]);
+		fixLabel(sdLabel);
 		struct statvfs st;
 		if (statvfs("sd:/", &st) == 0) {
 			sdSize = st.f_bsize * st.f_blocks;
@@ -288,7 +286,7 @@ TWL_CODE bool twl_flashcardMount(void) {
 
 		if (flashcardFound()) {
 			fatGetVolumeLabel("fat", fatLabel);
-			fixLabel(&fatLabel[0]);
+			fixLabel(fatLabel);
 			struct statvfs st;
 			if (statvfs("fat:/", &st) == 0) {
 				fatSize = st.f_bsize * st.f_blocks;
@@ -304,7 +302,7 @@ bool flashcardMount(void) {
 		fatInitDefault();
 		if (flashcardFound()) {
 			fatGetVolumeLabel("fat", fatLabel);
-			fixLabel(&fatLabel[0]);
+			fixLabel(fatLabel);
 			struct statvfs st;
 			if (statvfs("fat:/", &st) == 0) {
 				fatSize = st.f_bsize * st.f_blocks;
@@ -349,7 +347,7 @@ bool imgMount(const char* imgName) {
 	fatMountSimple("img", &io_img);
 	if (imgFound()) {
 		fatGetVolumeLabel("img", imgLabel);
-		fixLabel(&imgLabel[0]);
+		fixLabel(imgLabel);
 		struct statvfs st;
 		if (statvfs("img:/", &st) == 0) {
 			imgSize = st.f_bsize * st.f_blocks;
