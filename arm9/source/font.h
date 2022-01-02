@@ -28,6 +28,7 @@ enum class Palette : u8 {
 	greenAlt,
 	blue,
 	yellow,
+	blackWhite,
 	blackRed,
 	blackGreen,
 	blackBlue,
@@ -94,6 +95,7 @@ class Font {
 		{0x0000, 0x02E0}, // Green (alt)
 		{0x0000, 0x656A}, // Blue
 		{0x0000, 0x3339}, // Yellow
+		{0x7FFF, 0x0000}, // Black on white
 		{0x001F, 0x0000}, // Black on red
 		{0x03E0, 0x0000}, // Black on green
 		{0x656A, 0x0000}, // Black on blue
