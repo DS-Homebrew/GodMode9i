@@ -258,7 +258,7 @@ void my_sdmmc_controller_init( bool force_init ) {
 
     if (!force_init && my_sdmmc_controller_initialised && my_nand_controller_initialised) return;
 
-    if(true||!my_sdmmc_controller_initialised) {
+    if(!my_sdmmc_controller_initialised) {
         deviceSD.isSDHC = 0;
         deviceSD.SDOPT = 0;
         deviceSD.res = 0;
