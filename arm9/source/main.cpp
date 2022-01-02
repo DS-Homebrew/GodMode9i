@@ -154,10 +154,10 @@ int main(int argc, char **argv) {
 	if (isDSiMode()) {
 		scanKeys();
 		yHeld = (keysHeld() & KEY_Y);
-		ramdrive1Mount();
 		*(vu32*)(0x0DFFFE0C) = 0x474D3969;		// Check for 32MB of RAM
-		if (*(vu32*)(0x0DFFFE0C) == 0x474D3969) {
-			ramdrive2Mount();
+		bool ram32MB = *(vu32*)(0x0DFFFE0C) == 0x474D3969;
+		ramdriveMount(ram32MB);
+		if (ram32MB) {
 			is3DS = fifoGetValue32(FIFO_USER_05) != 0xD2;
 		}
 		if (!(keysHeld() & KEY_X)) {

@@ -12,7 +12,6 @@
 #include "dldi-include.h"
 #include "lzss.h"
 #include "ramd.h"
-#include "ramdrive-include.h"
 #include "nandio.h"
 #include "imgio.h"
 #include "tonccpy.h"
@@ -28,8 +27,7 @@ bool nandMounted = false;
 bool sdMounted = false;
 bool sdMountedDone = false;				// true if SD mount is successful once
 bool flashcardMounted = false;
-bool ramdrive1Mounted = false;
-bool ramdrive2Mounted = false;
+bool ramdriveMounted = false;
 bool imgMounted = false;
 bool nitroMounted = false;
 
@@ -45,6 +43,7 @@ u32 nandSize = 0;
 u64 sdSize = 0;
 u64 fatSize = 0;
 u64 imgSize = 0;
+u32 ramdSize = 0;
 
 static float getGbNumber(u64 bytes) {
 	float gbNumber = 0.0f;
@@ -86,10 +85,8 @@ const char* getDrivePath(void) {
 			return "sd:/";
 		case Drive::flashcard:
 			return "fat:/";
-		case Drive::ramDrive1:
-			return "ram1:/";
-		case Drive::ramDrive2:
-			return "ram2:/";
+		case Drive::ramDrive:
+			return "ram:/";
 		case Drive::nand:
 			return "nand:/";
 		case Drive::nitroFS:
@@ -147,7 +144,7 @@ TWL_CODE bool nandMount(void) {
 
 TWL_CODE void nandUnmount(void) {
 	fatUnmount("nand");
-	sdSize = 0;
+	nandSize = 0;
 	nandMounted = false;
 }
 
@@ -322,17 +319,18 @@ void flashcardUnmount(void) {
 	flashcardMounted = false;
 }
 
-TWL_CODE void ramdrive1Mount(void) {
-	ramdLoc = new u8[0x900200];
-	LZ77_Decompress((u8*)__9MB_lz77, ramdLoc);
-	fatMountSimple("ram1", &io_ram_drive);
-	ramdrive1Mounted = (access("ram1:/", F_OK) == 0);
-}
+TWL_CODE void ramdriveMount(bool ram32MB) {
+	ramdSectors = ram32MB ? 0xC800 : 0x4800;
 
-TWL_CODE void ramdrive2Mount(void) {
-	LZ77_Decompress((u8*)__16MB_lz77, (u8*)0x0D000000);
-	fatMountSimple("ram2", &io_ram_drive2);
-	ramdrive2Mounted = (access("ram2:/", F_OK) == 0);
+	fatMountSimple("ram", &io_ram_drive);
+	ramdriveMounted = (access("ram:/", F_OK) == 0);
+
+	if (ramdriveMounted) {
+		struct statvfs st;
+		if (statvfs("ram:/", &st) == 0) {
+			ramdSize = st.f_bsize * st.f_blocks;
+		}
+	}
 }
 
 void nitroUnmount(void) {
