@@ -45,8 +45,7 @@ enum class DriveMenuOperation {
 	none,
 	sdCard,
 	flashcard,
-	ramDrive1,
-	ramDrive2,
+	ramDrive,
 	sysNand,
 	nitroFs,
 	fatImage,
@@ -66,7 +65,6 @@ static u32 romSize, romSizeTrimmed;
 static u8 gbaFixedValue = 0;
 
 extern bool arm7SCFGLocked;
-extern bool expansionPakFound;
 
 void dm_drawTopScreen(void) {
 	font->clear(true);
@@ -90,11 +88,8 @@ void dm_drawTopScreen(void) {
 			case DriveMenuOperation::flashcard:
 				font->printf(0, i + 1, true, Alignment::left, pal, STR_FLASHCARD_LABEL.c_str(), fatLabel[0] == 0 ? STR_UNTITLED.c_str() : fatLabel);
 				break;
-			case DriveMenuOperation::ramDrive1:
-				font->print(0, i + 1, true, STR_RAMDRIVE1_LABEL, Alignment::left, pal);
-				break;
-			case DriveMenuOperation::ramDrive2:
-				font->print(0, i + 1, true, STR_RAMDRIVE2_LABEL, Alignment::left, pal);
+			case DriveMenuOperation::ramDrive:
+				font->print(0, i + 1, true, STR_RAMDRIVE_LABEL, Alignment::left, pal);
 				break;
 			case DriveMenuOperation::sysNand:
 				font->print(0, i + 1, true, STR_SYSNAND_LABEL, Alignment::left, pal);
@@ -103,8 +98,7 @@ void dm_drawTopScreen(void) {
 				font->print(0, i + 1, true, STR_NITROFS_LABEL, Alignment::left, pal);
 				if (!((sdMounted && nitroCurrentDrive == Drive::sdCard)
 				|| (flashcardMounted && nitroCurrentDrive == Drive::flashcard)
-				|| (ramdrive1Mounted && nitroCurrentDrive == Drive::ramDrive1)
-				|| (ramdrive2Mounted && nitroCurrentDrive == Drive::ramDrive2)
+				|| (ramdriveMounted && nitroCurrentDrive == Drive::ramDrive)
 				|| (nandMounted && nitroCurrentDrive == Drive::nand)
 				|| (imgMounted && nitroCurrentDrive == Drive::fatImg)))
 					font->print(-1, i + 1, true, "[x]", Alignment::right, pal);
@@ -112,8 +106,7 @@ void dm_drawTopScreen(void) {
 			case DriveMenuOperation::fatImage:
 				if ((sdMounted && imgCurrentDrive == Drive::sdCard)
 				|| (flashcardMounted && imgCurrentDrive == Drive::flashcard)
-				|| (ramdrive1Mounted && imgCurrentDrive == Drive::ramDrive1)
-				|| (ramdrive2Mounted && imgCurrentDrive == Drive::ramDrive2)
+				|| (ramdriveMounted && imgCurrentDrive == Drive::ramDrive)
 				|| (nandMounted && imgCurrentDrive == Drive::nand)) {
 					font->printf(0, i + 1, true, Alignment::left, pal, STR_FAT_LABEL_NAMED.c_str(), imgLabel[0] == 0 ? STR_UNTITLED.c_str() : imgLabel);
 				} else {
@@ -186,13 +179,10 @@ void dm_drawBottomScreen(void) {
 			font->printf(0, 0, false, Alignment::left, Palette::white, STR_NDS_GAMECARD.c_str(), romTitle);
 			font->printf(0, 1, false, Alignment::left, Palette::white, STR_NDS_GAME.c_str(), getBytes(romSize).c_str(), getBytes(romSizeTrimmed).c_str());
 			break;
-		case DriveMenuOperation::ramDrive1:
-			font->print(0, 0, false, STR_RAMDRIVE1_LABEL);
-			font->print(0, 1, false, STR_RAMDRIVE_9MB);
-			break;
-		case DriveMenuOperation::ramDrive2:
-			font->print(0, 0, false, STR_RAMDRIVE2_LABEL);
-			font->print(0, 1, false, STR_RAMDRIVE_16MB);
+		case DriveMenuOperation::ramDrive:
+			font->print(0, 0, false, STR_RAMDRIVE_LABEL);
+			font->printf(0, 1, false, Alignment::left, Palette::white, STR_RAMDRIVE_FAT.c_str(), getDriveBytes(ramdSize).c_str());
+			font->printf(0, 2, false, Alignment::left, Palette::white, STR_N_FREE.c_str(), getDriveBytes(getBytesFree("ram:/")).c_str());
 			break;
 		case DriveMenuOperation::sysNand:
 			font->print(0, 0, false, STR_SYSNAND_LABEL);
@@ -226,16 +216,13 @@ void driveMenu (void) {
 			dmOperations.push_back(DriveMenuOperation::sysNand);
 		if (flashcardMounted)
 			dmOperations.push_back(DriveMenuOperation::flashcard);
-		if (ramdrive1Mounted)
-			dmOperations.push_back(DriveMenuOperation::ramDrive1);
-		if (ramdrive2Mounted)
-			dmOperations.push_back(DriveMenuOperation::ramDrive2);
+		if (ramdriveMounted)
+			dmOperations.push_back(DriveMenuOperation::ramDrive);
 		if (imgMounted)
 			dmOperations.push_back(DriveMenuOperation::fatImage);
 		if (nitroMounted)
 			dmOperations.push_back(DriveMenuOperation::nitroFs);
-		if (expansionPakFound
-		|| (io_dldi_data->ioInterface.features & FEATURE_SLOT_GBA)
+		if ((io_dldi_data->ioInterface.features & FEATURE_SLOT_GBA)
 		|| (isDSiMode() && !arm7SCFGLocked && !(REG_SCFG_MC & BIT(0)))) {
 			dmOperations.push_back(DriveMenuOperation::ndsCard);
 			if(romTitle[0] == 0) {
@@ -337,8 +324,7 @@ void driveMenu (void) {
 			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::nitroFs && nitroMounted) {
 				if ((sdMounted && nitroCurrentDrive == Drive::sdCard)
 				|| (flashcardMounted && nitroCurrentDrive == Drive::flashcard)
-				|| (ramdrive1Mounted && nitroCurrentDrive == Drive::ramDrive1)
-				|| (ramdrive2Mounted && nitroCurrentDrive == Drive::ramDrive2)
+				|| (ramdriveMounted && nitroCurrentDrive == Drive::ramDrive)
 				|| (nandMounted && nitroCurrentDrive == Drive::nand)
 				|| (imgMounted && nitroCurrentDrive == Drive::fatImg))
 				{
@@ -349,14 +335,9 @@ void driveMenu (void) {
 				}
 			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::ndsCard && (sdMounted || flashcardMounted)) {
 				ndsCardDump();
-			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::ramDrive1 && isDSiMode() && ramdrive1Mounted) {
-				currentDrive = Drive::ramDrive1;
-				chdir("ram1:/");
-				screenMode = 1;
-				break;
-			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::ramDrive2 && isDSiMode() && ramdrive2Mounted) {
-				currentDrive = Drive::ramDrive2;
-				chdir("ram2:/");
+			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::ramDrive && isDSiMode() && ramdriveMounted) {
+				currentDrive = Drive::ramDrive;
+				chdir("ram:/");
 				screenMode = 1;
 				break;
 			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::sysNand && isDSiMode() && nandMounted) {
@@ -367,8 +348,7 @@ void driveMenu (void) {
 			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::fatImage && imgMounted) {
 				if ((sdMounted && imgCurrentDrive == Drive::sdCard)
 				|| (flashcardMounted && imgCurrentDrive == Drive::flashcard)
-				|| (ramdrive1Mounted && imgCurrentDrive == Drive::ramDrive1)
-				|| (ramdrive2Mounted && imgCurrentDrive == Drive::ramDrive2)
+				|| (ramdriveMounted && imgCurrentDrive == Drive::ramDrive)
 				|| (nandMounted && imgCurrentDrive == Drive::nand))
 				{
 					currentDrive = Drive::fatImg;

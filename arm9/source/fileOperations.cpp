@@ -207,7 +207,11 @@ int fcopy(const char *sourcePath, const char *destinationPath) {
 
 			// Copy file to destination path
 			numr = fread(copyBuf, 1, copyBufSize, sourceFile);
-			fwrite(copyBuf, 1, numr, destinationFile);
+			if(fwrite(copyBuf, 1, numr, destinationFile) != numr) {
+				fclose(sourceFile);
+				fclose(destinationFile);
+				return -1;
+			}
 			offset += copyBufSize;
 
 			if (offset > fsize) {

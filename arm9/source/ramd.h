@@ -4,7 +4,6 @@
 #include <nds/ndstypes.h>
 #include <nds/disc_io.h>
 
-extern u8* ramdLoc;
+extern u32 ramdSectors;
 
 extern const DISC_INTERFACE io_ram_drive;
-extern const DISC_INTERFACE io_ram_drive2;

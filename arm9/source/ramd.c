@@ -6,9 +6,27 @@
 
 #define SECTOR_SIZE 512
 
+const static u8 bootSector[] = {
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, SECTOR_SIZE & 0xFF, SECTOR_SIZE >> 8, 0x04, 0x01, 0x00,
+	0x02, 0x00, 0x02, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 'R', 'A', 'M', 'D', 'R',
+	'I', 'V', 'E', ' ', ' ', ' ', 'F', 'A', 'T'
+};
+
+u32 ramdSectors = 0;
 u8* ramdLoc = (u8*)NULL;
 
 bool ramd_startup() {
+	if(isDSiMode()) {
+		ramdLoc = (u8*)malloc(0x4800 * SECTOR_SIZE);
+	} else {
+		ramdLoc = (u8*)0x09000000;
+	}
+
+	tonccpy(ramdLoc, bootSector, sizeof(bootSector));
+	toncset32(ramdLoc + 0x20, ramdSectors, 1);
+	toncset16(ramdLoc + 0x1FE, 0xAA55, 1);
+
 	return true;
 }
 
@@ -17,23 +35,37 @@ bool ramd_is_inserted() {
 }
 
 bool ramd_read_sectors(sec_t sector, sec_t numSectors, void *buffer) {
-	tonccpy(buffer, ramdLoc+(sector << 9), numSectors << 9);
-	return true;
+	if(isDSiMode()) {
+		if(sector < 0x4800) {
+			tonccpy(buffer, ramdLoc + (sector << 9), numSectors << 9);
+			return true;
+		} else if(sector <= 0xC800) {
+			tonccpy(buffer, (void*)0x0D000000 + ((sector - 0x4800) << 9), numSectors << 9);
+			return true;
+		}
+	} else if(sector < ramdSectors) {
+		tonccpy(buffer, ramdLoc + (sector << 9), numSectors << 9);
+		return true;
+	}
+
+	return false;
 }
 
 bool ramd_write_sectors(sec_t sector, sec_t numSectors, const void *buffer) {
-	tonccpy(ramdLoc+(sector << 9), buffer, numSectors << 9);
-	return true;
-}
+	if(isDSiMode()) {
+		if(sector < 0x4800) {
+			tonccpy(ramdLoc + (sector << 9), buffer, numSectors << 9);
+			return true;
+		} else if(sector <= 0xC800) {
+			tonccpy((void*)0x0D000000 + ((sector - 0x4800) << 9), buffer, numSectors << 9);
+			return true;
+		}
+	} else if(sector < ramdSectors) {
+		tonccpy(ramdLoc + (sector << 9), buffer, numSectors << 9);
+		return true;
+	}
 
-bool ramd2_read_sectors(sec_t sector, sec_t numSectors, void *buffer) {
-	tonccpy(buffer, (void*)0x0D000000+(sector << 9), numSectors << 9);
-	return true;
-}
-
-bool ramd2_write_sectors(sec_t sector, sec_t numSectors, const void *buffer) {
-	tonccpy((void*)0x0D000000+(sector << 9), buffer, numSectors << 9);
-	return true;
+	return false;
 }
 
 bool ramd_clear_status() {
@@ -41,6 +73,11 @@ bool ramd_clear_status() {
 }
 
 bool ramd_shutdown() {
+	if(isDSiMode() && ramdLoc) {
+		free(ramdLoc);
+		ramdLoc = NULL;
+	}
+
 	return true;
 }
 
@@ -51,17 +88,6 @@ const DISC_INTERFACE io_ram_drive = {
 	ramd_is_inserted,
 	ramd_read_sectors,
 	ramd_write_sectors,
-	ramd_clear_status,
-	ramd_shutdown
-};
-
-const DISC_INTERFACE io_ram_drive2 = {
-	('R' << 24) | ('A' << 16) | ('M' << 8) | '2',
-	FEATURE_MEDIUM_CANREAD | FEATURE_MEDIUM_CANWRITE,
-	ramd_startup,
-	ramd_is_inserted,
-	ramd2_read_sectors,
-	ramd2_write_sectors,
 	ramd_clear_status,
 	ramd_shutdown
 };

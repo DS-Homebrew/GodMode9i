@@ -21,8 +21,6 @@
 
 extern u8 copyBuf[];
 
-extern bool expansionPakFound;
-
 static sNDSHeaderExt ndsCardHeader;
 
 enum DumpOption {
