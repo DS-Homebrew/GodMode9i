@@ -40,6 +40,7 @@
 #include "dumpOperations.h"
 #include "font.h"
 #include "hexEditor.h"
+#include "my_sd.h"
 #include "keyboard.h"
 #include "ndsInfo.h"
 #include "startMenu.h"
@@ -280,6 +281,9 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 			pressed = keysDownRepeat();
 			held = keysHeld();
 			swiWaitForVBlank();
+
+			if(currentDrive == Drive::sdCard && sdRemoved)
+				return FileOperation::none;
 		} while (!(pressed & (KEY_UP| KEY_DOWN | KEY_A | KEY_B | KEY_L))
 #ifdef SCREENSWAP
 				&& !(pressed & KEY_TOUCH)
@@ -646,6 +650,11 @@ std::string browseForFile (void) {
 
 			if (REG_SCFG_MC != stored_SCFG_MC) {
 				break;
+			}
+
+			if(currentDrive == Drive::sdCard && sdRemoved) {
+				screenMode = 0;
+				return "null";
 			}
 		} while (!(pressed & ~(KEY_R | KEY_TOUCH | KEY_LID)));
 

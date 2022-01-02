@@ -37,6 +37,7 @@
 #include "fileOperations.h"
 #include "font.h"
 #include "language.h"
+#include "my_sd.h"
 #include "nitrofs.h"
 #include "tonccpy.h"
 #include "version.h"
@@ -110,8 +111,8 @@ int main(int argc, char **argv) {
 	tonccpy(BG_PALETTE, gm9i_logoPal, gm9i_logoPalLen);
 
 	font->print(1, 1, false, titleName);
-	font->print(1, 2, false, "---------------------------------------");
-	font->print(1, 3, false, "https:/github.com/DS-Homebrew/GodMode9i");
+	font->print(1, 2, false, "----------------------------------------");
+	font->print(1, 3, false, "https://github.com/DS-Homebrew/GodMode9i");
 
 	fifoWaitValue32(FIFO_USER_06);
 	if (fifoGetValue32(FIFO_USER_03) == 0) arm7SCFGLocked = true;
@@ -138,15 +139,16 @@ int main(int argc, char **argv) {
 
 	font->clear(false);
 	font->print(1, 1, false, titleName);
-	font->print(1, 2, false, "---------------------------------------");
-	font->print(1, 3, false, "https:/github.com/DS-Homebrew/GodMode9i");
+	font->print(1, 2, false, "----------------------------------------");
+	font->print(1, 3, false, "https://github.com/DS-Homebrew/GodMode9i");
 	font->print(-2, -2, false, "Mounting drive(s)...", Alignment::right);
 	font->update(false);
 
 	sysSetCartOwner (BUS_OWNER_ARM9);	// Allow arm9 to access GBA ROM
 
 	if (isDSiMode() || !isRegularDS) {
-		if (*(u8*)(0x2FFFD08) == 0) {
+		fifoSetValue32Handler(FIFO_USER_04, sdStatusHandler, nullptr);
+		if (!sdRemoved) {
 			sdMounted = sdMount();
 		}
 	}

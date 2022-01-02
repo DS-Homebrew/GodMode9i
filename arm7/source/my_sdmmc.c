@@ -250,26 +250,31 @@ int my_sdmmc_cardinserted() {
 
 
 static bool my_sdmmc_controller_initialised = false;
+static bool my_nand_controller_initialised = false;
 
 //---------------------------------------------------------------------------------
 void my_sdmmc_controller_init( bool force_init ) {
 //---------------------------------------------------------------------------------
 
-    if (!force_init && my_sdmmc_controller_initialised) return;
+    if (!force_init && my_sdmmc_controller_initialised && my_nand_controller_initialised) return;
 
-    deviceSD.isSDHC = 0;
-    deviceSD.SDOPT = 0;
-    deviceSD.res = 0;
-    deviceSD.initarg = 0;
-    deviceSD.clk = 0x80;
-    deviceSD.devicenumber = 0;
+    if(true||!my_sdmmc_controller_initialised) {
+        deviceSD.isSDHC = 0;
+        deviceSD.SDOPT = 0;
+        deviceSD.res = 0;
+        deviceSD.initarg = 0;
+        deviceSD.clk = 0x80;
+        deviceSD.devicenumber = 0;
+    }
 
-    deviceNAND.isSDHC = 0;
-    deviceNAND.SDOPT = 0;
-    deviceNAND.res = 0;
-    deviceNAND.initarg = 1;
-    deviceNAND.clk = 0x80;
-    deviceNAND.devicenumber = 1;
+    if(!my_nand_controller_initialised) {
+        deviceNAND.isSDHC = 0;
+        deviceNAND.SDOPT = 0;
+        deviceNAND.res = 0;
+        deviceNAND.initarg = 1;
+        deviceNAND.clk = 0x80;
+        deviceNAND.devicenumber = 1;
+    }
 
     *(vu16*)(SDMMC_BASE + REG_SDDATACTL32) &= 0xF7FFu;
     *(vu16*)(SDMMC_BASE + REG_SDDATACTL32) &= 0xEFFFu;
@@ -308,6 +313,7 @@ void my_sdmmc_controller_init( bool force_init ) {
     *(vu16*)(SDMMC_BASE + REG_SDSTOP) = 0;
 
     my_sdmmc_controller_initialised = true;
+    my_nand_controller_initialised = true;
 
     my_setTarget(&deviceSD);
 }
@@ -594,7 +600,7 @@ int my_sdmmc_nand_startup() {
 //---------------------------------------------------------------------------------
 int my_sdmmc_sd_startup() {
 //---------------------------------------------------------------------------------
-    my_sdmmc_controller_init(true);
+    my_sdmmc_controller_init(false);
     return my_sdmmc_sdcard_init();
 }
 
@@ -627,6 +633,7 @@ void my_sdmmcValueHandler(u32 value, void* user_data) {
         break;
 
     case SDMMC_SD_STOP:
+        my_sdmmc_controller_initialised = false;
         break;
 
     case SDMMC_NAND_SIZE:
