@@ -170,10 +170,12 @@ int main(int argc, char **argv) {
 		/*FILE* cidFile = fopen("sd:/gm9i/ConsoleID.bin", "wb");
 		fwrite((void*)0x2FFFD00, 1, 8, cidFile);
 		fclose(cidFile);*/
-	} /*else if (isRegularDS) {
+	} else if (isRegularDS && (io_dldi_data->ioInterface.features & FEATURE_SLOT_NDS)) {
 		*(vu32*)(0x08240000) = 1;
-		expansionPakFound = ((*(vu32*)(0x08240000) == 1) && (io_dldi_data->ioInterface.features & FEATURE_SLOT_NDS));
-	}*/
+		expansionPakFound = ((*(vu32*)(0x08240000) == 1));
+		if(expansionPakFound);
+			ramdriveMount(false);
+	}
 	if (!isDSiMode() || !yHeld) {
 		flashcardMounted = flashcardMount();
 		flashcardMountSkipped = false;

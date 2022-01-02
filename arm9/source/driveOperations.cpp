@@ -319,8 +319,12 @@ void flashcardUnmount(void) {
 	flashcardMounted = false;
 }
 
-TWL_CODE void ramdriveMount(bool ram32MB) {
-	ramdSectors = ram32MB ? 0xC800 : 0x4800;
+void ramdriveMount(bool ram32MB) {
+	if(isDSiMode()) {
+		ramdSectors = ram32MB ? 0xC800 : 0x4800;
+	} else {
+		ramdSectors = 0x4000;
+	}
 
 	fatMountSimple("ram", &io_ram_drive);
 	ramdriveMounted = (access("ram:/", F_OK) == 0);
