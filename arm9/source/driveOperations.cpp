@@ -323,7 +323,7 @@ void ramdriveMount(bool ram32MB) {
 	if(isDSiMode()) {
 		ramdSectors = ram32MB ? 0xC800 : 0x4800;
 	} else {
-		ramdSectors = 0x4000;
+		ramdSectors = 0x8 + 0x4000;
 	}
 
 	fatMountSimple("ram", &io_ram_drive);

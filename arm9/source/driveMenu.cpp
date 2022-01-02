@@ -335,7 +335,7 @@ void driveMenu (void) {
 				}
 			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::ndsCard && (sdMounted || flashcardMounted)) {
 				ndsCardDump();
-			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::ramDrive && isDSiMode() && ramdriveMounted) {
+			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::ramDrive && ramdriveMounted) {
 				currentDrive = Drive::ramDrive;
 				chdir("ram:/");
 				screenMode = 1;
