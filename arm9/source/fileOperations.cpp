@@ -186,7 +186,7 @@ int fcopy(const char *sourcePath, const char *destinationPath) {
 		font->print(-1, 1, false, "]");
 
 		off_t offset = 0;
-		int numr;
+		size_t numr;
 		while (1) {
 			scanKeys();
 			if (keysHeld() & KEY_B) {
