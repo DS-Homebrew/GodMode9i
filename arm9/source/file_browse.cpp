@@ -480,7 +480,7 @@ bool fileBrowse_paste(char dest[256]) {
 		int row = OPTIONS_ENTRIES_START_ROW, maxCursors = 0;
 		font->print(3, row++, false, STR_COPY_FILES);
 		for (auto &file : clipboard) {
-			if (file.nitro)
+			if (!driveWritable(file.drive))
 				continue;
 			maxCursors++;
 			font->print(3, row++, false, STR_MOVE_FILES);
@@ -522,7 +522,7 @@ bool fileBrowse_paste(char dest[256]) {
 				if (file.path == destPath)
 					continue;	// If the source and destination for the clipped file is the same skip it
 
-				if (optionOffset && !file.nitro ) {	 // Don't remove if from nitro
+				if (optionOffset && driveWritable(file.drive)) {	 // Don't remove if from read-only drive
 					if (currentDrive == file.drive) {
 						rename(file.path.c_str(), destPath.c_str());
 					} else {
@@ -581,13 +581,17 @@ void fileBrowse_drawBottomScreen(DirEntry* entry) {
 	}
 	font->print(0, row--, false, STR_START_START_MENU);
 	font->print(0, row--, false, clipboardOn ? STR_CLEAR_CLIPBOARD : STR_RESTORE_CLIPBOARD);
-	if (sdMounted || flashcardMounted) {
+	if ((sdMounted && driveWritable(Drive::sdCard)) || (flashcardMounted && driveWritable(Drive::flashcard))) {
 		font->print(0, row--, false, STR_SCREENSHOTTEXT);
 	}
 	font->print(0, row--, false, STR_DIRECTORY_OPTIONS);
-	font->print(0, row--, false, clipboardOn ? STR_PASTE_FILES_CREATE_ENTRY : STR_COPY_FILES_CREATE_ENTRY);
+	if(driveWritable(currentDrive))
+		font->print(0, row--, false, clipboardOn ? STR_PASTE_FILES_CREATE_ENTRY : STR_COPY_FILES_CREATE_ENTRY);
+	else if(!clipboardOn)
+		font->print(0, row--, false, STR_COPY_FILE);
 	font->print(0, row--, false, entry->selected ? STR_DESELECT_FILES : STR_SELECT_FILES);
-	font->print(0, row--, false, STR_DELETE_RENAME_FILE);
+	if(driveWritable(currentDrive))
+		font->print(0, row--, false, STR_DELETE_RENAME_FILE);
 	font->print(0, row--, false, titleName);
 
 	// Load size if not loaded yet
@@ -756,7 +760,7 @@ std::string browseForFile (void) {
 		}
 
 		// Rename file/folder
-		if ((held & KEY_R) && (pressed & KEY_X) && (entry->name != ".." && strncmp(path, "nitro:/", 7) != 0)) {
+		if ((held & KEY_R) && (pressed & KEY_X) && (entry->name != ".." && driveWritable(currentDrive))) {
 			// Clear time
 			font->print(-1, 0, true, "     ", Alignment::right, Palette::blackGreen);
 			font->update(true);
@@ -788,7 +792,7 @@ std::string browseForFile (void) {
 		}
 
 		// Delete action
-		if ((pressed & KEY_X) && (entry->name != ".." && strncmp(path, "nitro:/", 7) != 0)) {
+		if ((pressed & KEY_X) && (entry->name != ".." && driveWritable(currentDrive))) {
 			font->clear(false);
 			int selections = std::count_if(dirContents.begin(), dirContents.end(), [](const DirEntry &x){ return x.selected; });
 			if (entry->selected && selections > 1) {
@@ -875,7 +879,7 @@ std::string browseForFile (void) {
 		}
 
 		// Create new folder
-		if ((held & KEY_R) && (pressed & KEY_Y) && (strncmp(path, "nitro:/", 7) != 0)) {
+		if ((held & KEY_R) && (pressed & KEY_Y) && driveWritable(currentDrive)) {
 			// Clear time
 			font->print(-1, 0, true, "     ", Alignment::right, Palette::blackGreen);
 			font->update(true);
@@ -978,16 +982,16 @@ std::string browseForFile (void) {
 					if (entry->selected) {
 						for (auto &item : dirContents) {
 							if(item.selected) {
-								clipboard.emplace_back(path + item.name, item.name, item.isDirectory, currentDrive, !strncmp(path, "nitro:/", 7));
+								clipboard.emplace_back(path + item.name, item.name, item.isDirectory, currentDrive);
 								item.selected = false;
 							}
 						}
 					} else {
-						clipboard.emplace_back(path + entry->name, entry->name, entry->isDirectory, currentDrive, !strncmp(path, "nitro:/", 7));
+						clipboard.emplace_back(path + entry->name, entry->name, entry->isDirectory, currentDrive);
 					}
 				}
 			// Paste
-			} else if (strncmp(path, "nitro:/", 7) != 0 && fileBrowse_paste(path)) {
+			} else if (driveWritable(currentDrive) && fileBrowse_paste(path)) {
 				getDirectoryContents (dirContents);
 			}
 		}

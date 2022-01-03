@@ -11,9 +11,8 @@ struct ClipboardFile {
 	std::string name;
 	bool folder;
 	Drive drive;
-	bool nitro;
 
-	ClipboardFile(std::string path, std::string name, bool folder, Drive drive, bool nitro) : path(std::move(path)), name(std::move(name)), folder(folder), drive(drive), nitro(nitro) {}
+	ClipboardFile(std::string path, std::string name, bool folder, Drive drive) : path(std::move(path)), name(std::move(name)), folder(folder), drive(drive) {}
 };
 
 extern std::vector<ClipboardFile> clipboard;
