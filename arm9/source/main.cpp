@@ -175,6 +175,9 @@ int main(int argc, char **argv) {
 		*(vu32*)(0x0DFFFE0C) = 0x474D3969;		// Check for 32MB of RAM
 		bool ram32MB = *(vu32*)(0x0DFFFE0C) == 0x474D3969;
 		ramdriveMount(ram32MB);
+		if (ram32MB) {
+			is3DS = fifoGetValue32(FIFO_USER_05) != 0xD2;
+		}
 	} else if (isRegularDS && (io_dldi_data->ioInterface.features & FEATURE_SLOT_NDS)) {
 		ramdriveMount(false);
 	}

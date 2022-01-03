@@ -37,11 +37,20 @@
 void my_installSystemFIFO(void);
 void my_sdmmc_get_cid(int devicenumber, u32 *cid);
 
+u8 my_i2cReadRegister(u8 device, u8 reg);
+u8 my_i2cWriteRegister(u8 device, u8 reg, u8 data);
+
 //---------------------------------------------------------------------------------
 void ReturntoDSiMenu() {
 //---------------------------------------------------------------------------------
-	i2cWriteRegister(0x4A, 0x70, 0x01);		// Bootflag = Warmboot/SkipHealthSafety
-	i2cWriteRegister(0x4A, 0x11, 0x01);		// Reset to DSi Menu
+	if (isDSiMode()) {
+		i2cWriteRegister(0x4A, 0x70, 0x01);		// Bootflag = Warmboot/SkipHealthSafety
+		i2cWriteRegister(0x4A, 0x11, 0x01);		// Reset to DSi Menu
+	} else {
+		u8 readCommand = readPowerManagement(0x10);
+		readCommand |= BIT(0);
+		writePowerManagement(0x10, readCommand);
+	}
 }
 
 //---------------------------------------------------------------------------------
@@ -128,11 +137,11 @@ int main() {
 	setPowerButtonCB(powerButtonCB);
 
 	// Check for 3DS
-	if(isDSiMode()) {
-		u8 byteBak = i2cReadRegister(0x4A, 0x71);
-		i2cWriteRegister(0x4A, 0x71, 0xD2);
-		fifoSendValue32(FIFO_USER_05, i2cReadRegister(0x4A, 0x71));
-		i2cWriteRegister(0x4A, 0x71, byteBak);
+	if(isDSiMode() || REG_SCFG_EXT != 0) {
+		u8 byteBak = my_i2cReadRegister(0x4A, 0x71);
+		my_i2cWriteRegister(0x4A, 0x71, 0xD2);
+		fifoSendValue32(FIFO_USER_05, my_i2cReadRegister(0x4A, 0x71));
+		my_i2cWriteRegister(0x4A, 0x71, byteBak);
 	}
 
 	if (isDSiMode() /*|| ((REG_SCFG_EXT & BIT(17)) && (REG_SCFG_EXT & BIT(18)))*/) {

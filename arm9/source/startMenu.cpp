@@ -40,7 +40,7 @@ constexpr std::array<std::pair<const char *, const char *>, 10> languageList = {
 
 void startMenu() {
 	std::vector<StartMenuItem> startMenuItems;
-	if(isDSiMode()) {
+	if(!isRegularDS) {
 		startMenuItems = {
 			StartMenuItem::powerOff,
 			StartMenuItem::reboot,
