@@ -19,7 +19,7 @@ u8* ramdLocMep = (u8*)NULL;
 
 bool ramd_startup() {
 	if(isDSiMode() || REG_SCFG_EXT != 0) {
-		ramdLoc = (u8*)malloc(0x4800 * SECTOR_SIZE);
+		ramdLoc = (u8*)malloc(0x6000 * SECTOR_SIZE);
 	} else {
 		ramdLoc = (u8*)malloc(0x8 * SECTOR_SIZE);
 		toncset(ramdLocMep, 0, (ramdSectors - 0x8) * SECTOR_SIZE); // Fill MEP with 00 to avoid displaying weird files
@@ -38,11 +38,11 @@ bool ramd_is_inserted() {
 
 bool ramd_read_sectors(sec_t sector, sec_t numSectors, void *buffer) {
 	if(isDSiMode() || REG_SCFG_EXT != 0) {
-		if(sector < 0x4800) {
+		if(sector < 0x6000) {
 			tonccpy(buffer, ramdLoc + (sector << 9), numSectors << 9);
 			return true;
-		} else if(sector <= 0xC800) {
-			tonccpy(buffer, (void*)0x0D000000 + ((sector - 0x4800) << 9), numSectors << 9);
+		} else if(sector <= 0xE000) {
+			tonccpy(buffer, (void*)0x0D000000 + ((sector - 0x6000) << 9), numSectors << 9);
 			return true;
 		}
 	} else if(sector < 0x8) {
@@ -58,11 +58,11 @@ bool ramd_read_sectors(sec_t sector, sec_t numSectors, void *buffer) {
 
 bool ramd_write_sectors(sec_t sector, sec_t numSectors, const void *buffer) {
 	if(isDSiMode() || REG_SCFG_EXT != 0) {
-		if(sector < 0x4800) {
+		if(sector < 0x6000) {
 			tonccpy(ramdLoc + (sector << 9), buffer, numSectors << 9);
 			return true;
-		} else if(sector <= 0xC800) {
-			tonccpy((void*)0x0D000000 + ((sector - 0x4800) << 9), buffer, numSectors << 9);
+		} else if(sector <= 0xE000) {
+			tonccpy((void*)0x0D000000 + ((sector - 0x6000) << 9), buffer, numSectors << 9);
 			return true;
 		}
 	} else if(sector < 0x8) {
