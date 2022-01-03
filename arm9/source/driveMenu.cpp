@@ -236,7 +236,7 @@ void driveMenu (void) {
 		if ((io_dldi_data->ioInterface.features & FEATURE_SLOT_GBA)
 		|| (isDSiMode() && !arm7SCFGLocked && !(REG_SCFG_MC & BIT(0)))) {
 			dmOperations.push_back(DriveMenuOperation::ndsCard);
-			if(romTitle[0] == 0) {
+			if(romTitle[0] == 0 && ((io_dldi_data->ioInterface.features & FEATURE_SLOT_GBA) || !flashcardMounted)) {
 				sNDSHeaderExt ndsHeader;
 				cardInit(&ndsHeader);
 				tonccpy(romTitle, ndsHeader.gameTitle, 12);

@@ -127,6 +127,7 @@ STRING(PRESS_B_TO_CANCEL, "Press \\B to cancel")
 STRING(EOF_NO_RESULTS, "Reached end of file\nwith no results")
 
 // Dumping
+STRING(FLASHCARD_WILL_UNMOUNT, "Flashcard will be unmounted.\nIs this okay?")
 STRING(DUMP_TO, "Dump \"%s\" to\n\"%s:/gm9i/out\"?")
 STRING(DUMP_ALL, "All")
 STRING(DUMP_ALL_TRIMMED, "All (Trimmed ROM)")

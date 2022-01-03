@@ -530,7 +530,33 @@ void ndsCardSaveRestore(const char *filename) {
 }
 
 void ndsCardDump(void) {
+	u16 pressed;
+
 	font->clear(false);
+	if ((io_dldi_data->ioInterface.features & FEATURE_SLOT_NDS) && flashcardMounted) {
+		font->print(0, 0, false, STR_FLASHCARD_WILL_UNMOUNT);
+		font->print(0, 3, false, STR_A_YES_B_NO);
+		font->update(false);
+
+		while (true) {
+			// Print time
+			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
+			font->update(true);
+
+			scanKeys();
+			pressed = keysDownRepeat();
+			swiWaitForVBlank();
+			if (pressed & KEY_A) {
+				font->clear(false);
+				flashcardUnmount();
+				break;
+			}
+			if (pressed & KEY_B) {
+				return;
+			}
+		}
+	}
+
 	font->print(0, 0, false, STR_LOADING);
 	font->update(false);
 
