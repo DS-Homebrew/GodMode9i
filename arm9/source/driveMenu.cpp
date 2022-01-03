@@ -160,7 +160,7 @@ void dm_drawBottomScreen(void) {
 	} else {
 		font->print(0, row--, false, flashcardMounted ? STR_UNMOUNT_FLASHCARD : STR_REMOUNT_FLASHCARD);
 	}
-	if (sdMounted || flashcardMounted) {
+	if ((sdMounted && driveWritable(Drive::sdCard)) || (flashcardMounted && driveWritable(Drive::flashcard))) {
 		font->print(0, row--, false, STR_SCREENSHOTTEXT);
 	}
 

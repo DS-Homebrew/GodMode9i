@@ -92,20 +92,21 @@ bool screenshotbmp(const char* filename) {
 }
 
 bool screenshot(void) {
-	if (!(sdMounted || flashcardMounted))
+	if (!((sdMounted && driveWritable(Drive::sdCard)) || (flashcardMounted && driveWritable(Drive::flashcard))))
 		return false;
 
-	if (access((sdMounted ? "sd:/gm9i" : "fat:/gm9i"), F_OK) != 0) {
-		mkdir((sdMounted ? "sd:/gm9i" : "fat:/gm9i"), 0777);
+	bool sdWritable = sdMounted && driveWritable(Drive::sdCard);
+	if (access((sdWritable ? "sd:/gm9i" : "fat:/gm9i"), F_OK) != 0) {
+		mkdir((sdWritable ? "sd:/gm9i" : "fat:/gm9i"), 0777);
 	}
-	if (access((sdMounted ? "sd:/gm9i/out" : "fat:/gm9i/out"), F_OK) != 0) {
-		mkdir((sdMounted ? "sd:/gm9i/out" : "fat:/gm9i/out"), 0777);
+	if (access((sdWritable ? "sd:/gm9i/out" : "fat:/gm9i/out"), F_OK) != 0) {
+		mkdir((sdWritable ? "sd:/gm9i/out" : "fat:/gm9i/out"), 0777);
 	}
 
 	std::string fileTimeText = RetTime("%H%M%S");
 	char snapPath[40];
 	// Take top screenshot
-	snprintf(snapPath, sizeof(snapPath), "%s:/gm9i/out/snap_%s_top.bmp", (sdMounted ? "sd" : "fat"), fileTimeText.c_str());
+	snprintf(snapPath, sizeof(snapPath), "%s:/gm9i/out/snap_%s_top.bmp", (sdWritable ? "sd" : "fat"), fileTimeText.c_str());
 	if(!screenshotbmp(snapPath))
 		return false;
 
@@ -116,7 +117,7 @@ bool screenshot(void) {
 	lcdMainOnBottom();
 
 	// Take bottom screenshot
-	snprintf(snapPath, sizeof(snapPath), "%s:/gm9i/out/snap_%s_bot.bmp", (sdMounted ? "sd" : "fat"), fileTimeText.c_str());
+	snprintf(snapPath, sizeof(snapPath), "%s:/gm9i/out/snap_%s_bot.bmp", (sdWritable ? "sd" : "fat"), fileTimeText.c_str());
 	if(!screenshotbmp(snapPath))
 		return false;
 
