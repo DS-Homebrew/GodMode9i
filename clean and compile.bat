@@ -1,4 +1,5 @@
 make clean
 make
-make_cia --srl="GodMode9i.nds"
+make dsi
+make_cia --srl="GodMode9i.dsi"
 pause
