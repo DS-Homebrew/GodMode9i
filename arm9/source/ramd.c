@@ -4,6 +4,12 @@
 #include <nds/disc_io.h>
 #include "tonccpy.h"
 
+static inline void dmaFillAsynch(const void* src, void* dest, u32 size) {
+	DMA_SRC(3)  = (u32)src;
+	DMA_DEST(3) = (u32)dest;
+	DMA_CR(3)   = DMA_COPY_WORDS | DMA_SRC_FIX | (size>>2);
+}
+
 #define SECTOR_SIZE 512
 
 const static u8 bootSector[] = {
@@ -21,8 +27,9 @@ bool ramd_startup() {
 	if(isDSiMode() || REG_SCFG_EXT != 0) {
 		ramdLoc = (u8*)malloc(0x4800 * SECTOR_SIZE);
 	} else {
+		u32 byte = 0;
 		ramdLoc = (u8*)malloc(0x8 * SECTOR_SIZE);
-		toncset(ramdLocMep, 0, (ramdSectors - 0x8) * SECTOR_SIZE); // Fill MEP with 00 to avoid displaying weird files
+		dmaFillAsynch((void*)&byte, ramdLocMep, (ramdSectors - 0x8) * SECTOR_SIZE); // Fill MEP with 00 to avoid displaying weird files
 	}
 
 	tonccpy(ramdLoc, bootSector, sizeof(bootSector));
