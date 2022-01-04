@@ -226,6 +226,15 @@ TWL_CODE bool UpdateCardInfo(char* gameid, char* gamename) {
 	return true;
 }
 
+const DISC_INTERFACE *dldiGet(void) {
+	if(io_dldi_data->ioInterface.features & FEATURE_SLOT_GBA)
+		sysSetCartOwner(BUS_OWNER_ARM9);
+	if(io_dldi_data->ioInterface.features & FEATURE_SLOT_NDS)
+		sysSetCardOwner(BUS_OWNER_ARM9);
+
+	return &io_dldi_data->ioInterface;
+}
+
 TWL_CODE bool twl_flashcardMount(void) {
 	if (REG_SCFG_MC != 0x11) {
 		sysSetCardOwner (BUS_OWNER_ARM9);
@@ -265,25 +274,25 @@ TWL_CODE bool twl_flashcardMount(void) {
 		// Read a DLDI driver specific to the cart
 		if (!memcmp(gameid, "ASMA", 4)) {
 			io_dldi_data = dldiLoadFromBin(r4tf_dldi);
-			fatMountSimple("fat", &io_dldi_data->ioInterface);      
+			fatMountSimple("fat", dldiGet());
 		} else if (!memcmp(gamename, "TOP TF/SD DS", 12) || !memcmp(gameid, "A76E", 4)) {
 			io_dldi_data = dldiLoadFromBin(tt_sd_dldi);
-			fatMountSimple("fat", &io_dldi_data->ioInterface);
+			fatMountSimple("fat", dldiGet());
  		} else /*if (!memcmp(gamename, "PASS", 4) && !memcmp(gameid, "ASME", 4)) {
 			io_dldi_data = dldiLoadFromBin(CycloEvo_dldi);
-			fatMountSimple("fat", &io_dldi_data->ioInterface);
+			fatMountSimple("fat", dldiGet());
 		} else*/ if (!memcmp(gamename, "D!S!XTREME", 10) && !memcmp(gameid, "AYIE", 4)) {
 			io_dldi_data = dldiLoadFromBin(dsx_dldi);
-			fatMountSimple("fat", &io_dldi_data->ioInterface); 
+			fatMountSimple("fat", dldiGet()); 
         } else if (!memcmp(gamename, "QMATETRIAL", 9) || !memcmp(gamename, "R4DSULTRA", 9)) {
 			io_dldi_data = dldiLoadFromBin(r4idsn_sd_dldi);
-			fatMountSimple("fat", &io_dldi_data->ioInterface);
+			fatMountSimple("fat", dldiGet());
 		} else if (!memcmp(gameid, "ACEK", 4) || !memcmp(gameid, "YCEP", 4) || !memcmp(gameid, "AHZH", 4) || !memcmp(gameid, "CHPJ", 4) || !memcmp(gameid, "ADLP", 4)) {
 			io_dldi_data = dldiLoadFromBin(ak2_sd_dldi);
-			fatMountSimple("fat", &io_dldi_data->ioInterface);
+			fatMountSimple("fat", dldiGet());
 		} /*else if (!memcmp(gameid, "ALXX", 4)) {
 			io_dldi_data = dldiLoadFromBin(dstwo_dldi);
-			fatMountSimple("fat", &io_dldi_data->ioInterface);
+			fatMountSimple("fat", dldiGet());
 		}*/
 
 		if (flashcardFound()) {
@@ -424,7 +433,7 @@ bool driveWritable(Drive drive) {
 		case Drive::sdCard:
 			return __my_io_dsisd()->features & FEATURE_MEDIUM_CANWRITE;
 		case Drive::flashcard:
-			return io_dldi_data->ioInterface.features & FEATURE_MEDIUM_CANWRITE;
+			return dldiGet()->features & FEATURE_MEDIUM_CANWRITE;
 		case Drive::ramDrive:
 			return io_ram_drive.features & FEATURE_MEDIUM_CANWRITE;
 		case Drive::nand:
