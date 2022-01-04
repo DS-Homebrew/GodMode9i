@@ -408,13 +408,11 @@ void nitroUnmount(void) {
 	nitroMounted = false;
 }
 
-bool imgMount(const char* imgName) {
-	extern const char* currentImgName;
+bool imgMount(const char* imgName, bool dsiwareSave) {
 	extern char currentImgName[PATH_MAX];
 
 	strcpy(currentImgName, imgName);
-	currentImgName = imgName;
-	fatMountSimple("img", &io_img);
+	fatMountSimple("img", dsiwareSave ? &io_dsiware_save : &io_img);
 	if (imgFound()) {
 		fatGetVolumeLabel("img", imgLabel);
 		fixLabel(imgLabel);

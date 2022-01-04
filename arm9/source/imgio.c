@@ -1,3 +1,4 @@
+#include "tonccpy.h"
 
 #include <nds.h>
 #include <nds/disc_io.h>
@@ -31,14 +32,13 @@ bool img_read_sectors(sec_t sector, sec_t numSectors, void *buffer) {
 
 	return true;
 }
-	return false;
-}
 
-bool img_read_sectors(sec_t sector, sec_t numSectors, void *buffer) {
-	if (!imgFile[0]) return false;
+bool dsiware_read_sectors(sec_t sector, sec_t numSectors, void *buffer) {
+	if(!img_read_sectors(sector, numSectors, buffer)) return false;
 
-	fseek(imgFile[0], (sector << 9), SEEK_SET);
-	fread(buffer, 1, (numSectors << 9), imgFile[0]);
+	// DSiWare saves are FAT12 images, however they don't have the 'FAT' text
+	// in the bootsector so libfat rejects them
+	if (sector == 0) tonccpy(buffer + 0x36, "FAT", 3);
 	return true;
 }
 
@@ -76,6 +76,21 @@ const DISC_INTERFACE io_img = {
 	img_startup,
 	img_is_inserted,
 	img_read_sectors,
+	img_write_sectors,
+	img_clear_status,
+	img_shutdown
+};
+
+const DISC_INTERFACE io_dsiware_save = {
+	('I' << 24) | ('M' << 16) | ('G' << 8) | 'F',
+#ifdef WRITABLE
+	FEATURE_MEDIUM_CANREAD | FEATURE_MEDIUM_CANWRITE,
+#else
+	FEATURE_MEDIUM_CANREAD,
+#endif
+	img_startup,
+	img_is_inserted,
+	dsiware_read_sectors,
 	img_write_sectors,
 	img_clear_status,
 	img_shutdown

@@ -10,6 +10,7 @@ extern "C" {
 bool img_shutdown();
 
 extern const DISC_INTERFACE io_img;
+extern const DISC_INTERFACE io_dsiware_save;
 
 #ifdef __cplusplus
 }

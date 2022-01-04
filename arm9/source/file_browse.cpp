@@ -180,15 +180,19 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 			}
 		}
 
-		if(extension(entry->name, {"nds", "dsi", "ids", "app"})) {
-			operations.push_back(FileOperation::mountNitroFS);
+		if(extension(entry->name, {"nds", "dsi", "ids", "app", "srl"})) {
+			if(currentDrive != Drive::nitroFS)
+				operations.push_back(FileOperation::mountNitroFS);
 			operations.push_back(FileOperation::ndsInfo);
 			operations.push_back(FileOperation::trimNds);
-		} else if(extension(entry->name, {"sav", "sav1", "sav2", "sav3", "sav4", "sav5", "sav6", "sav7", "sav8", "sav9"})) {
+		}
+		if(extension(entry->name, {"sav", "sav1", "sav2", "sav3", "sav4", "sav5", "sav6", "sav7", "sav8", "sav9"})) {
 			operations.push_back(FileOperation::restoreSave);
-		} else if(extension(entry->name, {"img", "sd"})) {
+		}
+		if(currentDrive != Drive::fatImg && extension(entry->name, {"img", "sd", "sav", "pub", "pu1", "pu2", "pu3", "pu4", "pu5", "pu6", "pu7", "pu8", "pu9", "prv", "pr1", "pr2", "pr3", "pr4", "pr5", "pr6", "pr7", "pr8", "pr9"})) {
 			operations.push_back(FileOperation::mountImg);
-		} else if(extension(entry->name, {"frf"})) {
+		}
+		if(extension(entry->name, {"frf"})) {
 			operations.push_back(FileOperation::loadFont);
 		}
 
@@ -402,7 +406,7 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					if(imgMounted)
 						imgUnmount();
 
-					imgMounted = imgMount(entry->name.c_str());
+					imgMounted = imgMount(entry->name.c_str(), !extension(entry->name, {"img", "sd"}));
 					if (imgMounted) {
 						chdir("img:/");
 						imgCurrentDrive = currentDrive;
