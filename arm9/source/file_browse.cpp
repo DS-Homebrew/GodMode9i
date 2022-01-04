@@ -282,7 +282,7 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 			held = keysHeld();
 			swiWaitForVBlank();
 
-			if(currentDrive == Drive::sdCard && sdRemoved)
+			if(driveRemoved(currentDrive))
 				return FileOperation::none;
 		} while (!(pressed & (KEY_UP| KEY_DOWN | KEY_A | KEY_B | KEY_L))
 #ifdef SCREENSWAP
@@ -378,6 +378,9 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					chdir(sourceFolder);	// For after copying a folder
 					break;
 				} case FileOperation::mountNitroFS: {
+					if(nitroMounted)
+						nitroUnmount();
+
 					ownNitroFSMounted = 2;
 					nitroMounted = nitroFSInit(entry->name.c_str());
 					if (nitroMounted) {
@@ -396,6 +399,9 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					changeFileAttribs(entry);
 					break;
 				} case FileOperation::mountImg: {
+					if(imgMounted)
+						imgUnmount();
+
 					imgMounted = imgMount(entry->name.c_str());
 					if (imgMounted) {
 						chdir("img:/");
@@ -639,8 +645,6 @@ std::string browseForFile (void) {
 		fileBrowse_drawBottomScreen(entry);
 		showDirectoryContents(dirContents, fileOffset, screenOffset);
 
-		stored_SCFG_MC = REG_SCFG_MC;
-
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
 			// Print time
@@ -652,21 +656,11 @@ std::string browseForFile (void) {
 			held = keysHeld();
 			swiWaitForVBlank();
 
-			if (REG_SCFG_MC != stored_SCFG_MC) {
-				break;
-			}
-
-			if(currentDrive == Drive::sdCard && sdRemoved) {
+			if(driveRemoved(currentDrive)) {
 				screenMode = 0;
 				return "null";
 			}
 		} while (!(pressed & ~(KEY_R | KEY_TOUCH | KEY_LID)));
-
-		if (isDSiMode() && !pressed && currentDrive == Drive::flashcard && REG_SCFG_MC == 0x11 && flashcardMounted) {
-			flashcardUnmount();
-			screenMode = 0;
-			return "null";
-		}
 
 		if (pressed & KEY_UP) {
 			fileOffset--;

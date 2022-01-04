@@ -289,7 +289,7 @@ void hexEditor(const char *path, Drive drive) {
 			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
 			font->update(true);
 
-			if(currentDrive == Drive::sdCard && sdRemoved)
+			if(driveRemoved(currentDrive))
 				return;
 		} while(!held);
 

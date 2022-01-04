@@ -13,8 +13,6 @@ enum class Drive : u8 {
 	fatImg
 };
 
-extern u8 stored_SCFG_MC;
-
 extern bool nandMounted;
 extern bool sdMounted;
 extern bool sdMountedDone;				// true if SD mount is successful once
@@ -57,5 +55,6 @@ extern bool imgMount(const char* imgName);
 extern void imgUnmount(void);
 extern u64 getBytesFree(const char* drivePath);
 extern bool driveWritable(Drive drive);
+extern bool driveRemoved(Drive drive);
 
 #endif //FLASHCARD_H
