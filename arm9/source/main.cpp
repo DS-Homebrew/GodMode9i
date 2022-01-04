@@ -188,15 +188,15 @@ int main(int argc, char **argv) {
 
 	// Try to init NitroFS
 	ownNitroFSMounted = 0;
-	if (argc > 0 && nitroFSInit(argv[0]));
-	else if (nitroFSInit("GodMode9i.nds"));
-	else if (nitroFSInit("GodMode9i.dsi"));
-	else if (nitroFSInit("sd:/GodMode9i.nds"));
-	else if (nitroFSInit("sd:/GodMode9i.dsi"));
-	else if (nitroFSInit("fat:/GodMode9i.nds"));
-	else if (nitroFSInit("fat:/GodMode9i.dsi"));
+	nitroMounted = true;
+	if (argc > 0 && nitroFSInit(argv[0])) nitroCurrentDrive = argv[0][0] == 's' ? Drive::sdCard : Drive::flashcard;
+	else if (nitroFSInit("sd:/GodMode9i.nds")) nitroCurrentDrive = Drive::sdCard;
+	else if (nitroFSInit("sd:/GodMode9i.dsi")) nitroCurrentDrive = Drive::sdCard;
+	else if (nitroFSInit("fat:/GodMode9i.nds")) nitroCurrentDrive = Drive::flashcard;
+	else if (nitroFSInit("fat:/GodMode9i.dsi")) nitroCurrentDrive = Drive::flashcard;
 	else {
 		ownNitroFSMounted = 1;
+		nitroMounted = false;
 		font->print(-2, -3, false, "NitroFS init failed...", Alignment::right);
 		font->update(false);
 		for (int i = 0; i < 30; i++)

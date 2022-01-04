@@ -191,7 +191,8 @@ int main() {
 		resyncClock();
 
 		// Send SD status
-		fifoSendValue32(FIFO_USER_04, SD_IRQ_STATUS);
+		if(isDSiMode() || *(u16*)(0x4004700) != 0)
+			fifoSendValue32(FIFO_USER_04, SD_IRQ_STATUS);
 
 		// Dump EEPROM save
 		if(fifoCheckAddress(FIFO_USER_01)) {

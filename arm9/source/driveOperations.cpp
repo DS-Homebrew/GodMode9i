@@ -2,6 +2,7 @@
 
 #include <nds.h>
 #include <nds/arm9/dldi.h>
+#include <dirent.h>
 #include <fat.h>
 #include <stdio.h>
 #include <string>
@@ -24,8 +25,6 @@
 #include "exptools.h"
 
 static sNDSHeader nds;
-
-u8 stored_SCFG_MC = 0;
 
 static bool slot1Enabled = true;
 
@@ -176,6 +175,11 @@ u64 getBytesFree(const char* drivePath) {
 }
 
 void sdUnmount(void) {
+	if(imgMounted && imgCurrentDrive == Drive::sdCard)
+		imgUnmount();
+	if(nitroMounted && nitroCurrentDrive == Drive::sdCard)
+		nitroUnmount();
+
 	fatUnmount("sd");
 	my_sdio_Shutdown();
 	sdLabel[0] = '\0';
@@ -327,6 +331,11 @@ bool flashcardMount(void) {
 }
 
 void flashcardUnmount(void) {
+	if(imgMounted && imgCurrentDrive == Drive::flashcard)
+		imgUnmount();
+	if(nitroMounted && nitroCurrentDrive == Drive::flashcard)
+		nitroUnmount();
+
 	fatUnmount("fat");
 	fatLabel[0] = '\0';
 	fatSize = 0;
@@ -400,15 +409,19 @@ void ramdriveMount(bool ram32MB) {
 }
 
 void nitroUnmount(void) {
+	if(imgMounted && imgCurrentDrive == Drive::nitroFS)
+		imgUnmount();
+
+	ownNitroFSMounted = 2;
 	fatUnmount("nitro");
 	nitroMounted = false;
 }
 
-bool imgMount(const char* imgName) {
-	extern const char* currentImgName;
+bool imgMount(const char* imgName, bool dsiwareSave) {
+	extern char currentImgName[PATH_MAX];
 
-	currentImgName = imgName;
-	fatMountSimple("img", &io_img);
+	strcpy(currentImgName, imgName);
+	fatMountSimple("img", dsiwareSave ? &io_dsiware_save : &io_img);
 	if (imgFound()) {
 		fatGetVolumeLabel("img", imgLabel);
 		fixLabel(imgLabel);
@@ -422,7 +435,11 @@ bool imgMount(const char* imgName) {
 }
 
 void imgUnmount(void) {
+	if(nitroMounted && nitroCurrentDrive == Drive::fatImg)
+		nitroUnmount();
+
 	fatUnmount("img");
+	img_shutdown();
 	imgLabel[0] = '\0';
 	imgSize = 0;
 	imgMounted = false;
@@ -442,6 +459,25 @@ bool driveWritable(Drive drive) {
 			return false;
 		case Drive::fatImg:
 			return io_img.features & FEATURE_MEDIUM_CANWRITE;
+	}
+
+	return false;
+}
+
+bool driveRemoved(Drive drive) {
+	switch(drive) {
+		case Drive::sdCard:
+			return sdRemoved;
+		case Drive::flashcard:
+			return REG_SCFG_MC & BIT(0);
+		case Drive::ramDrive:
+			return !ramdriveMounted;
+		case Drive::nand:
+			return !nandMounted;
+		case Drive::nitroFS:
+			return driveRemoved(nitroCurrentDrive);
+		case Drive::fatImg:
+			return driveRemoved(imgCurrentDrive);
 	}
 
 	return false;
