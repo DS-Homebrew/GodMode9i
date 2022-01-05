@@ -782,7 +782,7 @@ void ndsCardDump(void) {
 
 		nandSave = cardNandGetSaveSize() != 0;
 
-		if(spiSave || nandSave) {
+		if((spiSave && cardEepromGetSizeFixed() <= (1 << 20)) || (nandSave && (sdMounted || flashcardMounted))) {
 			allowedOptions.push_back(DumpOption::save);
 			allowedBitfield |= DumpOption::save;
 		}
