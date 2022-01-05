@@ -145,8 +145,8 @@ void dm_drawBottomScreen(void) {
 
 	if ((isDSiMode() && memcmp(io_dldi_data->friendlyName, "Default", 7) == 0) || sdMountedDone) {
 		font->print(0, row--, false, sdMounted ? STR_UNMOUNT_SDCARD : STR_REMOUNT_SDCARD);
-	} else {
-		font->print(0, row--, false, flashcardMounted ? STR_UNMOUNT_FLASHCARD : STR_REMOUNT_FLASHCARD);
+	} else if(flashcardMounted) {
+		font->print(0, row--, false, STR_UNMOUNT_FLASHCARD);
 	}
 	if ((sdMounted && driveWritable(Drive::sdCard)) || (flashcardMounted && driveWritable(Drive::flashcard))) {
 		font->print(0, row--, false, STR_SCREENSHOTTEXT);
@@ -403,8 +403,6 @@ void driveMenu (void) {
 					currentDrive = Drive::flashcard;
 					chdir("fat:/");
 					flashcardUnmount();
-				} else {
-					flashcardMounted = flashcardMount();
 				}
 			}
 		}
