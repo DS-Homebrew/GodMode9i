@@ -343,20 +343,21 @@ bool writeToGbaSave(const char* fileName, u8* buffer, u32 size) {
 			font->clear(false);
 			font->print(0, 0, false, STR_WRITING_SAVE);
 			font->update(false);
-			gbaFormatSave(type);
 
-			u8* writeBuffer = new u8[writeSize + 0x30];
+			u8* writeBuffer = (u8*)memalign(4, gbaSize);
 			// 0x30 byte header
 			tonccpy(writeBuffer, "9i", 3); // Magic
 			writeBuffer[3] = section; // Section of the save
-			toncset32(writeBuffer + 0x4, size, 1); // Total original size
-			toncset32(writeBuffer + 0x8, compressedSize, 1); // Total compressed size
-			toncset32(writeBuffer + 0xC, writeSize, 1); // Size of current section (excluding header)
+			tonccpy(writeBuffer + 0x4, &size, 4); // Total original size
+			tonccpy(writeBuffer + 0x8, &compressedSize, 4); // Total compressed size
+			tonccpy(writeBuffer + 0xC, &writeSize, 4); // Size of current section (excluding header)
 			tonccpy(writeBuffer + 0x10, fileName, 0x20); // File name
 			// Actual save data
 			tonccpy(writeBuffer + 0x30, compressedBuffer + bytesWritten, writeSize);
-			gbaWriteSave(0, writeBuffer, writeSize + 0x30, type);
-			delete[] writeBuffer;
+
+			gbaFormatSave(type);
+			gbaWriteSave(0, writeBuffer, gbaSize, type);
+			free(writeBuffer);
 
 			bytesWritten += writeSize;
 			section++;
@@ -384,18 +385,19 @@ bool writeToGbaSave(const char* fileName, u8* buffer, u32 size) {
 	return true;
 }
 
-bool readFromGbaCart(saveTypeGBA saveType) {
+bool readFromGbaCart() {
 	u32 size, compressedSize;
 	char fileName[0x20] = {0};
 	u8 *compressedBuffer = nullptr;
 
 	u8 currentSection = 0;
-	u32 bytesWritten = 0;
+	u32 bytesRead = 0;
 	do {
 		font->clear(false);
 		font->print(0, 0, false, STR_LOADING);
 		font->update(false);
 
+		saveTypeGBA saveType = gbaGetSaveType();
 		u32 gbaSize = gbaGetSaveSize(saveType);
 		u8 *buffer = new u8[gbaSize];
 		gbaReadSave(buffer, 0, gbaSize, saveType);
@@ -421,13 +423,10 @@ bool readFromGbaCart(saveTypeGBA saveType) {
 					tonccpy(&readSize, buffer + 0xC, 4); // Size of current section (excluding header)
 
 					// Copy to output buffer
-					tonccpy(compressedBuffer + bytesWritten, buffer + 0x30, readSize);
+					tonccpy(compressedBuffer + bytesRead, buffer + 0x30, readSize);
 
-					bytesWritten += readSize;
+					bytesRead += readSize;
 					currentSection++;
-
-					// Clear from cart
-					gbaFormatSave(saveType);
 				}
 			} else {
 				dumpFailMsg(STR_WRONG_DS_SAVE);
@@ -438,7 +437,7 @@ bool readFromGbaCart(saveTypeGBA saveType) {
 
 		delete[] buffer;
 
-		if(bytesWritten < compressedSize) {
+		if(bytesRead < compressedSize) {
 			font->clear(false);
 			if(section != -1)
 				font->printf(0, 0, false, Alignment::left, Palette::white, (STR_SWITCH_CART_TO_SECTION_THIS_WAS + "\n\n" + STR_B_CANCEL).c_str(), currentSection + 1, section + 1);
@@ -488,7 +487,7 @@ bool readFromGbaCart(saveTypeGBA saveType) {
 
 			delete[] finalBuffer;
 		}
-	} while(bytesWritten < compressedSize);
+	} while(bytesRead < compressedSize);
 
 	delete[] compressedBuffer;
 
@@ -1209,7 +1208,7 @@ void gbaCartDump(void) {
 
 	// Dump NDS save previously saved to this cart
 	if ((dumpOption & allowedBitfield) & DumpOption::ndsSave) {
-		readFromGbaCart(saveType);
+		readFromGbaCart();
 	}
 
 	// Dump metadata
