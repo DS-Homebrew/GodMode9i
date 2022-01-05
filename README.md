@@ -26,13 +26,19 @@ GodMode9i is a full access file browser for the Nintendo DS, Nintendo DSi and th
 
 ## Features
 
-- Dump GameBoy Advance cartridges on the original Nintendo DS and Nintendo DS Lite consoles.
-- Dump Nintendo DS/DSi cartridges on Nintendo DSi and Nintendo 3DS consoles (if GodMode9i is ran on the console SD card).
-     - They can also be dumped on the original Nintendo DS and Nintendo DS Lite consoles, if running from a Slot-2 flashcard.
+- Dump Game Boy Advance cartridges on the original Nintendo DS and Nintendo DS Lite consoles.
+- Dump Nintendo DS/DSi cartridges on Nintendo DSi and Nintendo 3DS consoles (if GodMode9i is run on the console SD card).
+   - They can also be dumped on the original Nintendo DS and Nintendo DS Lite consoles, if running from a Slot-2 flashcard.
+   - DS/DSi cartridge save data can be dumped on the original Nintendo DS and Nintendo DS Lite consoles using the save data of GBA cartridges.
+- Restore save files to DS and GBA cartridges.
 - Copy, move, delete, rename files/folders and create folders.
-- Mount the NitroFS of .nds files.
+- Mount the NitroFS of NDS files, DSiWare saves, and FAT images.
+- View and edit the contents of files with a hex editor.
+- Calculate the SHA-1 hash of files on Nintendo DSi and Nintendo 3DS consoles.
 - Browse files on supported flashcards when running GM9i from the NAND or SD Card. (`AceKard 2(i)` & `R4 Ultra (r4ultra.com)`)
+- Browse files on the internal NAND of Nintendo DSi consoles.
 - Browse files on the SD Card when running GM9i from any DS-mode flashcard. (Requires **TW**i**L**ight Menu++ with Slot-1 SD/SCFG access enabled, and TWLMenu++ installed on the flashcard.)
+- Translated to many different languages. Join the [Crowdin project](https://crowdin.com/project/godmode9i) to contribute more!
 
 ## Building
 If you don't want to compile yourself but you still want to get the latest build, please use our [TWLBot github repository](https://github.com/TWLBot/Builds/blob/master/extras/GodMode9i.7z)
