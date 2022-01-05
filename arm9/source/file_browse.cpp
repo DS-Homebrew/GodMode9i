@@ -29,6 +29,7 @@
 #include <dirent.h>
 
 #include <nds.h>
+#include <nds/arm9/dldi.h>
 #include <fat.h>
 
 #include "main.h"
@@ -187,7 +188,10 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 			operations.push_back(FileOperation::trimNds);
 		}
 		if(extension(entry->name, {"sav", "sav1", "sav2", "sav3", "sav4", "sav5", "sav6", "sav7", "sav8", "sav9"})) {
-			operations.push_back(FileOperation::restoreSave);
+			if(!(io_dldi_data->ioInterface.features & FEATURE_SLOT_NDS) || entry->size <= (1 << 20))
+				operations.push_back(FileOperation::restoreSaveNds);
+			if(isRegularDS && (entry->size == 512 || entry->size == 8192 || entry->size == 32768 || entry->size == 65536 || entry->size == 131072))
+				operations.push_back(FileOperation::restoreSaveGba);
 		}
 		if(currentDrive != Drive::fatImg && extension(entry->name, {"img", "sd", "sav", "pub", "pu1", "pu2", "pu3", "pu4", "pu5", "pu6", "pu7", "pu8", "pu9", "prv", "pr1", "pr2", "pr3", "pr4", "pr5", "pr6", "pr7", "pr8", "pr9"})) {
 			operations.push_back(FileOperation::mountImg);
@@ -238,8 +242,14 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 				case FileOperation::trimNds:
 					font->print(3, row++, false, STR_TRIM_NDS);
 					break;
-				case FileOperation::restoreSave:
-					font->print(3, row++, false, STR_RESTORE_SAVE);
+				case FileOperation::restoreSaveNds:
+					if(!isRegularDS)
+						font->print(3, row++, false, STR_RESTORE_SAVE);
+					else
+						font->print(3, row++, false, STR_RESTORE_SAVE_NDS);
+					break;
+				case FileOperation::restoreSaveGba:
+					font->print(3, row++, false, STR_RESTORE_SAVE_GBA);
 					break;
 				case FileOperation::mountImg:
 					font->print(3, row++, false, STR_MOUNT_FAT_IMG);
@@ -328,12 +338,11 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					applaunch = true;
 					return FileOperation::bootFile;
 					break;
-				} case FileOperation::restoreSave: {
-					if(isDSiMode()) {
-						ndsCardSaveRestore(entry->name.c_str());
-					} else {
-						gbaCartSaveRestore(entry->name.c_str());
-					}
+				} case FileOperation::restoreSaveNds: {
+					ndsCardSaveRestore(entry->name.c_str());
+					break;
+				} case FileOperation::restoreSaveGba: {
+					gbaCartSaveRestore(entry->name.c_str());
 					break;
 				} case FileOperation::copySdOut: {
 					if (access("sd:/gm9i", F_OK) != 0) {
