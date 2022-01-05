@@ -469,7 +469,7 @@ bool driveRemoved(Drive drive) {
 		case Drive::sdCard:
 			return sdRemoved;
 		case Drive::flashcard:
-			return REG_SCFG_MC & BIT(0);
+			return isDSiMode() ? REG_SCFG_MC & BIT(0) : !flashcardMounted;
 		case Drive::ramDrive:
 			return !ramdriveMounted;
 		case Drive::nand:

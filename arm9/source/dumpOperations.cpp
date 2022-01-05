@@ -7,6 +7,7 @@
 #include "font.h"
 #include "gba.h"
 #include "lzss.h"
+#include "main.h"
 #include "ndsheaderbanner.h"
 #include "read_card.h"
 #include "tonccpy.h"
@@ -151,7 +152,7 @@ void dumpFailMsg(std::string_view msg) {
 		font->update(true);
 
 		scanKeys();
-		pressed = keysDownRepeat();
+		pressed = keysDown();
 		swiWaitForVBlank();
 	} while (!(pressed & KEY_A));
 }
@@ -574,8 +575,10 @@ void ndsCardSaveDump(const char* filename) {
 }
 
 void ndsCardSaveRestore(const char *filename) {
+	bool usingFlashcard = (io_dldi_data->ioInterface.features & FEATURE_SLOT_NDS) && flashcardMounted;
+
 	font->clear(false);
-	font->print(0, 0, false, STR_RESTORE_SELECTED_SAVE_CARD);
+	font->print(0, 0, false, (usingFlashcard ? STR_RESTORE_SELECTED_SAVE_CARD_FLASHCARD : STR_RESTORE_SELECTED_SAVE_CARD) + "\n\n" + STR_A_YES_B_NO);
 	font->update(false);
 
 	// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
@@ -586,21 +589,16 @@ void ndsCardSaveRestore(const char *filename) {
 		font->update(true);
 
 		scanKeys();
-		pressed = keysDownRepeat();
+		pressed = keysDown();
 		swiWaitForVBlank();
 	} while (!(pressed & (KEY_A | KEY_B)));
 
 	if(pressed & KEY_A) {
 		int type = cardEepromGetTypeFixed();
 
-		if(type == -1) { // NAND
+		if(type == -1 && !isRegularDS) { // NAND
 			if (cardInit(&ndsCardHeader) != 0) {
-				font->clear(false);
-				font->print(0, 0, false, STR_UNABLE_TO_RESTORE_SAVE);
-				font->update(false);
-				for (int i = 0; i < 60 * 2; i++) {
-					swiWaitForVBlank();
-				}
+				dumpFailMsg(STR_UNABLE_TO_RESTORE_SAVE);
 				return;
 			}
 
@@ -646,14 +644,47 @@ void ndsCardSaveRestore(const char *filename) {
 				fclose(in);
 			}
 		} else { // SPI
-			auxspi_extra card_type = auxspi_has_extra();
-			bool auxspi = card_type == AUXSPI_INFRARED;
 			FILE *in = fopen(filename, "rb");
 			if(in) {
-				unsigned char *buffer;
+				unsigned char *buffer = nullptr;
 				int size;
 				int length;
 				unsigned int num_blocks = 0, shift = 0, LEN = 0;
+
+				// Read save file length
+				fseek(in, 0, SEEK_END);
+				length = ftell(in);
+				fseek(in, 0, SEEK_SET);
+
+				// If using flashcard, read the save and swap carts
+				if(usingFlashcard) {
+					buffer = new unsigned char[length];
+					fread(buffer, 1, length, in);
+					fclose(in);
+					currentDrive = Drive::flashcard;
+					chdir("fat:/");
+					flashcardUnmount();
+
+					font->clear(false);
+					font->print(0, 0, false, STR_EJECT_FLASHCARD_INSERT_GAME + "\n\n" + STR_A_CONTINUE);
+					font->update(false);
+
+					// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
+					do {
+						// Print time
+						font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
+						font->update(true);
+
+						scanKeys();
+						pressed = keysDown();
+						swiWaitForVBlank();
+					} while (!(pressed & KEY_A));
+
+					type = cardEepromGetTypeFixed();
+				}
+
+				auxspi_extra card_type = auxspi_has_extra();
+				bool auxspi = card_type == AUXSPI_INFRARED;
 				if(auxspi) {
 					size = auxspi_save_size_log_2(card_type);
 					type = auxspi_save_type(card_type);
@@ -675,11 +706,10 @@ void ndsCardSaveRestore(const char *filename) {
 				} else {
 					size = cardEepromGetSizeFixed();
 				}
-				fseek(in, 0, SEEK_END);
-				length = ftell(in);
-				fseek(in, 0, SEEK_SET);
+
 				if(length != (auxspi ? (int)(LEN * num_blocks) : size)) {
-					fclose(in);
+					if(!usingFlashcard)
+						fclose(in);
 					dumpFailMsg(STR_SAVE_SIZE_MISMATCH_CARD);
 					return;
 				}
@@ -696,8 +726,12 @@ void ndsCardSaveRestore(const char *filename) {
 					else
 						cardEepromChipEraseFixed();
 				}
+
+				// If using flashcard restore from buffer,
+				// otherwise from file so big saves can work
 				if(auxspi){
-					buffer = new unsigned char[LEN];
+					if(!usingFlashcard)
+						buffer = new unsigned char[LEN];
 					font->print(0, 5, false, "[");
 					font->print(-1, 5, false, "]");
 					for(unsigned int i = 0; i < num_blocks; i++) {
@@ -705,13 +739,18 @@ void ndsCardSaveRestore(const char *filename) {
 						font->printf(0, 6, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), i * LEN, length);
 						font->update(false);
 
-						fread(buffer, 1, LEN, in);
-						auxspi_write_data(i << shift, buffer, LEN, type, card_type);
+						if(usingFlashcard) {
+							auxspi_write_data(i << shift, buffer + (LEN * i), LEN, type, card_type);
+						} else {
+							fread(buffer, 1, LEN, in);
+							auxspi_write_data(i << shift, buffer, LEN, type, card_type);
+						}
 					}
 				} else {
 					int blocks = size / 32;
 					int written = 0;
-					buffer = new unsigned char[blocks];
+					if(!usingFlashcard)
+						buffer = new unsigned char[blocks];
 					font->print(0, 5, false, "[");
 					font->print(-1, 5, false, "]");
 					for(unsigned int i = 0; i < 32; i++) {
@@ -719,13 +758,18 @@ void ndsCardSaveRestore(const char *filename) {
 						font->printf(0, 6, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), written, size);
 						font->update(false);
 
-						fread(buffer, 1, blocks, in);
-						cardWriteEeprom(written, buffer, blocks, type);
+						if(usingFlashcard) {
+							cardWriteEeprom(written, buffer + (blocks * i), blocks, type);
+						} else {
+							fread(buffer, 1, blocks, in);
+							cardWriteEeprom(written, buffer, blocks, type);
+						}
 						written += blocks;
 					}
 				}
 				delete[] buffer;
-				fclose(in);
+				if(!usingFlashcard)
+					fclose(in);
 			}
 		}
 	}
@@ -953,7 +997,7 @@ void gbaCartSaveDump(const char *filename) {
 
 void gbaCartSaveRestore(const char *filename) {
 	font->clear(false);
-	font->print(0, 0, false, STR_RESTORE_SELECTED_SAVE_CART);
+	font->print(0, 0, false, STR_RESTORE_SELECTED_SAVE_CART + "\n\n" + STR_A_YES_B_NO);
 	font->update(false);
 
 	// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
