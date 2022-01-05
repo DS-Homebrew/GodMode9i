@@ -341,7 +341,7 @@ bool writeToGbaSave(const char* fileName, u8* buffer, u32 size) {
 
 		if(pressed & KEY_A) {
 			font->clear(false);
-			font->print(0, 0, false, STR_RESTORING_SAVE);
+			font->print(0, 0, false, STR_WRITING_SAVE);
 			font->update(false);
 			gbaFormatSave(type);
 
