@@ -777,11 +777,11 @@ void ndsCardDump(void) {
 			allowedOptions.push_back(DumpOption::rom);
 			allowedOptions.push_back(DumpOption::romTrimmed);
 			allowedBitfield |= DumpOption::rom | DumpOption::romTrimmed;
+
+			nandSave = cardNandGetSaveSize() != 0;
 		}
 
-		nandSave = cardNandGetSaveSize() != 0;
-
-		if((spiSave && cardEepromGetSizeFixed() <= (1 << 20)) || (nandSave && (sdMounted || flashcardMounted))) {
+		if((spiSave && (sdMounted || flashcardMounted || cardEepromGetSizeFixed() <= (1 << 20))) || (nandSave && (sdMounted || flashcardMounted))) {
 			allowedOptions.push_back(DumpOption::save);
 			allowedBitfield |= DumpOption::save;
 		}
