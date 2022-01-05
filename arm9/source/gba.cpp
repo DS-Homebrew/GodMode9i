@@ -98,9 +98,8 @@ void writeEeprom(u32 dst, u8 *src, u32 len) {
 	fifoSendValue32(FIFO_USER_01, len);
 
 	// Wait for it to finish
-	while(!(fifoCheckValue32(FIFO_USER_02) && fifoGetValue32(FIFO_USER_02) == 0x454E4F44 /* 'DONE' */)) {
-		swiWaitForVBlank();
-	}
+	fifoWaitValue32(FIFO_USER_02);
+	fifoGetValue32(FIFO_USER_02);
 
 	sysSetCartOwner(BUS_OWNER_ARM9);
 }
