@@ -176,8 +176,12 @@ void dm_drawBottomScreen(void) {
 			font->print(0, 1, false, STR_GAME_VIRTUAL);
 			break;
 		case DriveMenuOperation::ndsCard:
-			font->printf(0, 0, false, Alignment::left, Palette::white, STR_NDS_GAMECARD.c_str(), romTitle[0]);
-			font->printf(0, 1, false, Alignment::left, Palette::white, STR_NDS_GAME.c_str(), getBytes(romSize[0]).c_str(), getBytes(romSizeTrimmed).c_str());
+			if(romTitle[0][0] != 0) {
+				font->printf(0, 0, false, Alignment::left, Palette::white, STR_NDS_GAMECARD.c_str(), romTitle[0]);
+				font->printf(0, 1, false, Alignment::left, Palette::white, STR_NDS_GAME.c_str(), getBytes(romSize[0]).c_str(), getBytes(romSizeTrimmed).c_str());
+			} else {
+				font->print(0, 0, false, STR_NDS_GAMECARD_NO_TITLE);
+			}
 			break;
 		case DriveMenuOperation::ramDrive:
 			font->print(0, 0, false, STR_RAMDRIVE_LABEL);
