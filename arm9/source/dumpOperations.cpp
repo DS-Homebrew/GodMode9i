@@ -3,8 +3,10 @@
 #include "auxspi.h"
 #include "date.h"
 #include "driveOperations.h"
+#include "fileOperations.h"
 #include "font.h"
 #include "gba.h"
+#include "lzss.h"
 #include "ndsheaderbanner.h"
 #include "read_card.h"
 #include "tonccpy.h"
@@ -29,6 +31,7 @@ enum DumpOption {
 	romTrimmed = 2,
 	save = 4,
 	metadata = 8,
+	ndsSave = 16,
 	all = rom | save | metadata,
 	allTrimmed = romTrimmed | save | metadata
 };
@@ -38,7 +41,10 @@ DumpOption dumpMenu(std::vector<DumpOption> allowedOptions, const char *dumpName
 	int optionOffset = 0;
 
 	char dumpToStr[256];
-	snprintf(dumpToStr, sizeof(dumpToStr), STR_DUMP_TO.c_str(), dumpName, sdMounted ? "sd" : "fat");
+	if(sdMounted || flashcardMounted)
+		snprintf(dumpToStr, sizeof(dumpToStr), STR_DUMP_TO.c_str(), dumpName, sdMounted ? "sd" : "fat");
+	else
+		snprintf(dumpToStr, sizeof(dumpToStr), STR_DUMP_TO_GBA.c_str(), dumpName);
 
 	int y = font->calcHeight(dumpToStr) + 1;
 
@@ -64,6 +70,9 @@ DumpOption dumpMenu(std::vector<DumpOption> allowedOptions, const char *dumpName
 					break;
 				case DumpOption::save:
 					font->print(3, row++, false, STR_DUMP_SAVE);
+					break;
+				case DumpOption::ndsSave:
+					font->print(3, row++, false, STR_DUMP_DS_SAVE);
 					break;
 				case DumpOption::metadata:
 					font->print(3, row++, false, STR_DUMP_METADATA);
@@ -297,77 +306,270 @@ u32 cardNandGetSaveSize(void) {
 	return 0;
 }
 
-void ndsCardSaveDump(const char* filename) {
-	FILE *out = fopen(filename, "wb");
-	if(out) {
+bool writeToGbaSave(const char* fileName, u8* buffer, u32 size) {
+	font->clear(false);
+	font->print(0, 0, false, STR_COMPRESSING_SAVE);
+	font->update(false);
+	int compressedSize = 0;
+	u8 *compressedBuffer = LZS_Encode(buffer, size, LZS_VFAST, &compressedSize);
+
+	u8 section = 0;
+	u32 bytesWritten = 0;
+	while((int)bytesWritten < compressedSize) {
 		font->clear(false);
-		font->print(0, 0, false, STR_DUMPING_SAVE);
-		font->print(0, 1, false, STR_DO_NOT_REMOVE_CARD);
+		font->print(0, 0, false, STR_LOADING);
+		font->update(false);
+		saveTypeGBA type = gbaGetSaveType();
+		u32 gbaSize = gbaGetSaveSize(type);
+
+		u32 writeSize = std::min(gbaSize - 0x30, (u32)(compressedSize - bytesWritten));
+
+		font->clear(false);
+		font->printf(0, 0, false, Alignment::left, Palette::white, (STR_WRITE_TO_GBA + "\n\n" + STR_A_YES_B_NO).c_str(), getBytes(writeSize).c_str(), getBytes(compressedSize - bytesWritten).c_str());
 		font->update(false);
 
-		int type = cardEepromGetTypeFixed();
+		u16 pressed;
+		do {
+			// Print time
+			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
+			font->update(true);
 
-		if(type == -1) { // NAND
-			u32 saveSize = cardNandGetSaveSize();
+			swiWaitForVBlank();
+			scanKeys();
+			pressed = keysDownRepeat();
+		} while (!(pressed & (KEY_A | KEY_B)) && *(u8*)(0x080000B2) == 0x96);
 
-			if(saveSize == 0) {
-				dumpFailMsg(STR_FAILED_TO_DUMP_SAVE);
-				return;
+		if(pressed & KEY_A) {
+			font->clear(false);
+			font->print(0, 0, false, STR_WRITING_SAVE);
+			font->update(false);
+
+			u8* writeBuffer = (u8*)memalign(4, gbaSize);
+			// 0x30 byte header
+			tonccpy(writeBuffer, "9i", 3); // Magic
+			writeBuffer[3] = section; // Section of the save
+			tonccpy(writeBuffer + 0x4, &size, 4); // Total original size
+			tonccpy(writeBuffer + 0x8, &compressedSize, 4); // Total compressed size
+			tonccpy(writeBuffer + 0xC, &writeSize, 4); // Size of current section (excluding header)
+			tonccpy(writeBuffer + 0x10, fileName, 0x20); // File name
+			// Actual save data
+			tonccpy(writeBuffer + 0x30, compressedBuffer + bytesWritten, writeSize);
+
+			gbaFormatSave(type);
+			gbaWriteSave(0, writeBuffer, gbaSize, type);
+			free(writeBuffer);
+
+			bytesWritten += writeSize;
+			section++;
+		}
+
+		if(pressed & KEY_B) {
+			free(compressedBuffer);
+			return false;
+		}
+
+		if((int)bytesWritten < compressedSize) {
+			font->clear(false);
+			font->print(0, 0, false, STR_SWITCH_CART);
+			font->update(false);
+
+			// Wait for GBA cart to be removed and reinserted
+			if(*(u8*)(0x080000B2) == 0x96)
+				while(*(u8*)(0x080000B2) == 0x96) swiWaitForVBlank();
+			while(*(u8*)(0x080000B2) != 0x96) swiWaitForVBlank();
+		}
+	}
+
+	free(compressedBuffer);
+
+	return true;
+}
+
+bool readFromGbaCart() {
+	u32 size, compressedSize;
+	char fileName[0x20] = {0};
+	u8 *compressedBuffer = nullptr;
+
+	u8 currentSection = 0;
+	u32 bytesRead = 0;
+	do {
+		font->clear(false);
+		font->print(0, 0, false, STR_LOADING);
+		font->update(false);
+
+		saveTypeGBA saveType = gbaGetSaveType();
+		u32 gbaSize = gbaGetSaveSize(saveType);
+		u8 *buffer = new u8[gbaSize];
+		gbaReadSave(buffer, 0, gbaSize, saveType);
+
+		int section = -1;
+		if(memcmp(buffer, "9i", 3) == 0) {
+			// Only load the first time
+			if(fileName[0] == 0) {
+				tonccpy(&size, buffer + 0x4, 4); // Total original size
+				tonccpy(&compressedSize, buffer + 0x8, 4); // Total compressed size
+				tonccpy(fileName, buffer + 0x10, 0x20); // File name
+
+				compressedBuffer = new u8[compressedSize];
 			}
 
-			u32 currentSize = saveSize;
-			FILE* destinationFile = fopen(filename, "wb");
-			if (destinationFile) {
+			u32 compressedSizeTemp;
+			tonccpy(&compressedSizeTemp, buffer + 0x8, 4); // Total compressed size
+			if(compressedSizeTemp == compressedSize) { // Probably matching DS dump
+				section = buffer[3]; // Section of the save
 
-				font->print(0, 4, false, STR_PROGRESS);
-				font->print(0, 5, false, "[");
-				font->print(-1, 5, false, "]");
-				for (u32 src = 0; src < saveSize; src += 0x8000) {
+				if(section == currentSection) {
+					u32 readSize = 0;
+					tonccpy(&readSize, buffer + 0xC, 4); // Size of current section (excluding header)
+
+					// Copy to output buffer
+					tonccpy(compressedBuffer + bytesRead, buffer + 0x30, readSize);
+
+					bytesRead += readSize;
+					currentSection++;
+				}
+			} else {
+				dumpFailMsg(STR_WRONG_DS_SAVE);
+			}
+		} else {
+			dumpFailMsg(STR_NO_DS_SAVE);
+		}
+
+		delete[] buffer;
+
+		if(bytesRead < compressedSize) {
+			font->clear(false);
+			if(section != -1)
+				font->printf(0, 0, false, Alignment::left, Palette::white, (STR_SWITCH_CART_TO_SECTION_THIS_WAS + "\n\n" + STR_B_CANCEL).c_str(), currentSection + 1, section + 1);
+			else
+				font->printf(0, 0, false, Alignment::left, Palette::white, (STR_SWITCH_CART_TO_SECTION + "\n\n" + STR_B_CANCEL).c_str(), currentSection + 1);
+			font->update(false);
+
+			if(*(u8*)(0x080000B2) == 0x96) {
+				while(*(u8*)(0x080000B2) == 0x96) {
 					// Print time
 					font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
 					font->update(true);
 
-					font->print((src / (saveSize / (SCREEN_COLS - 2))) + 1, 5, false, "=");
-					font->printf(0, 6, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), src, saveSize);
-					font->update(false);
+					swiWaitForVBlank();
+					scanKeys();
 
-					for (u32 i = 0; i < 0x8000; i += 0x200) {
-						cardRead(cardNandRwStart + src + i, copyBuf + i, true);
+					if(keysDown() & KEY_B) {
+						delete[] compressedBuffer;
+						return false;
 					}
-					if (fwrite(copyBuf, 1, (currentSize >= 0x8000 ? 0x8000 : currentSize), destinationFile) < 1) {
-						dumpFailMsg(STR_FAILED_TO_DUMP_SAVE);
-						break;
-					}
-					currentSize -= 0x8000;
 				}
-				fclose(destinationFile);
-			} else {
-				dumpFailMsg(STR_FAILED_TO_DUMP_SAVE);
 			}
-		} else { // SPI
-			unsigned char *buffer;
-			auxspi_extra card_type = auxspi_has_extra();
-			if(card_type == AUXSPI_INFRARED) {
-				int size = auxspi_save_size_log_2(card_type);
-				int size_blocks;
-				int type = auxspi_save_type(card_type);
-				if(size < 16)
-					size_blocks = 1;
-				else
-					size_blocks = 1 << (size - 16);
-				u32 LEN = std::min(1 << size, 1 << 16);
-				buffer = new unsigned char[LEN*size_blocks];
-				auxspi_read_data(0, buffer, LEN*size_blocks, type, card_type);
-				fwrite(buffer, 1, LEN*size_blocks, out);
-			} else {
-				int size = cardEepromGetSizeFixed();
-				buffer = new unsigned char[size];
-				cardReadEeprom(0, buffer, size, type);
+			while(*(u8*)(0x080000B2) != 0x96) {
+				// Print time
+				font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
+				font->update(true);
+
+				swiWaitForVBlank();
+				scanKeys();
+
+				if(keysDown() & KEY_B) {
+					delete[] compressedBuffer;
+					return false;
+				}
+			}
+		} else {
+			u8 *finalBuffer = new u8[size];
+			decompress(compressedBuffer, finalBuffer, LZ77);
+
+			char destPath[256];
+			sprintf(destPath, "%s:/gm9i/out/%s.sav", (sdMounted ? "sd" : "fat"), fileName);
+			FILE *destinationFile = fopen(destPath, "wb");
+			if(destinationFile) {
+				fwrite(finalBuffer, 1, size, destinationFile);
+				fclose(destinationFile);
+			}
+
+			delete[] finalBuffer;
+		}
+	} while(bytesRead < compressedSize);
+
+	delete[] compressedBuffer;
+
+	return true;
+}
+
+void ndsCardSaveDump(const char* filename) {
+	font->clear(false);
+	font->print(0, 0, false, STR_DUMPING_SAVE);
+	font->print(0, 1, false, STR_DO_NOT_REMOVE_CARD);
+	font->update(false);
+
+	int type = cardEepromGetTypeFixed();
+
+	if(type == -1) { // NAND
+		u32 saveSize = cardNandGetSaveSize();
+
+		if(saveSize == 0) {
+			dumpFailMsg(STR_FAILED_TO_DUMP_SAVE);
+			return;
+		}
+
+		u32 currentSize = saveSize;
+		FILE* destinationFile = fopen(filename, "wb");
+		if (destinationFile) {
+
+			font->print(0, 4, false, STR_PROGRESS);
+			font->print(0, 5, false, "[");
+			font->print(-1, 5, false, "]");
+			for (u32 src = 0; src < saveSize; src += 0x8000) {
+				// Print time
+				font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
+				font->update(true);
+
+				font->print((src / (saveSize / (SCREEN_COLS - 2))) + 1, 5, false, "=");
+				font->printf(0, 6, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), src, saveSize);
+				font->update(false);
+
+				for (u32 i = 0; i < 0x8000; i += 0x200) {
+					cardRead(cardNandRwStart + src + i, copyBuf + i, true);
+				}
+				if (fwrite(copyBuf, 1, (currentSize >= 0x8000 ? 0x8000 : currentSize), destinationFile) < 1) {
+					dumpFailMsg(STR_FAILED_TO_DUMP_SAVE);
+					break;
+				}
+				currentSize -= 0x8000;
+			}
+			fclose(destinationFile);
+		} else {
+			dumpFailMsg(STR_FAILED_TO_DUMP_SAVE);
+		}
+	} else { // SPI
+		unsigned char *buffer;
+		auxspi_extra card_type = auxspi_has_extra();
+		int size = 0;
+		if(card_type == AUXSPI_INFRARED) {
+			int sizeLog2 = auxspi_save_size_log_2(card_type);
+			int size_blocks;
+			int type = auxspi_save_type(card_type);
+			if(sizeLog2 < 16)
+				size_blocks = 1;
+			else
+				size_blocks = 1 << (sizeLog2 - 16);
+			u32 LEN = std::min(1 << sizeLog2, 1 << 16);
+			size = LEN * size_blocks;
+			buffer = new unsigned char[size];
+			auxspi_read_data(0, buffer, size, type, card_type);
+		} else {
+			size = cardEepromGetSizeFixed();
+			buffer = new unsigned char[size];
+			cardReadEeprom(0, buffer, size, type);
+		}
+		if(sdMounted || flashcardMounted) {
+			FILE *out = fopen(filename, "wb");
+			if(out) {
 				fwrite(buffer, 1, size, out);
 			}
-			delete[] buffer;
 			fclose(out);
+		} else {
+			writeToGbaSave(filename, buffer, size);
 		}
+		delete[] buffer;
 	}
 }
 
@@ -561,7 +763,7 @@ void ndsCardDump(void) {
 	font->update(false);
 
 	std::vector allowedOptions = {DumpOption::all};
-	u8 allowedBitfield = DumpOption::metadata;
+	u8 allowedBitfield = 0;
 	char gameTitle[13] = {0};
 	char gameCode[7] = {0};
 	char fileName[32] = {0};
@@ -570,19 +772,24 @@ void ndsCardDump(void) {
 
 	int cardInited = cardInit(&ndsCardHeader);
 	if(cardInited == 0) {
-		allowedOptions.push_back(DumpOption::allTrimmed);
-		allowedOptions.push_back(DumpOption::rom);
-		allowedOptions.push_back(DumpOption::romTrimmed);
-		allowedBitfield |= DumpOption::rom | DumpOption::romTrimmed;
+		if(sdMounted || flashcardMounted) {
+			allowedOptions.push_back(DumpOption::allTrimmed);
+			allowedOptions.push_back(DumpOption::rom);
+			allowedOptions.push_back(DumpOption::romTrimmed);
+			allowedBitfield |= DumpOption::rom | DumpOption::romTrimmed;
+		}
 
 		nandSave = cardNandGetSaveSize() != 0;
 
-		if(spiSave || nandSave) {
+		if((spiSave && cardEepromGetSizeFixed() <= (1 << 20)) || (nandSave && (sdMounted || flashcardMounted))) {
 			allowedOptions.push_back(DumpOption::save);
 			allowedBitfield |= DumpOption::save;
 		}
 	}
-	allowedOptions.push_back(DumpOption::metadata);
+	if(sdMounted || flashcardMounted) {
+		allowedBitfield |= DumpOption::metadata;
+		allowedOptions.push_back(DumpOption::metadata);
+	}
 
 	tonccpy(gameTitle, ndsCardHeader.gameTitle, 12);
 	tonccpy(gameCode, ndsCardHeader.gameCode, 6);
@@ -615,7 +822,7 @@ void ndsCardDump(void) {
 		strcat(fileName, "_trim");
 
 	// Ensure directories exist
-	if((dumpOption & allowedBitfield) != DumpOption::none) {
+	if((dumpOption & allowedBitfield) != DumpOption::none && (sdMounted || flashcardMounted)) {
 		char folderPath[2][256];
 		sprintf(folderPath[0], "%s:/gm9i", (sdMounted ? "sd" : "fat"));
 		sprintf(folderPath[1], "%s:/gm9i/out", (sdMounted ? "sd" : "fat"));
@@ -686,7 +893,7 @@ void ndsCardDump(void) {
 	if ((dumpOption & allowedBitfield) & DumpOption::save) {
 		char destPath[256];
 		sprintf(destPath, "%s:/gm9i/out/%s.sav", (sdMounted ? "sd" : "fat"), fileName);
-		ndsCardSaveDump(destPath);
+		ndsCardSaveDump((sdMounted || flashcardMounted) ? destPath : fileName);
 	}
 
 	// Dump metadata
@@ -834,6 +1041,15 @@ void gbaCartDump(void) {
 	if(saveType != saveTypeGBA::SAVE_GBA_NONE) {
 		allowedOptions.push_back(DumpOption::save);
 		allowedBitfield |= DumpOption::save;
+
+		u32 size = gbaGetSaveSize(saveType);
+		u8 *buffer = new u8[size];
+		gbaReadSave(buffer, 0, size, saveType);
+		if(memcmp(buffer, "9i", 3) == 0) {
+			allowedOptions.push_back(DumpOption::ndsSave);
+			allowedBitfield |= DumpOption::ndsSave;
+		}
+		delete[] buffer;
 	}
 	allowedOptions.push_back(DumpOption::metadata);
 
@@ -988,6 +1204,11 @@ void gbaCartDump(void) {
 		char destPath[256];
 		sprintf(destPath, "fat:/gm9i/out/%s.sav", fileName);
 		gbaCartSaveDump(destPath);
+	}
+
+	// Dump NDS save previously saved to this cart
+	if ((dumpOption & allowedBitfield) & DumpOption::ndsSave) {
+		readFromGbaCart();
 	}
 
 	// Dump metadata

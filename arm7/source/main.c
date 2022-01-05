@@ -200,7 +200,7 @@ int main() {
 				case 0x44414552: // 'READ'
 					readEeprom((u8 *)fifoGetAddress(FIFO_USER_01), fifoGetValue32(FIFO_USER_01), fifoGetValue32(FIFO_USER_01));
 					break;
-				case 0x54495257: // 'WRITE'
+				case 0x54495257: // 'WRIT'
 					writeEeprom(fifoGetValue32(FIFO_USER_01), (u8 *)fifoGetAddress(FIFO_USER_01), fifoGetValue32(FIFO_USER_01));
 					break;
 			}

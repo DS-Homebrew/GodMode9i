@@ -60,8 +60,8 @@ bool flashcardMountSkipped = true;
 static bool flashcardMountRan = true;
 static int dmCursorPosition = 0;
 static std::vector<DriveMenuOperation> dmOperations;
-static char romTitle[13] = {0};
-static u32 romSize, romSizeTrimmed;
+static char romTitle[2][13] = {0};
+static u32 romSize[2], romSizeTrimmed;
 
 static u8 gbaFixedValue = 0;
 static u8 stored_SCFG_MC = 0;
@@ -111,10 +111,13 @@ void dm_drawTopScreen(void) {
 				font->print(-1, i + 1, true, "[R]", Alignment::right, pal);
 				break;
 			case DriveMenuOperation::gbaCart:
-				font->printf(0, i + 1, true, Alignment::left, pal, STR_GBA_GAMECART.c_str(), romTitle);
+				font->printf(0, i + 1, true, Alignment::left, pal, STR_GBA_GAMECART.c_str(), romTitle[1]);
 				break;
 			case DriveMenuOperation::ndsCard:
-				font->printf(0, i + 1, true, Alignment::left, pal, STR_NDS_GAMECARD.c_str(), romTitle);
+				if(romTitle[0][0] != 0)
+					font->printf(0, i + 1, true, Alignment::left, pal, STR_NDS_GAMECARD.c_str(), romTitle[0]);
+				else
+					font->print(0, i + 1, true, STR_NDS_GAMECARD_NO_TITLE, Alignment::left, pal);
 				break;
 			case DriveMenuOperation::none:
 				break;
@@ -165,16 +168,20 @@ void dm_drawBottomScreen(void) {
 			font->printf(0, 2, false, Alignment::left, Palette::white, STR_N_FREE.c_str(), getDriveBytes(getBytesFree("fat:/")).c_str());
 			break;
 		case DriveMenuOperation::gbaCart:
-			font->printf(0, 0, false, Alignment::left, Palette::white, STR_GBA_GAMECART.c_str(), romTitle);
-			font->printf(0, 1, false, Alignment::left, Palette::white, STR_GBA_GAME.c_str(), getBytes(romSize).c_str());
+			font->printf(0, 0, false, Alignment::left, Palette::white, STR_GBA_GAMECART.c_str(), romTitle[1]);
+			font->printf(0, 1, false, Alignment::left, Palette::white, STR_GBA_GAME.c_str(), getBytes(romSize[1]).c_str());
 			break;
 		case DriveMenuOperation::nitroFs:
 			font->print(0, 0, false, STR_NITROFS_LABEL);
 			font->print(0, 1, false, STR_GAME_VIRTUAL);
 			break;
 		case DriveMenuOperation::ndsCard:
-			font->printf(0, 0, false, Alignment::left, Palette::white, STR_NDS_GAMECARD.c_str(), romTitle);
-			font->printf(0, 1, false, Alignment::left, Palette::white, STR_NDS_GAME.c_str(), getBytes(romSize).c_str(), getBytes(romSizeTrimmed).c_str());
+			if(romTitle[0][0] != 0) {
+				font->printf(0, 0, false, Alignment::left, Palette::white, STR_NDS_GAMECARD.c_str(), romTitle[0]);
+				font->printf(0, 1, false, Alignment::left, Palette::white, STR_NDS_GAME.c_str(), getBytes(romSize[0]).c_str(), getBytes(romSizeTrimmed).c_str());
+			} else {
+				font->print(0, 0, false, STR_NDS_GAMECARD_NO_TITLE);
+			}
 			break;
 		case DriveMenuOperation::ramDrive:
 			font->print(0, 0, false, STR_RAMDRIVE_LABEL);
@@ -219,24 +226,13 @@ void driveMenu (void) {
 			dmOperations.push_back(DriveMenuOperation::fatImage);
 		if (nitroMounted)
 			dmOperations.push_back(DriveMenuOperation::nitroFs);
-		if ((io_dldi_data->ioInterface.features & FEATURE_SLOT_GBA)
-		|| (isDSiMode() && !arm7SCFGLocked && !(REG_SCFG_MC & BIT(0)))) {
-			dmOperations.push_back(DriveMenuOperation::ndsCard);
-			if(romTitle[0] == 0 && ((io_dldi_data->ioInterface.features & FEATURE_SLOT_GBA) || !flashcardMounted)) {
-				sNDSHeaderExt ndsHeader;
-				cardInit(&ndsHeader);
-				tonccpy(romTitle, ndsHeader.gameTitle, 12);
-				romSize = 0x20000 << ndsHeader.deviceSize;
-				romSizeTrimmed = (isDSiMode() && (ndsHeader.unitCode != 0) && (ndsHeader.twlRomSize > 0))
-										? ndsHeader.twlRomSize : ndsHeader.romSize + 0x88;
-			}
-		} else if (!isDSiMode() && isRegularDS && gbaFixedValue == 0x96) {
+		if (!isDSiMode() && isRegularDS && gbaFixedValue == 0x96) {
 			dmOperations.push_back(DriveMenuOperation::gbaCart);
-			if(romTitle[0] == 0) {
-				tonccpy(romTitle, (char*)0x080000A0, 12);
-				romSize = 0;
-				for (romSize = (1 << 20); romSize < (1 << 25); romSize <<= 1) {
-					vu16 *rompos = (vu16*)(0x08000000 + romSize);
+			if(romTitle[1][0] == 0) {
+				tonccpy(romTitle[1], (char*)0x080000A0, 12);
+				romSize[1] = 0;
+				for (romSize[1] = (1 << 20); romSize[1] < (1 << 25); romSize[1] <<= 1) {
+					vu16 *rompos = (vu16*)(0x08000000 + romSize[1]);
 					bool romend = true;
 					for (int j = 0; j < 0x1000; j++) {
 						if (rompos[j] != j) {
@@ -247,11 +243,25 @@ void driveMenu (void) {
 					if (romend)
 						break;
 				}
-				romSizeTrimmed = romSize;
 			}
-		} else if (romTitle[0] != 0) {
-			romTitle[0] = 0;
-			romSizeTrimmed = romSize = 0;
+		} else if (romTitle[1][0] != 0) {
+			romTitle[1][0] = 0;
+			romSize[1] = 0;
+		}
+		if (((io_dldi_data->ioInterface.features & FEATURE_SLOT_GBA) || (isRegularDS && !flashcardMounted && romTitle[1][0] != 0))
+		|| (isDSiMode() && !arm7SCFGLocked && !(REG_SCFG_MC & BIT(0)))) {
+			dmOperations.push_back(DriveMenuOperation::ndsCard);
+			if(romTitle[0][0] == 0 && ((io_dldi_data->ioInterface.features & FEATURE_SLOT_GBA) || !flashcardMounted) && !isRegularDS) {
+				sNDSHeaderExt ndsHeader;
+				cardInit(&ndsHeader);
+				tonccpy(romTitle[0], ndsHeader.gameTitle, 12);
+				romSize[0] = 0x20000 << ndsHeader.deviceSize;
+				romSizeTrimmed = (isDSiMode() && (ndsHeader.unitCode != 0) && (ndsHeader.twlRomSize > 0))
+										? ndsHeader.twlRomSize : ndsHeader.romSize + 0x88;
+			}
+		} else if (romTitle[0][0] != 0) {
+			romTitle[0][0] = 0;
+			romSizeTrimmed = romSize[0] = 0;
 		}
 
 		if(dmCursorPosition >= (int)dmOperations.size())
@@ -339,7 +349,7 @@ void driveMenu (void) {
 					screenMode = 1;
 					break;
 				}
-			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::ndsCard && (sdMounted || flashcardMounted)) {
+			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::ndsCard && (sdMounted || flashcardMounted || romTitle[1][0] != 0)) {
 				ndsCardDump();
 			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::ramDrive && ramdriveMounted) {
 				currentDrive = Drive::ramDrive;
