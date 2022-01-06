@@ -68,7 +68,7 @@ u32 fntOffset;   //offset to start of filename table
 u32 fatOffset;   //offset to start of file alloc table
 bool hasLoader;  //single global nds filehandle (is null if not in dldi/fat mode)
 u16 chdirpathid; //default dir path id...
-FILE *ndsFile;
+FILE *ndsFile = NULL;
 off_t ndsFileLastpos; //Used to determine need to fseek or not
 
 devoptab_t nitroFSdevoptab = {
@@ -136,7 +136,10 @@ nitroFSInit(const char *ndsfile)
     char romstr[0x10];
     chdirpathid = NITROROOT;
     ndsFileLastpos = 0;
-    ndsFile = NULL;
+    if(ndsFile != NULL) {
+        fclose(ndsFile);
+        ndsFile = NULL;
+    }
     if (ndsfile != NULL)
     {
         if ((ndsFile = fopen(ndsfile, "rb")))
