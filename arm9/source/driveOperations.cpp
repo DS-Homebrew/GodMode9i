@@ -413,7 +413,6 @@ void nitroUnmount(void) {
 		imgUnmount();
 
 	ownNitroFSMounted = 2;
-	fatUnmount("nitro");
 	nitroMounted = false;
 }
 
