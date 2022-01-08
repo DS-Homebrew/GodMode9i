@@ -60,8 +60,8 @@ bool flashcardMountSkipped = true;
 static bool flashcardMountRan = true;
 static int dmCursorPosition = 0;
 static std::vector<DriveMenuOperation> dmOperations;
-static char romTitle[2][13] = {0};
-static u32 romSize[2], romSizeTrimmed;
+char romTitle[2][13] = {0};
+u32 romSize[2], romSizeTrimmed;
 
 static u8 gbaFixedValue = 0;
 static u8 stored_SCFG_MC = 0;

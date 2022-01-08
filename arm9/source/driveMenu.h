@@ -5,6 +5,8 @@
 #include <vector>
 
 extern bool flashcardMountSkipped;
+extern char romTitle[2][13];
+extern u32 romSize[2], romSizeTrimmed;
 
 extern void driveMenu (void);
 

@@ -70,6 +70,22 @@ void stop (void) {
 	}
 }
 
+//---------------------------------------------------------------------------------
+void vblankHandler (void) {
+//---------------------------------------------------------------------------------
+	// Check if NDS cart ejected
+	if(isDSiMode() && (REG_SCFG_MC & BIT(0)) && romTitle[0][0] != '\0') {
+		romTitle[0][0] = '\0';
+		romSizeTrimmed = romSize[0] = 0;
+	}
+
+	// Check if GBA cart ejected
+	if(isRegularDS && *(u8*)(0x080000B2) != 0x96 && romTitle[1][0] != '\0') {
+		romTitle[1][0] = '\0';
+		romSize[1] = 0;
+	}
+}
+
 char filePath[PATH_MAX];
 
 //---------------------------------------------------------------------------------
@@ -222,6 +238,9 @@ int main(int argc, char **argv) {
 	langInit(false);
 
 	keysSetRepeat(25,5);
+
+	// Enable vblank handler
+	irqSet(IRQ_VBLANK, vblankHandler);
 
 	appInited = true;
 
