@@ -408,6 +408,17 @@ void ramdriveMount(bool ram32MB) {
 	}
 }
 
+void ramdriveUnmount(void) {
+	if(imgMounted && imgCurrentDrive == Drive::ramDrive)
+		imgUnmount();
+	if(nitroMounted && nitroCurrentDrive == Drive::ramDrive)
+		nitroUnmount();
+
+	fatUnmount("ram");
+	ramdSize = 0;
+	ramdriveMounted = false;
+}
+
 void nitroUnmount(void) {
 	if(imgMounted && imgCurrentDrive == Drive::nitroFS)
 		imgUnmount();
@@ -470,7 +481,7 @@ bool driveRemoved(Drive drive) {
 		case Drive::flashcard:
 			return isDSiMode() ? REG_SCFG_MC & BIT(0) : !flashcardMounted;
 		case Drive::ramDrive:
-			return !ramdriveMounted;
+			return (isDSiMode() || REG_SCFG_EXT != 0) ? !ramdriveMounted : !(*(u16*)(0x020000C0) != 0 || *(vu16*)(0x08240000) == 1);
 		case Drive::nand:
 			return !nandMounted;
 		case Drive::nitroFS:

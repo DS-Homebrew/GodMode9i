@@ -31,6 +31,7 @@
 
 #include "nds_loader_arm9.h"
 #include "config.h"
+#include "date.h"
 #include "driveMenu.h"
 #include "driveOperations.h"
 #include "file_browse.h"
@@ -57,6 +58,7 @@ bool arm7SCFGLocked = false;
 bool isRegularDS = true;
 bool is3DS = false;
 int ownNitroFSMounted;
+std::string prevTime;
 
 bool applaunch = false;
 
@@ -67,6 +69,32 @@ void stop (void) {
 //---------------------------------------------------------------------------------
 	while (1) {
 		swiWaitForVBlank();
+	}
+}
+
+//---------------------------------------------------------------------------------
+void vblankHandler (void) {
+//---------------------------------------------------------------------------------
+	// Check if NDS cart ejected
+	if(isDSiMode() && (REG_SCFG_MC & BIT(0)) && romTitle[0][0] != '\0') {
+		romTitle[0][0] = '\0';
+		romSizeTrimmed = romSize[0] = 0;
+	}
+
+	// Check if GBA cart ejected
+	if(isRegularDS && *(u8*)(0x080000B2) != 0x96 && romTitle[1][0] != '\0') {
+		romTitle[1][0] = '\0';
+		romSize[1] = 0;
+	}
+
+	// Print time
+	std::string time = RetTime();
+	if(time != prevTime) {
+		prevTime = time;
+		if(font) {
+			font->print(-1, 0, true, time, Alignment::right, Palette::blackGreen);
+			font->update(true);
+		}
 	}
 }
 
@@ -222,6 +250,12 @@ int main(int argc, char **argv) {
 	langInit(false);
 
 	keysSetRepeat(25,5);
+
+	// Top bar
+	font->printf(0, 0, true, Alignment::left, Palette::blackGreen, "%*c", 256 / font->width(), ' ');
+
+	// Enable vblank handler
+	irqSet(IRQ_VBLANK, vblankHandler);
 
 	appInited = true;
 

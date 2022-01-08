@@ -50,6 +50,7 @@ extern void sdUnmount(void);
 extern bool flashcardMount(void);
 extern void flashcardUnmount(void);
 extern void ramdriveMount(bool ram32MB);
+extern void ramdriveUnmount(void);
 extern void nitroUnmount(void);
 extern bool imgMount(const char* imgName, bool dsiwareSave);
 extern void imgUnmount(void);

@@ -5,7 +5,6 @@
 #include <dirent.h>
 #include <vector>
 
-#include "date.h"
 #include "file_browse.h"
 #include "font.h"
 #include "ndsheaderbanner.h"
@@ -197,10 +196,6 @@ int fcopy(const char *sourcePath, const char *destinationPath) {
 				break;
 			}
 
-			// Print time
-			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-			font->update(true);
-
 			font->print((offset / (fsize / (SCREEN_COLS - 2))) + 1, 1, false, "=");
 			font->printf(0, 2, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), (int)offset, (int)fsize);
 			font->update(false);
@@ -257,10 +252,6 @@ void changeFileAttribs(const DirEntry *entry) {
 
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
-			// Print time
-			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-			font->update(true);
-
 			scanKeys();
 			held = keysHeld();
 			pressed = keysDown();

@@ -1,10 +1,10 @@
 #include "screenshot.h"
 
 #include "bmp.h"
+#include "date.h"
 #include "driveOperations.h"
 #include "file_browse.h"
 #include "font.h"
-#include "date.h"
 
 #include <dirent.h>
 #include <fat.h>

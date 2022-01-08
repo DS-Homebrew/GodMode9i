@@ -1,6 +1,5 @@
 #include "ndsInfo.h"
 
-#include "date.h"
 #include "font.h"
 #include "language.h"
 #include "screenshot.h"
@@ -93,10 +92,6 @@ void ndsInfo(const char *path) {
 			scanKeys();
 			pressed = keysDown();
 			held = keysDownRepeat();
-
-			// Print time
-			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-			font->update(true);
 
 			if(iconAnimation[animationFrame] && animationFrame < 0x40) {
 				if(frameDelay < (iconAnimation[animationFrame] & 0xFF) - 1) {
