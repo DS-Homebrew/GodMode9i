@@ -26,11 +26,11 @@
 #include <vector>
 
 struct DirEntry {
-	DirEntry(std::string name, size_t size, bool isDirectory, bool isApp, bool selected = false) : name(name), size(size), isDirectory(isDirectory), isApp(isApp), selected(selected) {}
+	DirEntry(std::string name, off_t size, bool isDirectory, bool isApp, bool selected = false) : name(name), size(size), isDirectory(isDirectory), isApp(isApp), selected(selected) {}
 	DirEntry() {}
 
 	std::string name;
-	int size;
+	off_t size;
 	bool isDirectory;
 	bool isApp;
 	bool selected = false;
