@@ -215,9 +215,17 @@ int main(int argc, char **argv) {
 	}
 
 	// Try to init NitroFS
+	char nandPath[64] = {0};
+	char sdnandPath[64] = {0};
+	if(isDSiMode()) {
+		sprintf(nandPath, "nand:/title/%08x/%08x/content/000000%02x.app", *(unsigned int*)0x02FFE234, *(unsigned int*)0x02FFE230, *(u8*)0x02FFE01E);
+		sprintf(sdnandPath, "sd:/title/%08x/%08x/content/000000%02x.app", *(unsigned int*)0x02FFE234, *(unsigned int*)0x02FFE230, *(u8*)0x02FFE01E);
+	}
 	ownNitroFSMounted = 0;
 	nitroMounted = true;
 	if (argc > 0 && nitroFSInit(argv[0])) nitroCurrentDrive = argv[0][0] == 's' ? Drive::sdCard : Drive::flashcard;
+	else if (nandPath[0] && nitroFSInit(nandPath)) nitroCurrentDrive = Drive::nand;
+	else if (sdnandPath[0] && nitroFSInit(sdnandPath)) nitroCurrentDrive = Drive::sdCard;
 	else if (nitroFSInit("sd:/GodMode9i.nds")) nitroCurrentDrive = Drive::sdCard;
 	else if (nitroFSInit("sd:/GodMode9i.dsi")) nitroCurrentDrive = Drive::sdCard;
 	else if (nitroFSInit("fat:/GodMode9i.nds")) nitroCurrentDrive = Drive::flashcard;
