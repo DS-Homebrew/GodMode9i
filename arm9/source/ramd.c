@@ -20,7 +20,7 @@ const u16 bootSectorSignature = 0xAA55;
 
 bool ramd_startup() {
 	if(isDSiMode() || REG_SCFG_EXT != 0) {
-		ramdLoc = (u8*)calloc(0x6000 * SECTOR_SIZE, 1);
+		ramdLoc = (u8*)malloc(0x6000 * SECTOR_SIZE);
 	} else {
 		ramdLoc = (u8*)calloc(0x8 * SECTOR_SIZE, 1);
 		toncset(ramdLocMep, 0, (ramdSectors - 0x8) * SECTOR_SIZE); // Fill MEP with 00 to avoid displaying weird files
