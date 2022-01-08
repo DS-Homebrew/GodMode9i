@@ -1,6 +1,5 @@
 #include "hexEditor.h"
 
-#include "date.h"
 #include "file_browse.h"
 #include "font.h"
 #include "keyboard.h"
@@ -31,10 +30,6 @@ u32 jumpToOffset(u32 offset) {
 			scanKeys();
 			pressed = keysDown();
 			held = keysDownRepeat();
-
-			// Print time
-			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-			font->update(true);
 		} while(!held);
 
 		if(held & KEY_UP) {
@@ -72,10 +67,6 @@ u32 search(u32 offset, FILE *file) {
 			scanKeys();
 			pressed = keysDown();
 			held = keysDownRepeat();
-
-			// Print time
-			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-			font->update(true);
 		} while(!held);
 
 		if(held & (KEY_UP | KEY_DOWN)) {
@@ -115,10 +106,6 @@ u32 search(u32 offset, FILE *file) {
 				scanKeys();
 				pressed = keysDown();
 				held = keysDownRepeat();
-
-				// Print time
-				font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-				font->update(true);
 			} while(!held);
 
 			if(held & KEY_UP) {
@@ -207,10 +194,6 @@ u32 search(u32 offset, FILE *file) {
 	do {
 		swiWaitForVBlank();
 		scanKeys();
-
-		// Print time
-		font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-		font->update(true);
 	} while(!keysDown());
 
 	return offset;
@@ -284,10 +267,6 @@ void hexEditor(const char *path, Drive drive) {
 			scanKeys();
 			pressed = keysDown();
 			held = keysDownRepeat();
-
-			// Print time
-			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-			font->update(true);
 
 			if(driveRemoved(currentDrive))
 				return;

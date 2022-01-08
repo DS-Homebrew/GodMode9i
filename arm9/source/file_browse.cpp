@@ -287,10 +287,6 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
-			// Print time
-			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-			font->update(true);
-
 			scanKeys();
 			pressed = keysDownRepeat();
 			held = keysHeld();
@@ -450,10 +446,6 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 					int pressed;
 					do {
-						// Print time
-						font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-						font->update(true);
-
 						scanKeys();
 						pressed = keysDownRepeat();
 						swiWaitForVBlank();
@@ -514,10 +506,6 @@ bool fileBrowse_paste(char dest[256]) {
 
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
-			// Print time
-			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-			font->update(true);
-
 			scanKeys();
 			pressed = keysDownRepeat();
 			swiWaitForVBlank();
@@ -660,10 +648,6 @@ std::string browseForFile (void) {
 
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
-			// Print time
-			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-			font->update(true);
-
 			scanKeys();
 			pressed = keysDownRepeat();
 			held = keysHeld();
@@ -768,10 +752,6 @@ std::string browseForFile (void) {
 
 		// Rename file/folder
 		if ((held & KEY_R) && (pressed & KEY_X) && (entry->name != ".." && driveWritable(currentDrive))) {
-			// Clear time
-			font->print(-1, 0, true, "     ", Alignment::right, Palette::blackGreen);
-			font->update(true);
-
 			pressed = 0;
 
 			std::string newName = kbdGetString(STR_RENAME_TO, -1, entry->name);
@@ -819,10 +799,6 @@ std::string browseForFile (void) {
 			font->update(false);
 
 			while (true) {
-				// Print time
-				font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-				font->update(true);
-
 				scanKeys();
 				pressed = keysDownRepeat();
 				swiWaitForVBlank();
@@ -851,10 +827,6 @@ std::string browseForFile (void) {
 						pressed = 0;
 
 						while (!(pressed & KEY_A)) {
-							// Print time
-							font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-							font->update(true);
-
 							scanKeys();
 							pressed = keysDown();
 							swiWaitForVBlank();
@@ -887,10 +859,6 @@ std::string browseForFile (void) {
 
 		// Create new folder
 		if ((held & KEY_R) && (pressed & KEY_Y) && driveWritable(currentDrive)) {
-			// Clear time
-			font->print(-1, 0, true, "     ", Alignment::right, Palette::blackGreen);
-			font->update(true);
-
 			pressed = 0;
 
 			std::string newName = kbdGetString(STR_NAME_FOR_NEW_FOLDER);
@@ -923,10 +891,6 @@ std::string browseForFile (void) {
 			entry->selected = select;
 			while(held & KEY_L) {
 				do {
-					// Print time
-					font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-					font->update(true);
-
 					scanKeys();
 					pressed = keysDownRepeat();
 					held = keysHeld();

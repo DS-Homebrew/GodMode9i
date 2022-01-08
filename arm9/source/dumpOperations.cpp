@@ -93,10 +93,6 @@ DumpOption dumpMenu(std::vector<DumpOption> allowedOptions, const char *dumpName
 
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
-			// Print time
-			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-			font->update(true);
-
 			scanKeys();
 			pressed = keysDownRepeat();
 			held = keysHeld();
@@ -147,10 +143,6 @@ void dumpFailMsg(std::string_view msg) {
 
 	u16 pressed;
 	do {
-		// Print time
-		font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-		font->update(true);
-
 		scanKeys();
 		pressed = keysDown();
 		swiWaitForVBlank();
@@ -331,10 +323,6 @@ bool writeToGbaSave(const char* fileName, u8* buffer, u32 size) {
 
 		u16 pressed;
 		do {
-			// Print time
-			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-			font->update(true);
-
 			swiWaitForVBlank();
 			scanKeys();
 			pressed = keysDownRepeat();
@@ -448,10 +436,6 @@ bool readFromGbaCart() {
 
 			if(*(u8*)(0x080000B2) == 0x96) {
 				while(*(u8*)(0x080000B2) == 0x96) {
-					// Print time
-					font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-					font->update(true);
-
 					swiWaitForVBlank();
 					scanKeys();
 
@@ -462,10 +446,6 @@ bool readFromGbaCart() {
 				}
 			}
 			while(*(u8*)(0x080000B2) != 0x96) {
-				// Print time
-				font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-				font->update(true);
-
 				swiWaitForVBlank();
 				scanKeys();
 
@@ -519,10 +499,6 @@ void ndsCardSaveDump(const char* filename) {
 			font->print(0, 5, false, "[");
 			font->print(-1, 5, false, "]");
 			for (u32 src = 0; src < saveSize; src += 0x8000) {
-				// Print time
-				font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-				font->update(true);
-
 				font->print((src / (saveSize / (SCREEN_COLS - 2))) + 1, 5, false, "=");
 				font->printf(0, 6, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), src, saveSize);
 				font->update(false);
@@ -584,10 +560,6 @@ void ndsCardSaveRestore(const char *filename) {
 	// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 	u16 pressed;
 	do {
-		// Print time
-		font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-		font->update(true);
-
 		scanKeys();
 		pressed = keysDown();
 		swiWaitForVBlank();
@@ -627,10 +599,6 @@ void ndsCardSaveRestore(const char *filename) {
 				font->print(0, 5, false, "[");
 				font->print(-1, 5, false, "]");
 				for (u32 dest = 0; dest < saveSize; dest += 0x8000) {
-					// Print time
-					font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-					font->update(true);
-
 					font->print((dest / (saveSize / (SCREEN_COLS - 2))) + 1, 5, false, "=");
 					font->printf(0, 6, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), dest, saveSize);
 					font->update(false);
@@ -671,10 +639,6 @@ void ndsCardSaveRestore(const char *filename) {
 
 					// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 					do {
-						// Print time
-						font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-						font->update(true);
-
 						scanKeys();
 						pressed = keysDown();
 						swiWaitForVBlank();
@@ -785,10 +749,6 @@ void ndsCardDump(void) {
 		font->update(false);
 
 		while (true) {
-			// Print time
-			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-			font->update(true);
-
 			scanKeys();
 			pressed = keysDownRepeat();
 			swiWaitForVBlank();
@@ -910,10 +870,6 @@ void ndsCardDump(void) {
 			font->print(0, 5, false, "[");
 			font->print(-1, 5, false, "]");
 			for (u32 src = 0; src < romSize; src += 0x8000) {
-				// Print time
-				font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-				font->update(true);
-
 				font->print((src / (romSize / (SCREEN_COLS - 2))) + 1, 5, false, "=");
 				font->printf(0, 6, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), src, romSize);
 				font->update(false);
@@ -1003,10 +959,6 @@ void gbaCartSaveRestore(const char *filename) {
 	// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 	u16 pressed;
 	do {
-		// Print time
-		font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-		font->update(true);
-
 		scanKeys();
 		pressed = keysDownRepeat();
 		swiWaitForVBlank();
@@ -1187,10 +1139,6 @@ void gbaCartDump(void) {
 			font->print(0, 5, false, "[");
 			font->print(-1, 5, false, "]");
 			for (u32 src = 0; src < romSize; src += 0x8000) {
-				// Print time
-				font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-				font->update(true);
-
 				font->print((src / (romSize / (SCREEN_COLS - 2))) + 1, 5, false, "=");
 				font->printf(0, 6, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), src, romSize);
 				font->update(false);
@@ -1219,10 +1167,6 @@ void gbaCartDump(void) {
 				font->print(0, 5, false, "[");
 				font->print(-1, 5, false, "]");
 				for (size_t i = 0x02000000; i < 0x04000000; i += 0x1000) {
-					// Print time
-					font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-					font->update(true);
-
 					font->print((i / (0x04000000 / (SCREEN_COLS - 2))) + 1, 5, false, "=");
 					font->printf(0, 7, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), i - 0x02000000, 0x04000000 - 0x02000000);
 					font->update(false);

@@ -274,10 +274,6 @@ void driveMenu (void) {
 
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
-			// Print time
-			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-			font->update(true);
-	
 			scanKeys();
 			pressed = keysDownRepeat();
 			held = keysHeld();

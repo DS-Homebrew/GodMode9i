@@ -1,5 +1,4 @@
 #include "keyboard.h"
-#include "date.h"
 #include "font.h"
 #include "language.h"
 
@@ -31,10 +30,6 @@ std::string kbdGetString(std::string label, int maxSize, std::string oldStr) {
 		font->update(false);
 
 		do {
-			// Print time
-			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-			font->update(true);
-
 			scanKeys();
 			pressed = keysDownRepeat();
 			key = keyboardUpdate();

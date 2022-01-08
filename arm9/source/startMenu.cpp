@@ -1,7 +1,6 @@
 #include "startMenu.h"
 
 #include "config.h"
-#include "date.h"
 #include "font.h"
 #include "language.h"
 #include "main.h"
@@ -111,10 +110,6 @@ void languageMenu() {
 		font->update(false);
 
 		do {
-			// Print time
-			font->print(-1, 0, true, RetTime(), Alignment::right, Palette::blackGreen);
-			font->update(true);
-
 			scanKeys();
 			swiWaitForVBlank();
 		} while (!(keysDownRepeat() & KEY_A));
