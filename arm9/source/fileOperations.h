@@ -19,7 +19,7 @@ extern std::vector<ClipboardFile> clipboard;
 extern bool clipboardOn;
 extern bool clipboardUsed;
 
-extern std::string getBytes(int bytes);
+extern std::string getBytes(off_t bytes);
 
 extern off_t getFileSize(const char *fileName);
 extern bool calculateSHA1(const char *fileName, u8 *sha1);

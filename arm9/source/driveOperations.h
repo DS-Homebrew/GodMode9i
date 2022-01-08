@@ -34,7 +34,6 @@ extern u64 sdSize;
 extern u64 fatSize;
 extern u64 imgSize;
 extern u32 ramdSize;
-extern std::string getDriveBytes(u64 bytes);
 
 extern const char* getDrivePath(void);
 

@@ -21,7 +21,23 @@ std::vector<ClipboardFile> clipboard;
 bool clipboardOn = false;
 bool clipboardUsed = true;
 
-std::string getBytes(int bytes) {
+static float getGbNumber(u64 bytes) {
+	float gbNumber = 0.0f;
+	for (u64 i = 0; i <= bytes; i += 0x6666666) {
+		gbNumber += 0.1f;
+	}
+	return gbNumber;
+}
+
+static float getTbNumber(u64 bytes) {
+	float tbNumber = 0.0f;
+	for (u64 i = 0; i <= bytes; i += 0x1999999999) {
+		tbNumber += 0.01f;
+	}
+	return tbNumber;
+}
+
+std::string getBytes(off_t bytes) {
 	char buffer[32];
 	if (bytes == 1)
 		sniprintf(buffer, sizeof(buffer), STR_1_BYTE.c_str());
@@ -35,23 +51,19 @@ std::string getBytes(int bytes) {
 	else if (bytes < (1024 * 1024 * 1024))
 		sniprintf(buffer, sizeof(buffer), STR_N_MB.c_str(), bytes >> 20);
 
+	else if (bytes < 0x10000000000)
+		snprintf(buffer, sizeof(buffer), STR_N_GB_FLOAT.c_str(), getGbNumber(bytes));
+
 	else
-		sniprintf(buffer, sizeof(buffer), STR_N_GB.c_str(), bytes >> 30);
+		snprintf(buffer, sizeof(buffer), STR_N_TB_FLOAT.c_str(), getTbNumber(bytes));
 
 	return buffer;
 }
 
 off_t getFileSize(const char *fileName) {
-	FILE* fp = fopen(fileName, "rb");
-	off_t fsize = 0;
-	if (fp) {
-		fseek(fp, 0, SEEK_END);
-		fsize = ftell(fp);			// Get source file's size
-		fseek(fp, 0, SEEK_SET);
-		fclose(fp);
-	}
-
-	return fsize;
+	struct stat st;
+	stat(fileName, &st);
+	return st.st_size;
 }
 
 bool calculateSHA1(const char *fileName, u8 *sha1) {

@@ -50,40 +50,6 @@ u64 fatSize = 0;
 u64 imgSize = 0;
 u32 ramdSize = 0;
 
-static float getGbNumber(u64 bytes) {
-	float gbNumber = 0.0f;
-	for (u64 i = 0; i <= bytes; i += 0x6666666) {
-		gbNumber += 0.1f;
-	}
-	return gbNumber;
-}
-
-static float getTbNumber(u64 bytes) {
-	float tbNumber = 0.0f;
-	for (u64 i = 0; i <= bytes; i += 0x1999999999) {
-		tbNumber += 0.01f;
-	}
-	return tbNumber;
-}
-
-std::string getDriveBytes(u64 bytes)
-{
-	char buffer[32];
-	if (bytes < (1024 * 1024))
-		sniprintf(buffer, sizeof(buffer), STR_N_KB.c_str(), (int)bytes >> 10);
-
-	else if (bytes >= (1024 * 1024) && bytes < (1024 * 1024 * 1024))
-		sniprintf(buffer, sizeof(buffer), STR_N_MB.c_str(), (int)bytes >> 20);
-
-	else if (bytes >= 0x40000000 && bytes < 0x10000000000)
-		snprintf(buffer, sizeof(buffer), STR_N_GB_FLOAT.c_str(), getGbNumber(bytes));
-
-	else
-		snprintf(buffer, sizeof(buffer), STR_N_TB_FLOAT.c_str(), getTbNumber(bytes));
-
-	return buffer;
-}
-
 const char* getDrivePath(void) {
 	switch (currentDrive) {
 		case Drive::sdCard:
