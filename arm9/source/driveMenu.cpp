@@ -287,6 +287,12 @@ void driveMenu (void) {
 				if (*(u8*)(0x080000B2) != gbaFixedValue) {
 					break;
 				}
+				if(driveRemoved(Drive::ramDrive)) {
+					currentDrive = Drive::ramDrive;
+					chdir("ram:/");
+					ramdriveUnmount();
+					break;
+				}
 			} else if (isDSiMode()) {
 				if ((REG_SCFG_MC != stored_SCFG_MC) || (flashcardMounted && driveRemoved(Drive::flashcard))) {
 					break;
