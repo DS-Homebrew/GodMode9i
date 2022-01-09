@@ -131,7 +131,7 @@ void dumpTitle(TitleInfo &title) {
 			// Dump to /gm9i/out
 			char path[64];
 			if(selectedOption & TitleDumpOption::rom) {
-				snprintf(path, sizeof(path), "%s:/gm9i/out/%s.app", sdMounted ? "sd" : "fat", dumpName);
+				snprintf(path, sizeof(path), "%s:/gm9i/out/%s.nds", sdMounted ? "sd" : "fat", dumpName);
 				fcopy(title.appPath.c_str(), path);
 			}
 
