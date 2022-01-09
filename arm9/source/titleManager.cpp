@@ -13,16 +13,15 @@
 #include <vector>
 
 struct TitleInfo {
-	TitleInfo(std::string appPath, std::string pubPath, std::string prvPath, const char *gameTitle, const char *gameCode, u8 romVersion, std::u16string bannerTitle) : appPath(appPath), pubPath(pubPath), prvPath(prvPath), romVersion(romVersion), bannerTitle(bannerTitle) {
+	TitleInfo(std::string path, const char *gameTitle, const char *gameCode, u8 appVersion, u8 romVersion, std::u16string bannerTitle) : path(path), appVersion(appVersion), romVersion(romVersion), bannerTitle(bannerTitle) {
 		strcpy(this->gameTitle, gameTitle);
 		strcpy(this->gameCode, gameCode);
 	}
 
-	std::string appPath;
-	std::string pubPath;
-	std::string prvPath;
+	std::string path;
 	char gameTitle[13];
-	char gameCode[5];
+	char gameCode[7];
+	u8 appVersion;
 	u8 romVersion;
 	std::u16string bannerTitle;
 };
@@ -32,7 +31,8 @@ enum TitleDumpOption {
 	rom = 1,
 	publicSave = 4,
 	privateSave = 8,
-	all = rom | publicSave | privateSave
+	tmd = 16,
+	all = rom | publicSave | privateSave | tmd
 };
 
 void dumpTitle(TitleInfo &title) {
@@ -40,10 +40,16 @@ void dumpTitle(TitleInfo &title) {
 	int optionOffset = 0;
 
 	std::vector<TitleDumpOption> allowedOptions({TitleDumpOption::all, TitleDumpOption::rom});
-	if(title.pubPath.length() > 0)
+	u8 allowedBitfield = TitleDumpOption::rom | TitleDumpOption::tmd;
+	if(access((title.path + "/data/public.sav").c_str(), F_OK) == 0) {
 		allowedOptions.push_back(TitleDumpOption::publicSave);
-	if(title.prvPath.length() > 0)
+		allowedBitfield |= TitleDumpOption::publicSave;
+	}
+	if(access((title.path + "/data/private.sav").c_str(), F_OK) == 0) {
 		allowedOptions.push_back(TitleDumpOption::privateSave);
+		allowedBitfield |= TitleDumpOption::privateSave;
+	}
+	allowedOptions.push_back(TitleDumpOption::tmd);
 
 	char dumpName[32];
 	snprintf(dumpName, sizeof(dumpName), "%s_%s_%02X", title.gameTitle, title.gameCode, title.romVersion);
@@ -72,6 +78,9 @@ void dumpTitle(TitleInfo &title) {
 					break;
 				case TitleDumpOption::privateSave:
 					font->print(3, row++, false, STR_DUMP_PRIVATE_SAVE);
+					break;
+				case TitleDumpOption::tmd:
+					font->print(3, row++, false, STR_DUMP_TMD);
 					break;
 				case TitleDumpOption::none:
 					row++;
@@ -130,20 +139,29 @@ void dumpTitle(TitleInfo &title) {
 			}
 
 			// Dump to /gm9i/out
-			char path[64];
-			if(selectedOption & TitleDumpOption::rom) {
-				snprintf(path, sizeof(path), "%s:/gm9i/out/%s.nds", sdMounted ? "sd" : "fat", dumpName);
-				fcopy(title.appPath.c_str(), path);
+			char inpath[64], outpath[64];
+			if((selectedOption & TitleDumpOption::rom) && (allowedBitfield & TitleDumpOption::rom)) {
+				snprintf(inpath, sizeof(inpath), "%s/content/000000%02x.app", title.path.c_str(), title.appVersion);
+				snprintf(outpath, sizeof(outpath), "%s:/gm9i/out/%s.nds", sdMounted ? "sd" : "fat", dumpName);
+				fcopy(inpath, outpath);
 			}
 
-			if((selectedOption & TitleDumpOption::publicSave) && title.pubPath.length() > 0) {
-				snprintf(path, sizeof(path), "%s:/gm9i/out/%s.pub", sdMounted ? "sd" : "fat", dumpName);
-				fcopy(title.pubPath.c_str(), path);
+			if((selectedOption & TitleDumpOption::publicSave) && (allowedBitfield & TitleDumpOption::publicSave)) {
+				snprintf(inpath, sizeof(inpath), "%s/data/public.sav", title.path.c_str());
+				snprintf(outpath, sizeof(outpath), "%s:/gm9i/out/%s.pub", sdMounted ? "sd" : "fat", dumpName);
+				fcopy(inpath, outpath);
 			}
 
-			if((selectedOption & TitleDumpOption::privateSave) && title.prvPath.length() > 0) {
-				snprintf(path, sizeof(path), "%s:/gm9i/out/%s.prv", sdMounted ? "sd" : "fat", dumpName);
-				fcopy(title.prvPath.c_str(), path);
+			if((selectedOption & TitleDumpOption::privateSave) && (allowedBitfield & TitleDumpOption::privateSave)) {
+				snprintf(inpath, sizeof(inpath), "%s/data/private.sav", title.path.c_str());
+				snprintf(outpath, sizeof(outpath), "%s:/gm9i/out/%s.prv", sdMounted ? "sd" : "fat", dumpName);
+				fcopy(inpath, outpath);
+			}
+
+			if((selectedOption & TitleDumpOption::tmd) && (allowedBitfield & TitleDumpOption::tmd)) {
+				snprintf(inpath, sizeof(inpath), "%s/content/title.tmd", title.path.c_str());
+				snprintf(outpath, sizeof(outpath), "%s:/gm9i/out/%s.tmd", sdMounted ? "sd" : "fat", dumpName);
+				fcopy(inpath, outpath);
 			}
 
 			return;
@@ -186,28 +204,27 @@ void titleManager() {
 				if(entry.name[0] == '.')
 					continue;
 
-				u8 version;
+				u8 appVersion;
 				snprintf(path, sizeof(path), "nand:/title/%08lx/%s/content/title.tmd", tidHigh, entry.name.c_str());
 				FILE *tmd = fopen(path, "rb");
 				if(tmd) {
 					fseek(tmd, 0x1E7, SEEK_SET);
-					fread(&version, sizeof(version), 1, tmd);
+					fread(&appVersion, sizeof(appVersion), 1, tmd);
 					fclose(tmd);
 
-					char gameTitle[13] = {0};
-					char gameCode[7] = {0};
-					u8 romVersion;
-					char16_t title[0x80];
-					char pubPath[64], prvPath[64];
-					snprintf(path, sizeof(path), "nand:/title/%08lx/%s/content/000000%02x.app", tidHigh, entry.name.c_str(), version);
+					snprintf(path, sizeof(path), "nand:/title/%08lx/%s/content/000000%02x.app", tidHigh, entry.name.c_str(), appVersion);
 					FILE *app = fopen(path, "rb");
 					if(app) {
+						char gameTitle[13] = {0};
+						char gameCode[7] = {0};
+						u8 romVersion;
 						fread(gameTitle, 1, 12, app);
 						fread(gameCode, 1, 6, app);
 						fseek(app, 12, SEEK_CUR);
 						fread(&romVersion, 1, 1, app);
 
 						u32 ofs;
+						char16_t title[0x80];
 						fseek(app, 0x68, SEEK_SET);
 						fread(&ofs, sizeof(u32), 1, app);
 						if(ofs >= 0x8000 && fseek(app, ofs, SEEK_SET) == 0) {
@@ -219,16 +236,8 @@ void titleManager() {
 
 						fclose(app);
 
-						// Check if saves exist
-						snprintf(pubPath, sizeof(pubPath), "nand:/title/%08lx/%s/data/public.sav", tidHigh, entry.name.c_str());
-						if(access(pubPath, F_OK) != 0)
-							pubPath[0] = '\0';
-						snprintf(prvPath, sizeof(prvPath), "nand:/title/%08lx/%s/data/private.sav", tidHigh, entry.name.c_str());
-						if(access(prvPath, F_OK) != 0)
-							prvPath[0] = '\0';
-
-						titles.emplace_back(path, pubPath, prvPath, gameTitle, gameCode, romVersion, title);
-
+						snprintf(path, sizeof(path), "nand:/title/%08lx/%s", tidHigh, entry.name.c_str());
+						titles.emplace_back(path, gameTitle, gameCode, appVersion, romVersion, title);
 					}
 				}
 			}
