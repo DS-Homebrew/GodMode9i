@@ -6,6 +6,7 @@
 #include "language.h"
 #include "screenshot.h"
 
+#include <algorithm>
 #include <dirent.h>
 #include <nds.h>
 #include <unistd.h>
@@ -235,6 +236,24 @@ void titleManager() {
 	}
 
 	chdir(oldPath);
+
+	// Sort alphabetically by banner title
+	std::sort(titles.begin(), titles.end(), [](TitleInfo lhs, TitleInfo rhs) {
+		for(size_t i = 0; i < lhs.bannerTitle.length(); i++) {
+			char16_t lchar = tolower(lhs.bannerTitle[i]);
+			char16_t rchar = tolower(rhs.bannerTitle[i]);
+			if(lchar == u'\0')
+				return true;
+			else if(rchar == u'\0')
+				return false;
+			else if(lchar < rchar)
+				return true;
+			else if(lchar > rchar)
+				return false;
+		}
+
+		return false;
+	});
 
 	u16 pressed = 0, held = 0;
 	int cursorPosition = 0, scrollOffset = 0;
