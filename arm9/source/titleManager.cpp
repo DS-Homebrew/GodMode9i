@@ -285,6 +285,12 @@ void titleManager() {
 			return;
 		}
 
+		// Scroll screen if needed
+		if (cursorPosition < scrollOffset)
+			scrollOffset = cursorPosition;
+		if (cursorPosition > scrollOffset + ENTRIES_PER_SCREEN - 1)
+			scrollOffset = cursorPosition - ENTRIES_PER_SCREEN + 1;
+
 #ifdef SCREENSWAP
 		// Swap screens
 		if (pressed & KEY_TOUCH) {
