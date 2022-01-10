@@ -31,8 +31,9 @@ enum TitleDumpOption {
 	rom = 1,
 	publicSave = 4,
 	privateSave = 8,
-	tmd = 16,
-	all = rom | publicSave | privateSave | tmd
+	bannerSave = 16,
+	tmd = 32,
+	all = rom | publicSave | privateSave | bannerSave | tmd
 };
 
 void dumpTitle(TitleInfo &title) {
@@ -48,6 +49,10 @@ void dumpTitle(TitleInfo &title) {
 	if(access((title.path + "/data/private.sav").c_str(), F_OK) == 0) {
 		allowedOptions.push_back(TitleDumpOption::privateSave);
 		allowedBitfield |= TitleDumpOption::privateSave;
+	}
+	if(access((title.path + "/data/banner.sav").c_str(), F_OK) == 0) {
+		allowedOptions.push_back(TitleDumpOption::bannerSave);
+		allowedBitfield |= TitleDumpOption::bannerSave;
 	}
 	allowedOptions.push_back(TitleDumpOption::tmd);
 
@@ -78,6 +83,9 @@ void dumpTitle(TitleInfo &title) {
 					break;
 				case TitleDumpOption::privateSave:
 					font->print(3, row++, false, STR_DUMP_PRIVATE_SAVE);
+					break;
+				case TitleDumpOption::bannerSave:
+					font->print(3, row++, false, STR_DUMP_BANNER_SAVE);
 					break;
 				case TitleDumpOption::tmd:
 					font->print(3, row++, false, STR_DUMP_TMD);
@@ -155,6 +163,12 @@ void dumpTitle(TitleInfo &title) {
 			if((selectedOption & TitleDumpOption::privateSave) && (allowedBitfield & TitleDumpOption::privateSave)) {
 				snprintf(inpath, sizeof(inpath), "%s/data/private.sav", title.path.c_str());
 				snprintf(outpath, sizeof(outpath), "%s:/gm9i/out/%s.prv", sdMounted ? "sd" : "fat", dumpName);
+				fcopy(inpath, outpath);
+			}
+
+			if((selectedOption & TitleDumpOption::bannerSave) && (allowedBitfield & TitleDumpOption::bannerSave)) {
+				snprintf(inpath, sizeof(inpath), "%s/data/banner.sav", title.path.c_str());
+				snprintf(outpath, sizeof(outpath), "%s:/gm9i/out/%s.bnr", sdMounted ? "sd" : "fat", dumpName);
 				fcopy(inpath, outpath);
 			}
 
