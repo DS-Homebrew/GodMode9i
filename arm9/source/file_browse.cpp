@@ -58,7 +58,7 @@ static char path[PATH_MAX];
 
 bool extension(const std::string_view filename, const std::vector<std::string_view> &extensions) {
 	for(const std::string_view &ext : extensions) {
-		if(filename.length() > ext.length() && strcasecmp(filename.substr(filename.length() - ext.length()).data(), ext.data()) == 0)
+		if(filename.length() >= ext.length() && strcasecmp(filename.substr(filename.length() - ext.length()).data(), ext.data()) == 0)
 			return true;
 	}
 
@@ -193,7 +193,7 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 			if(isRegularDS && (entry->size == 512 || entry->size == 8192 || entry->size == 32768 || entry->size == 65536 || entry->size == 131072))
 				operations.push_back(FileOperation::restoreSaveGba);
 		}
-		if(currentDrive != Drive::fatImg && extension(entry->name, {"img", "sd", "sav", "pub", "pu1", "pu2", "pu3", "pu4", "pu5", "pu6", "pu7", "pu8", "pu9", "prv", "pr1", "pr2", "pr3", "pr4", "pr5", "pr6", "pr7", "pr8", "pr9"})) {
+		if(currentDrive != Drive::fatImg && extension(entry->name, {"img", "sd", "sav", "pub", "pu1", "pu2", "pu3", "pu4", "pu5", "pu6", "pu7", "pu8", "pu9", "prv", "pr1", "pr2", "pr3", "pr4", "pr5", "pr6", "pr7", "pr8", "pr9", "0000"})) {
 			operations.push_back(FileOperation::mountImg);
 		}
 		if(extension(entry->name, {"frf"})) {
