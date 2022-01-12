@@ -45,15 +45,45 @@ void ndsInfo(const char *path) {
 	u16 *iconPalette = new u16[8 * 0x10];
 	u16 *iconAnimation = new u16[0x40](); // Initialize to 0 for DS icons
 
+	// Check CRC16s for ROM hacks with partly corrupted banners
+	u16 crc16[4];
+	u16 realCrc16[4];
+	u8 *buffer = new u8[0x1180];
+	fread(crc16, sizeof(u16), 4, file);
+
+	fseek(file, ofs + 0x20, SEEK_SET);
+	fread(buffer, 1, 0xA20, file);
+	realCrc16[0] = swiCRC16(0xFFFF, buffer, 0x820);
+	realCrc16[1] = swiCRC16(0xFFFF, buffer, 0x920);
+	realCrc16[2] = swiCRC16(0xFFFF, buffer, 0xA20);
+
+	fseek(file, ofs + 0x1240, SEEK_SET);
+	fread(buffer, 1, 0x1180, file);
+	realCrc16[3] = swiCRC16(0xFFFF, buffer, 0x1180);
+
+	delete[] buffer;
+
+	if(crc16[0] != realCrc16[0]) { // Base banner
+		fclose(file);
+		return;
+	} else if(crc16[1] != realCrc16[1]) { // Chinese
+		version = 0x0001;
+	} else if(crc16[2] != realCrc16[2]) { // Korean
+		version = 0x0002;
+	}
+	if(crc16[3] != realCrc16[3]) { // DSi
+		version &= ~0x100;
+	}
+
 	if(version == 0x0103) { // DSi
-		fseek(file, 0x1240 - 2, SEEK_CUR);
+		fseek(file, ofs + 0x1240, SEEK_SET);
 		fread(iconBitmap, 1, 8 * 0x200, file);
 		fread(iconPalette, 2, 8 * 0x10, file);
 		fread(iconAnimation, 2, 0x40, file);
 
 		fseek(file, ofs + 0x240, SEEK_SET);
 	} else if((version & ~3) == 0) { // DS
-		fseek(file, 0x20 - 2, SEEK_CUR);
+		fseek(file, ofs + 0x20, SEEK_SET);
 		fread(iconBitmap, 1, 0x200, file);
 		fread(iconPalette, 2, 0x10, file);
 	} else {
