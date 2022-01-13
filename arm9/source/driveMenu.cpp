@@ -228,6 +228,7 @@ void driveMenu (void) {
 			dmOperations.push_back(DriveMenuOperation::nitroFs);
 		if (!isDSiMode() && isRegularDS && gbaFixedValue == 0x96) {
 			dmOperations.push_back(DriveMenuOperation::gbaCart);
+			*(u16*)(0x020000C0) = 0;
 			if(romTitle[1][0] == 0) {
 				tonccpy(romTitle[1], (char*)0x080000A0, 12);
 				romSize[1] = 0;
