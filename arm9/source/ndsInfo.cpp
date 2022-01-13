@@ -123,7 +123,7 @@ void ndsInfo(const char *path) {
 			pressed = keysDown();
 			held = keysDownRepeat();
 
-			if(iconAnimation[animationFrame + 1] != 0x0100 && animationFrame < 0x40) {
+			if(iconAnimation[animationFrame] && iconAnimation[animationFrame + 1] != 0x0100 && animationFrame < 0x40) {
 				if(frameDelay < (iconAnimation[animationFrame] & 0xFF) - 1) {
 					frameDelay++;
 				} else {
