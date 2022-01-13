@@ -283,7 +283,7 @@ void driveMenu (void) {
 				if (*(u8*)(0x080000B2) != gbaFixedValue) {
 					break;
 				}
-				if(driveRemoved(Drive::ramDrive)) {
+				if(ramdriveMounted && driveRemoved(Drive::ramDrive)) {
 					currentDrive = Drive::ramDrive;
 					chdir("ram:/");
 					ramdriveUnmount();
