@@ -459,21 +459,21 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					break;
 				}
 			}
+			keysDownRepeat(); // prevent unwanted key repeat
 			return operations[optionOffset];
-		}
-		if (pressed & KEY_B) {
+		} else if (pressed & KEY_B) {
 			return FileOperation::none;
 		}
 #ifdef SCREENSWAP
 		// Swap screens
-		if (pressed & KEY_TOUCH) {
+		else if (pressed & KEY_TOUCH) {
 			screenSwapped = !screenSwapped;
 			screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
 		}
 #endif
 
 		// Make a screenshot
-		if ((held & KEY_R) && (pressed & KEY_L)) {
+		else if ((held & KEY_R) && (pressed & KEY_L)) {
 			screenshot();
 		}
 	}
@@ -717,14 +717,9 @@ std::string browseForFile (void) {
 						screenOffset = 0;
 						fileOffset = 0;
 					}
-				} else if(getOp == FileOperation::showInfo) {
-					for (int i = 0; i < 15; i++) swiWaitForVBlank();
 				}
 			}
-		}
-
-		// Directory options
-		if (entry->isDirectory && (held & KEY_R) && (pressed & KEY_A)) {
+		} else if (entry->isDirectory && (held & KEY_R) && (pressed & KEY_A)) { // Directory options
 			if (entry->name == "..") {
 				screenMode = 0;
 				return "null";
@@ -736,9 +731,7 @@ std::string browseForFile (void) {
 					for (int i = 0; i < 15; i++) swiWaitForVBlank();
 				}
 			}
-		}
-
-		if (pressed & KEY_B) {
+		} else if (pressed & KEY_B) {
 			if (strcmp(path, getDrivePath()) == 0) {
 				screenMode = 0;
 				return "null";
@@ -748,10 +741,7 @@ std::string browseForFile (void) {
 			getDirectoryContents (dirContents);
 			screenOffset = 0;
 			fileOffset = 0;
-		}
-
-		// Rename file/folder
-		if ((held & KEY_R) && (pressed & KEY_X) && (entry->name != ".." && driveWritable(currentDrive))) {
+		} else if ((held & KEY_R) && (pressed & KEY_X) && (entry->name != ".." && driveWritable(currentDrive))) { // Rename file/folder
 			pressed = 0;
 
 			std::string newName = kbdGetString(STR_RENAME_TO, -1, entry->name);
@@ -776,10 +766,7 @@ std::string browseForFile (void) {
 					getDirectoryContents(dirContents);
 				}
 			}
-		}
-
-		// Delete action
-		if ((pressed & KEY_X) && (entry->name != ".." && driveWritable(currentDrive))) {
+		} else if ((pressed & KEY_X) && (entry->name != ".." && driveWritable(currentDrive))) { // Delete action
 			font->clear(false);
 			int selections = std::count_if(dirContents.begin(), dirContents.end(), [](const DirEntry &x){ return x.selected; });
 			if (entry->selected && selections > 1) {
@@ -855,10 +842,7 @@ std::string browseForFile (void) {
 					break;
 				}
 			}
-		}
-
-		// Create new folder
-		if ((held & KEY_R) && (pressed & KEY_Y) && driveWritable(currentDrive)) {
+		} else if ((held & KEY_R) && (pressed & KEY_Y) && driveWritable(currentDrive)) { // Create new folder
 			pressed = 0;
 
 			std::string newName = kbdGetString(STR_NAME_FOR_NEW_FOLDER);
@@ -883,10 +867,7 @@ std::string browseForFile (void) {
 					getDirectoryContents (dirContents);
 				}
 			}
-		}
-
-		// Add to selection
-		if ((pressed & KEY_L && !(held & KEY_R)) && entry->name != "..") {
+		} else if ((pressed & KEY_L && !(held & KEY_R)) && entry->name != "..") { // Add to selection
 			bool select = !entry->selected;
 			entry->selected = select;
 			while(held & KEY_L) {
@@ -941,9 +922,7 @@ std::string browseForFile (void) {
 				fileBrowse_drawBottomScreen(entry);
 				showDirectoryContents(dirContents, fileOffset, screenOffset);
 			}
-		}
-
-		if (pressed & KEY_Y) {
+		} else if (pressed & KEY_Y) {
 			// Copy
 			if (!clipboardOn) {
 				if (entry->name != "..") {
@@ -965,27 +944,22 @@ std::string browseForFile (void) {
 			} else if (driveWritable(currentDrive) && fileBrowse_paste(path)) {
 				getDirectoryContents (dirContents);
 			}
-		}
-
-		if ((pressed & KEY_SELECT) && !clipboardUsed) {
+		} else if ((pressed & KEY_SELECT) && !clipboardUsed) {
 			clipboardOn = !clipboardOn;
-		}
-
-		// START menu
-		if (pressed & KEY_START) {
+		} if (pressed & KEY_START) { // START menu
 			startMenu();
 		}
 
 #ifdef SCREENSWAP
 		// Swap screens
-		if (pressed & KEY_TOUCH) {
+		else if (pressed & KEY_TOUCH) {
 			screenSwapped = !screenSwapped;
 			screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
 		}
 #endif
 
 		// Make a screenshot
-		if ((held & KEY_R) && (pressed & KEY_L)) {
+		else if ((held & KEY_R) && (pressed & KEY_L)) {
 			if(screenshot())
 				getDirectoryContents(dirContents);
 		}
