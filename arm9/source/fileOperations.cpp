@@ -129,14 +129,43 @@ int trimNds(const char *fileName) {
 		sNDSHeaderExt ndsCardHeader;
 
 		fread(&ndsCardHeader, 1, sizeof(ndsCardHeader), file);
+
+		fseek(file, 0, SEEK_END);
+		u32 fileSize = ftell(file);
+
 		fclose(file);
 
 		u32 romSize = ((ndsCardHeader.unitCode != 0) && (ndsCardHeader.twlRomSize > 0))
 						? ndsCardHeader.twlRomSize : ndsCardHeader.romSize + 0x88;
 
-		truncate(fileName, romSize);
+		if(fileSize == romSize) {
+			font->clear(false);
+			font->print(0, 0, false, STR_FILE_ALREADY_TRIMMED + "\n\n" + STR_A_OK);
+			font->update(false);
 
-		return romSize;
+			do {
+				swiWaitForVBlank();
+				scanKeys();
+			} while(!(keysDown() & KEY_A));
+		} else {
+			font->clear(false);
+			font->printf(0, 0, false, Alignment::left, Palette::white, (STR_TRIM_TO_N_BYTES + "\n\n" + STR_A_YES_B_NO).c_str(), getBytes(romSize).c_str());
+			font->update(false);
+
+			u16 pressed;
+			do {
+				scanKeys();
+				pressed = keysDown();
+				swiWaitForVBlank();
+			} while(!(pressed & (KEY_A | KEY_B)));
+
+			if(pressed & KEY_A) {
+				truncate(fileName, romSize);
+				fileSize = romSize;
+			}
+		}
+
+		return fileSize;
 	}
 
 	return -1;
