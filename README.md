@@ -61,6 +61,7 @@ When loading GodMode9i will try to load `/gm9i/font.frf` on your SD card and if 
 * [devkitPro](https://github.com/devkitPro): devkitARM, libnds, original nds-hb-menu code, and screenshot code.
 * [d0k3](https://github.com/d0k3): Developer of GodMode9 for the Nintendo 3DS, which this is inspired by.
 * [門真 なむ (Num Kadoma)](https://littlelimit.net): k6x8 font used for the default font's Kanji and 美咲ゴシック font in resources folder
+   * Additional Chinese is from [Angelic47/FontChinese7x7](https://github.com/Angelic47/FontChinese7x7)
 
 ### Translators
 * Chinese (Simplified): [James-Makoto](https://crowdin.com/profile/vcmod55)

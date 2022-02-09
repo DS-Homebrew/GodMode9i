@@ -174,6 +174,14 @@ void languageMenu() {
 			config->languageIniPath(iniPath);
 			config->save();
 			langInit(true);
+
+			// Reload font if using default
+			if(access(config->fontPath().c_str(), F_OK) != 0) {
+				if(config->languageIniPath().substr(17, 2) == "zh")
+					font = new Font("nitro:/fonts/misaki-gothic-8x8.frf");
+				else
+					font = new Font(nullptr);
+			}
 			return;
 		} else if(pressed & KEY_B) {
 			return;
