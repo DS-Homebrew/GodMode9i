@@ -28,13 +28,14 @@ constexpr std::array<std::string *, 4> startMenuStrings = {
 	&STR_LANGUAGE
 };
 
-constexpr std::array<std::pair<const char *, const char *>, 10> languageList = {{
+constexpr std::array<std::pair<const char *, const char *>, 11> languageList = {{
 	{"de-DE", "Deutsch"},
 	{"en-US", "English"},
 	{"es-ES", "Español"},
 	{"fr-FR", "Français"},
 	{"it-IT", "Italiano"},
 	{"hu-HU", "Magyar"},
+	{"ro-RO", "Română"},
 	{"ru-RU", "Русский"},
 	{"zh-CN", "中文 (简体)"},
 	{"ja-JP", "日本語"},
@@ -177,6 +178,14 @@ void languageMenu() {
 			config->languageIniPath(iniPath);
 			config->save();
 			langInit(true);
+
+			// Reload font if using default
+			if(access(config->fontPath().c_str(), F_OK) != 0) {
+				if(config->languageIniPath().substr(17, 2) == "zh")
+					font = new Font("nitro:/fonts/misaki-gothic-8x8.frf");
+				else
+					font = new Font(nullptr);
+			}
 			return;
 		} else if(pressed & KEY_B) {
 			return;

@@ -252,7 +252,12 @@ int main(int argc, char **argv) {
 
 	// Reinit font, try to load default from SD this time
 	delete font;
-	font = new Font(config->fontPath().c_str());
+	if(access(config->fontPath().c_str(), F_OK) == 0)
+		font = new Font(config->fontPath().c_str());
+	else if(config->languageIniPath().substr(17, 2) == "zh")
+		font = new Font("nitro:/fonts/misaki-gothic-8x8.frf");
+	else
+		font = new Font(nullptr);
 
 	// Load translations
 	langInit(false);
