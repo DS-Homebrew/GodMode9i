@@ -17,15 +17,43 @@ std::string kbdGetString(std::string label, int maxSize, std::string oldStr) {
 
 	std::string output(oldStr);
 
+	int stringPosition = output.size(), scrollPosition = stringPosition;
+	for(int i = 0; i < SCREEN_COLS - 4 && scrollPosition > 0; i++) {
+		scrollPosition--;
+		while((output[scrollPosition] & 0xC0) == 0x80) // UTF-8
+			scrollPosition--;
+	}
+
 	u16 pressed;
-	int key, cursorPosition = output.length();
+	int key;
 	int labelHeight = font->calcHeight(label);
 	bool done = false;
 	while(!done) {
 		font->clear(false);
 		font->print(0, 0, false, label);
-		font->printf(0, labelHeight, false, Alignment::left, Palette::white, "> %s", output.c_str());
-		font->printf(2 + cursorPosition, labelHeight, false, Alignment::left, Palette::blackWhite, "%c", cursorPosition < (int)output.length() ? output[cursorPosition] : ' ');
+
+		int strSize = 0;
+		for(int i = 0; strSize < (int)output.size() && (i < SCREEN_COLS - 3 || (output[scrollPosition + strSize] & 0xC0) == 0x80); strSize++) {
+			if((output[scrollPosition + strSize] & 0xC0) != 0x80)
+				i++;
+		}
+		font->printf(0, labelHeight, false, Alignment::left, Palette::white, "> %s", output.substr(scrollPosition, strSize).c_str());
+
+		if(scrollPosition + strSize < (int)output.size())
+			font->print(-1, labelHeight, false, "→");
+		if(scrollPosition > 0)
+			font->print(1, labelHeight, false, "←");
+
+		int charLen = 1;
+		while((output[stringPosition + charLen] & 0xC0) == 0x80)
+			charLen++;
+		int cursorPosition = 0;
+		for(int i = 0; scrollPosition + i < stringPosition; i++) {
+			if((output[scrollPosition + i] & 0xC0) != 0x80)
+				cursorPosition++;
+		}
+		font->printf(2 + cursorPosition, labelHeight, false, Alignment::left, Palette::blackWhite, "%s", stringPosition < (int)output.size() ? output.substr(stringPosition, charLen).c_str() : " ");
+
 		font->print(0, labelHeight + 2, false, STR_START_RETURN_B_BACKSPACE);
 		font->update(false);
 
@@ -52,44 +80,67 @@ std::string kbdGetString(std::string label, int maxSize, std::string oldStr) {
 			case DVK_TAB: // tab
 				break;
 			case DVK_RIGHT: // Right
-				if(cursorPosition < (int)output.length())
-					cursorPosition++;
+				pressed |= KEY_RIGHT;
 				break;
 			case DVK_LEFT: // Left
-				if(cursorPosition > 0)
-					cursorPosition--;
+				pressed |= KEY_LEFT;
 				break;
 			case DVK_FOLD: // (using as esc)
 				output = oldStr;
 				done = true;
 				break;
 			case DVK_BACKSPACE: // Backspace
-				if(cursorPosition > 0) {
-					output.erase(output.begin() + cursorPosition - 1);
-					cursorPosition--;
-				}
+				pressed |= KEY_B;
 				break;
 			case DVK_ENTER: // Return
 				done = true;
 				break;
 			default: // Letter
 				if(output.size() < (uint)maxSize) {
-					output.insert(output.begin() + cursorPosition, key);
-					cursorPosition++;
+					output.insert(output.begin() + stringPosition, key);
+					stringPosition++;
+
+					if(cursorPosition + 1 >= (SCREEN_COLS - 3) && stringPosition <= (int)output.size()) {
+						scrollPosition++;
+						while((output[scrollPosition] & 0xC0) == 0x80) // UTF-8
+							scrollPosition++;
+					}
 				}
 				break;
 		}
 
 		if(pressed & KEY_LEFT) {
-			if(cursorPosition > 0)
-				cursorPosition--;
+			if(stringPosition > 0) {
+				stringPosition--;
+				while((output[stringPosition] & 0xC0) == 0x80) // UTF-8
+					stringPosition--;
+
+				if(cursorPosition - 1 < 0) {
+					scrollPosition--;
+					while((output[scrollPosition] & 0xC0) == 0x80) // UTF-8
+						scrollPosition--;
+				}
+			}
 		} else if(pressed & KEY_RIGHT) {
-			if(cursorPosition < (int)output.length())
-				cursorPosition++;
+			if(stringPosition < (int)output.size()) {
+				stringPosition++;
+				while((output[stringPosition] & 0xC0) == 0x80) // UTF-8
+					stringPosition++;
+
+				if(cursorPosition + 1 >= (SCREEN_COLS - 3)) {
+					scrollPosition++;
+					while((output[scrollPosition] & 0xC0) == 0x80) // UTF-8
+						scrollPosition++;
+				}
+			}
 		} else if(pressed & KEY_B) {
-			if(cursorPosition > 0) {
-				output.erase(output.begin() + cursorPosition - 1);
-				cursorPosition--;
+			if(stringPosition > 0) {
+				stringPosition--;
+				while((output[stringPosition] & 0xC0) == 0x80) {
+					output.erase(output.begin() + stringPosition);
+					stringPosition--;
+				}
+				output.erase(output.begin() + stringPosition);
 			}
 		} else if(pressed & KEY_START) {
 			done = true;
