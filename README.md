@@ -70,7 +70,8 @@ When loading GodMode9i will try to load `/gm9i/font.frf` on your SD card and if 
    * Additional Chinese is from [Angelic47/FontChinese7x7](https://github.com/Angelic47/FontChinese7x7)
 
 ### Translators
-* Chinese (Simplified): [James-Makoto](https://crowdin.com/profile/vcmod55)
+* Chinese (Simplified): [cai_miao](https://crowdin.com/profile/cai_miao), [James-Makoto](https://crowdin.com/profile/vcmod55)
+* Dutch: [Minionguyjpro](https://crowdin.com/profile/minionguyjpro)
 * French: [Benjamin](https://crowdin.com/profile/sombrabsol), [Dhalian.](https://crowdin.com/profile/dhalian3630)
 * German: [Kasimir](https://crowdin.com/profile/redstonekasi)
 * Hungarian: [Viktor Varga](http://github.com/vargaviktor)
@@ -79,3 +80,4 @@ When loading GodMode9i will try to load `/gm9i/font.frf` on your SD card and if 
 * Romanian: [Tescu](https://crowdin.com/profile/tescu48)
 * Russian: [Ckau](https://crowdin.com/profile/ckau)
 * Spanish: [Allinxter](https://crowdin.com/profile/allinxter), [beta215](https://crowdin.com/profile/beta215)
+* Ukrainian: [GriShafir](https://crowdin.com/profile/grishafir)
