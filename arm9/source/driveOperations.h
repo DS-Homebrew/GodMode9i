@@ -56,5 +56,6 @@ extern void imgUnmount(void);
 extern u64 getBytesFree(const char* drivePath);
 extern bool driveWritable(Drive drive);
 extern bool driveRemoved(Drive drive);
+extern u64 driveSizeFree(Drive drive);
 
 #endif //FLASHCARD_H

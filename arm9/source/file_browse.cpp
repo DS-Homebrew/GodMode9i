@@ -76,7 +76,7 @@ bool dirEntryPredicate (const DirEntry& lhs, const DirEntry& rhs) {
 	return strcasecmp(lhs.name.c_str(), rhs.name.c_str()) < 0;
 }
 
-void getDirectoryContents(std::vector<DirEntry>& dirContents) {
+bool getDirectoryContents(std::vector<DirEntry>& dirContents) {
 	dirContents.clear();
 
 	DIR *pdir = opendir (".");
@@ -84,6 +84,7 @@ void getDirectoryContents(std::vector<DirEntry>& dirContents) {
 	if (pdir == nullptr) {
 		font->print(0, 0, true, STR_UNABLE_TO_OPEN_DIRECTORY);
 		font->update(true);
+		return false;
 	} else {
 		while (true) {
 			dirent *pent = readdir(pdir);
@@ -109,6 +110,8 @@ void getDirectoryContents(std::vector<DirEntry>& dirContents) {
 
 	// Add ".." to top of list
 	dirContents.insert(dirContents.begin(), {"..", 0, true, false});
+
+	return true;
 }
 
 void showDirectoryContents(std::vector<DirEntry> &dirContents, int fileOffset, int startRow) {
@@ -559,18 +562,18 @@ bool fileBrowse_paste(char dest[256]) {
 }
 
 void recRemove(const char *path, std::vector<DirEntry> dirContents) {
-	chdir (path);
-	getDirectoryContents(dirContents);
-	for (int i = 1; i < ((int)dirContents.size()); i++) {
-		DirEntry &entry = dirContents[i];
-		if (entry.isDirectory)
-			recRemove(entry.name.c_str(), dirContents);
-		if (!(FAT_getAttr(entry.name.c_str()) & ATTR_READONLY)) {
-			remove(entry.name.c_str());
+	if(chdir(path) == 0 && getDirectoryContents(dirContents)) {
+		for (int i = 1; i < ((int)dirContents.size()); i++) {
+			DirEntry &entry = dirContents[i];
+			if (entry.isDirectory)
+				recRemove(entry.name.c_str(), dirContents);
+			if (!(FAT_getAttr(entry.name.c_str()) & ATTR_READONLY)) {
+				remove(entry.name.c_str());
+			}
 		}
+		chdir("..");
+		remove(path);
 	}
-	chdir ("..");
-	remove(path);
 }
 
 void fileBrowse_drawBottomScreen(DirEntry* entry) {
