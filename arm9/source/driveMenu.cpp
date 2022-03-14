@@ -160,12 +160,12 @@ void dm_drawBottomScreen(void) {
 		case DriveMenuOperation::sdCard:
 			font->printf(0, 0, false, Alignment::left, Palette::white, STR_SDCARD_LABEL.c_str(), sdLabel[0] == 0 ? STR_UNTITLED.c_str() : sdLabel);
 			font->printf(0, 1, false, Alignment::left, Palette::white, STR_SD_FAT.c_str(), getBytes(sdSize).c_str());
-			font->printf(0, 2, false, Alignment::left, Palette::white, STR_N_FREE.c_str(), getBytes(getBytesFree("sd:/")).c_str());
+			font->printf(0, 2, false, Alignment::left, Palette::white, STR_N_FREE.c_str(), getBytes(driveSizeFree(Drive::sdCard)).c_str());
 			break;
 		case DriveMenuOperation::flashcard:
 			font->printf(0, 0, false, Alignment::left, Palette::white, STR_FLASHCARD_LABEL.c_str(), fatLabel[0] == 0 ? STR_UNTITLED.c_str() : fatLabel);
 			font->printf(0, 1, false, Alignment::left, Palette::white, STR_SLOT1_FAT.c_str(), getBytes(fatSize).c_str());
-			font->printf(0, 2, false, Alignment::left, Palette::white, STR_N_FREE.c_str(), getBytes(getBytesFree("fat:/")).c_str());
+			font->printf(0, 2, false, Alignment::left, Palette::white, STR_N_FREE.c_str(), getBytes(driveSizeFree(Drive::flashcard)).c_str());
 			break;
 		case DriveMenuOperation::gbaCart:
 			font->printf(0, 0, false, Alignment::left, Palette::white, STR_GBA_GAMECART.c_str(), romTitle[1]);
@@ -186,16 +186,17 @@ void dm_drawBottomScreen(void) {
 		case DriveMenuOperation::ramDrive:
 			font->print(0, 0, false, STR_RAMDRIVE_LABEL);
 			font->printf(0, 1, false, Alignment::left, Palette::white, STR_RAMDRIVE_FAT.c_str(), getBytes(ramdSize).c_str());
-			font->printf(0, 2, false, Alignment::left, Palette::white, STR_N_FREE.c_str(), getBytes(getBytesFree("ram:/")).c_str());
+			font->printf(0, 2, false, Alignment::left, Palette::white, STR_N_FREE.c_str(), getBytes(driveSizeFree(Drive::ramDrive)).c_str());
 			break;
 		case DriveMenuOperation::sysNand:
 			font->print(0, 0, false, STR_SYSNAND_LABEL);
 			font->printf(0, 1, false, Alignment::left, Palette::white, STR_SYSNAND_FAT.c_str(), getBytes(nandSize).c_str());
-			font->printf(0, 2, false, Alignment::left, Palette::white, STR_N_FREE.c_str(), getBytes(getBytesFree("nand:/")).c_str());
+			font->printf(0, 2, false, Alignment::left, Palette::white, STR_N_FREE.c_str(), getBytes(driveSizeFree(Drive::nand)).c_str());
 			break;
 		case DriveMenuOperation::fatImage:
 			font->printf(0, 0, false, Alignment::left, Palette::white, STR_FAT_LABEL.c_str(), imgLabel[0] == 0 ? STR_UNTITLED.c_str() : imgLabel);
 			font->printf(0, 1, false, Alignment::left, Palette::white, STR_FAT_IMAGE.c_str(), getBytes(imgSize).c_str());
+			font->printf(0, 2, false, Alignment::left, Palette::white, STR_N_FREE.c_str(), getBytes(driveSizeFree(Drive::fatImg)).c_str());
 			break;
 		case DriveMenuOperation::none:
 			break;

@@ -37,6 +37,7 @@ STRING(START_FAILED_ERROR_N, "Start failed. Error %d")
 STRING(HEADER_TITLE, "Header Title: %s")
 STRING(TITLE_ID, "Title ID: %s")
 STRING(TITLE_IN_LANGUAGE, "Title: (\\DV %s)")
+STRING(FILE_TOO_BIG, "%s is too large to copy to this drive. Please delete some files and try again.")
 
 // Drive labels
 STRING(SDCARD_LABEL, "[sd:] SDCARD (%s)")

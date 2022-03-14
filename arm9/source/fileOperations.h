@@ -24,7 +24,7 @@ extern std::string getBytes(off_t bytes);
 extern off_t getFileSize(const char *fileName);
 extern bool calculateSHA1(const char *fileName, u8 *sha1);
 extern int trimNds(const char *fileName);
-extern int fcopy(const char *sourcePath, const char *destinationPath);
+extern bool fcopy(const char *sourcePath, const char *destinationPath);
 void changeFileAttribs(const DirEntry *entry);
 
 #endif // FILE_COPY

@@ -443,3 +443,22 @@ bool driveRemoved(Drive drive) {
 
 	return false;
 }
+
+u64 driveSizeFree(Drive drive) {
+	switch(drive) {
+		case Drive::sdCard:
+			return getBytesFree("sd:/");
+		case Drive::flashcard:
+			return getBytesFree("fat:/");
+		case Drive::ramDrive:
+			return getBytesFree("ram:/");
+		case Drive::nand:
+			return getBytesFree("nand:/");
+		case Drive::nitroFS:
+			return 0;
+		case Drive::fatImg:
+			return getBytesFree("img:/");
+	}
+
+	return 0;
+}

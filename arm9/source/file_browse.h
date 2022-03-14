@@ -57,7 +57,7 @@ enum class FileOperation {
 bool extension(const std::string_view filename, const std::vector<std::string_view> &extensions);
 
 std::string browseForFile (void);
-void getDirectoryContents (std::vector<DirEntry>& dirContents);
+bool getDirectoryContents (std::vector<DirEntry>& dirContents);
 
 
 
