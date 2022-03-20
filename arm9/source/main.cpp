@@ -45,7 +45,7 @@
 
 #include "gm9i_logo.h"
 
-char titleName[32] = {" "};
+char titleName[64] = {" "};
 
 int screenMode = 0;
 
@@ -115,7 +115,11 @@ int main(int argc, char **argv) {
 	
 	bool yHeld = false;
 
+#ifdef SCREENSWAP
+	sprintf(titleName, "GodMode9i (Screen Swap) %s", VER_NUMBER);
+#else
 	sprintf(titleName, "GodMode9i %s", VER_NUMBER);
+#endif
 
 	// initialize video mode
 	videoSetMode(MODE_5_2D);

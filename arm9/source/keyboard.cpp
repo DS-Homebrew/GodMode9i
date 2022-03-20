@@ -1,11 +1,16 @@
 #include "keyboard.h"
 #include "font.h"
 #include "language.h"
+#include "main.h"
 
 #include <nds.h>
 #include <string.h>
 
 std::string kbdGetString(std::string label, int maxSize, std::string oldStr) {
+#ifdef SCREENSWAP
+	lcdMainOnTop();
+#endif
+
 	font->clear(false);
 	font->update(false);
 
@@ -34,11 +39,7 @@ std::string kbdGetString(std::string label, int maxSize, std::string oldStr) {
 			pressed = keysDownRepeat();
 			key = keyboardUpdate();
 			swiWaitForVBlank();
-		} while (!((pressed & (KEY_LEFT | KEY_RIGHT | KEY_B | KEY_START
-#ifdef SCREENSWAP
-				&& !(pressed & KEY_TOUCH)
-#endif
-				)) || (key != -1)));
+		} while (!((pressed & (KEY_LEFT | KEY_RIGHT | KEY_B | KEY_START)) || (key != -1)));
 
 		switch(key) {
 			case NOKEY:
@@ -96,6 +97,10 @@ std::string kbdGetString(std::string label, int maxSize, std::string oldStr) {
 		}
 	}
 	keyboardHide();
+
+#ifdef SCREENSWAP
+	screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
+#endif
 
 	return output;
 }
