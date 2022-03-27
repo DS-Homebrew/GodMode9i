@@ -98,11 +98,7 @@ DumpOption dumpMenu(std::vector<DumpOption> allowedOptions, const char *dumpName
 			pressed = keysDownRepeat();
 			held = keysHeld();
 			swiWaitForVBlank();
-		} while (!(pressed & (KEY_UP| KEY_DOWN | KEY_A | KEY_B | KEY_L))
-#ifdef SCREENSWAP
-				&& !(pressed & KEY_TOUCH)
-#endif
-				);
+		} while (!(pressed & (KEY_UP| KEY_DOWN | KEY_A | KEY_B | KEY_L)));
 
 		if (pressed & KEY_UP)
 			optionOffset--;
@@ -115,19 +111,13 @@ DumpOption dumpMenu(std::vector<DumpOption> allowedOptions, const char *dumpName
 		if (optionOffset >= (int)allowedOptions.size()) // Wrap around to top of list
 			optionOffset = 0;
 
-		if (pressed & KEY_A)
+		if (pressed & KEY_A) {
 			return allowedOptions[optionOffset];
-
-		if (pressed & KEY_B)
-			return DumpOption::none;
-
-#ifdef SCREENSWAP
-		// Swap screens
-		if (pressed & KEY_TOUCH) {
-			screenSwapped = !screenSwapped;
-			screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
 		}
-#endif
+
+		if (pressed & KEY_B) {
+			return DumpOption::none;
+		}
 
 		// Make a screenshot
 		if ((held & KEY_R) && (pressed & KEY_L)) {
@@ -753,6 +743,10 @@ void ndsCardSaveRestore(const char *filename) {
 }
 
 void ndsCardDump(void) {
+#ifdef SCREENSWAP
+	lcdMainOnTop();
+#endif
+
 	u16 pressed;
 
 	font->clear(false);
@@ -771,6 +765,9 @@ void ndsCardDump(void) {
 				break;
 			}
 			if (pressed & KEY_B) {
+#ifdef SCREENSWAP
+				screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
+#endif
 				return;
 			}
 		}
@@ -944,8 +941,11 @@ void ndsCardDump(void) {
 			fclose(destinationFile);
 		}
 	}
-}
 
+#ifdef SCREENSWAP
+	screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
+#endif
+}
 
 void gbaCartSaveDump(const char *filename) {
 	font->clear(false);
@@ -1039,6 +1039,10 @@ void readChange(void) {
 }
 
 void gbaCartDump(void) {
+#ifdef SCREENSWAP
+	lcdMainOnTop();
+#endif
+
 	font->clear(false);
 	font->print(firstCol, 0, false, STR_LOADING, alignStart);
 	font->update(false);
@@ -1258,4 +1262,8 @@ void gbaCartDump(void) {
 			fclose(destinationFile);
 		}
 	}
+
+#ifdef SCREENSWAP
+	screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
+#endif
 }

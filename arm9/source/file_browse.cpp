@@ -76,7 +76,7 @@ bool dirEntryPredicate (const DirEntry& lhs, const DirEntry& rhs) {
 	return strcasecmp(lhs.name.c_str(), rhs.name.c_str()) < 0;
 }
 
-void getDirectoryContents(std::vector<DirEntry>& dirContents) {
+bool getDirectoryContents(std::vector<DirEntry>& dirContents) {
 	dirContents.clear();
 
 	DIR *pdir = opendir (".");
@@ -84,6 +84,7 @@ void getDirectoryContents(std::vector<DirEntry>& dirContents) {
 	if (pdir == nullptr) {
 		font->print(firstCol, 0, true, STR_UNABLE_TO_OPEN_DIRECTORY, alignStart);
 		font->update(true);
+		return false;
 	} else {
 		while (true) {
 			dirent *pent = readdir(pdir);
@@ -109,6 +110,8 @@ void getDirectoryContents(std::vector<DirEntry>& dirContents) {
 
 	// Add ".." to top of list
 	dirContents.insert(dirContents.begin(), {"..", 0, true, false});
+
+	return true;
 }
 
 void showDirectoryContents(std::vector<DirEntry> &dirContents, int fileOffset, int startRow) {
@@ -167,6 +170,10 @@ void showDirectoryContents(std::vector<DirEntry> &dirContents, int fileOffset, i
 }
 
 FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
+#ifdef SCREENSWAP
+	lcdMainOnTop();
+#endif
+
 	int pressed = 0, held = 0;
 	std::vector<FileOperation> operations;
 	int optionOffset = 0;
@@ -293,13 +300,13 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 			held = keysHeld();
 			swiWaitForVBlank();
 
-			if(driveRemoved(currentDrive))
-				return FileOperation::none;
-		} while (!(pressed & (KEY_UP| KEY_DOWN | KEY_A | KEY_B | KEY_L))
+			if(driveRemoved(currentDrive)) {
 #ifdef SCREENSWAP
-				&& !(pressed & KEY_TOUCH)
+				screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
 #endif
-				);
+				return FileOperation::none;
+			}
+		} while (!(pressed & (KEY_UP| KEY_DOWN | KEY_A | KEY_B | KEY_L)));
 
 		if (pressed & KEY_UP)		optionOffset -= 1;
 		if (pressed & KEY_DOWN)		optionOffset += 1;
@@ -461,18 +468,16 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 				}
 			}
 			keysDownRepeat(); // prevent unwanted key repeat
+#ifdef SCREENSWAP
+			screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
+#endif
 			return operations[optionOffset];
 		} else if (pressed & KEY_B) {
+#ifdef SCREENSWAP
+			screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
+#endif
 			return FileOperation::none;
 		}
-#ifdef SCREENSWAP
-		// Swap screens
-		else if (pressed & KEY_TOUCH) {
-			screenSwapped = !screenSwapped;
-			screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
-		}
-#endif
-
 		// Make a screenshot
 		else if ((held & KEY_R) && (pressed & KEY_L)) {
 			screenshot();
@@ -481,6 +486,10 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 }
 
 bool fileBrowse_paste(char dest[256]) {
+#ifdef SCREENSWAP
+	lcdMainOnTop();
+#endif
+
 	int pressed = 0;
 	int optionOffset = 0;
 
@@ -511,12 +520,7 @@ bool fileBrowse_paste(char dest[256]) {
 			scanKeys();
 			pressed = keysDownRepeat();
 			swiWaitForVBlank();
-		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN)
-				&& !(pressed & KEY_A) && !(pressed & KEY_B)
-#ifdef SCREENSWAP
-				&& !(pressed & KEY_TOUCH)
-#endif
-				);
+		} while (!(pressed & (KEY_UP | KEY_DOWN | KEY_A | KEY_B)));
 
 		if (pressed & KEY_UP)		optionOffset -= 1;
 		if (pressed & KEY_DOWN)		optionOffset += 1;
@@ -545,34 +549,33 @@ bool fileBrowse_paste(char dest[256]) {
 			}
 			clipboardUsed = true;		// Disable clipboard restore
 			clipboardOn = false;	// Clear clipboard after copying or moving
+#ifdef SCREENSWAP
+			screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
+#endif
 			return true;
 		}
 		if (pressed & KEY_B) {
+#ifdef SCREENSWAP
+			screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
+#endif
 			return false;
 		}
-#ifdef SCREENSWAP
-		// Swap screens
-		if (pressed & KEY_TOUCH) {
-			screenSwapped = !screenSwapped;
-			screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
-		}
-#endif
 	}
 }
 
 void recRemove(const char *path, std::vector<DirEntry> dirContents) {
-	chdir (path);
-	getDirectoryContents(dirContents);
-	for (int i = 1; i < ((int)dirContents.size()); i++) {
-		DirEntry &entry = dirContents[i];
-		if (entry.isDirectory)
-			recRemove(entry.name.c_str(), dirContents);
-		if (!(FAT_getAttr(entry.name.c_str()) & ATTR_READONLY)) {
-			remove(entry.name.c_str());
+	if(chdir(path) == 0 && getDirectoryContents(dirContents)) {
+		for (int i = 1; i < ((int)dirContents.size()); i++) {
+			DirEntry &entry = dirContents[i];
+			if (entry.isDirectory)
+				recRemove(entry.name.c_str(), dirContents);
+			if (!(FAT_getAttr(entry.name.c_str()) & ATTR_READONLY)) {
+				remove(entry.name.c_str());
+			}
 		}
+		chdir("..");
+		remove(path);
 	}
-	chdir ("..");
-	remove(path);
 }
 
 void fileBrowse_drawBottomScreen(DirEntry* entry) {
@@ -659,7 +662,7 @@ std::string browseForFile (void) {
 				screenMode = 0;
 				return "null";
 			}
-		} while (!(pressed & ~(KEY_R | KEY_TOUCH | KEY_LID)));
+		} while (!(pressed & ~(KEY_R | KEY_LID)));
 
 		if (pressed & KEY_UP) {
 			fileOffset--;

@@ -183,16 +183,55 @@ void dirCopy(const DirEntry &entry, int i, const char *destinationPath, const ch
 	if (((int)dirContents.size()) != 1)	fcopy((sourcePath + ("/" + entry.name)).c_str(), (destinationPath + ("/" + entry.name)).c_str());
 }
 
-int fcopy(const char *sourcePath, const char *destinationPath) {
+u64 dirSize(const std::vector<DirEntry> &dirContents) {
+	u64 size = 0;
+
+	for(const DirEntry &entry : dirContents) {
+		if(entry.name == "." || entry.name == "..")
+			continue;
+
+		if(entry.isDirectory) {
+			std::vector<DirEntry> subdirContents;
+			if(chdir(entry.name.c_str()) == 0 && getDirectoryContents(subdirContents)) {
+				size += dirSize(subdirContents);
+				chdir("..");
+			}
+		} else {
+			size += getFileSize(entry.name.c_str());
+		}
+	}
+
+	return size;
+}
+
+bool fcopy(const char *sourcePath, const char *destinationPath) {
 	DIR *isDir = opendir(sourcePath);
 	
 	if (isDir != NULL) {
 		closedir(isDir);
 
 		// Source path is a directory
+		char startPath[PATH_MAX];
+		getcwd(startPath, PATH_MAX);
+
 		chdir(sourcePath);
 		std::vector<DirEntry> dirContents;
 		getDirectoryContents(dirContents);
+
+		// Check that everything will fit
+		if(dirSize(dirContents) > driveSizeFree(currentDrive)) {
+			font->clear(false);
+			font->printf(0, 0, false, Alignment::left, Palette::white, (STR_FILE_TOO_BIG + "\n\n" + STR_A_OK).c_str(), sourcePath);
+			font->update(false);
+
+			do {
+				swiWaitForVBlank();
+				scanKeys();
+			} while(!(keysDown() & KEY_A));
+
+			chdir(startPath);
+			return false;
+		}
 
 		mkdir(destinationPath, 0777);
 		for (int i = 1; i < ((int)dirContents.size()); i++) {
@@ -202,25 +241,39 @@ int fcopy(const char *sourcePath, const char *destinationPath) {
 
 		chdir(destinationPath);
 		chdir("..");
-		return 1;
+		return true;
 	} else {
 		closedir(isDir);
 
 		// Source path is a file
 		FILE* sourceFile = fopen(sourcePath, "rb");
-		off_t fsize = 0;
+		long fsize = 0;
 		if (sourceFile) {
 			fseek(sourceFile, 0, SEEK_END);
 			fsize = ftell(sourceFile); // Get source file's size
 			fseek(sourceFile, 0, SEEK_SET);
 		} else {
-			return -1;
+			return false;
+		}
+
+		// Check that the file will fit
+		if((u64)fsize > driveSizeFree(currentDrive)) {
+			font->clear(false);
+			font->printf(0, 0, false, Alignment::left, Palette::white, (STR_FILE_TOO_BIG + "\n\n" + STR_A_OK).c_str(), sourcePath);
+			font->update(false);
+
+			do {
+				swiWaitForVBlank();
+				scanKeys();
+			} while(!(keysDown() & KEY_A));
+
+			return false;
 		}
 
 		FILE* destinationFile = fopen(destinationPath, "wb");
 		if (!destinationFile) {
 			fclose(sourceFile);
-			return -1;
+			return false;
 		}
 
 		font->clear(false);
@@ -236,8 +289,7 @@ int fcopy(const char *sourcePath, const char *destinationPath) {
 				// Cancel copying
 				fclose(sourceFile);
 				fclose(destinationFile);
-				return -1;
-				break;
+				return false;
 			}
 
 			int progressPos = (offset / (fsize / (SCREEN_COLS - 2))) + 1;
@@ -252,7 +304,7 @@ int fcopy(const char *sourcePath, const char *destinationPath) {
 			if(fwrite(copyBuf, 1, numr, destinationFile) != numr) {
 				fclose(sourceFile);
 				fclose(destinationFile);
-				return -1;
+				return false;
 			}
 			offset += copyBufSize;
 
@@ -260,12 +312,12 @@ int fcopy(const char *sourcePath, const char *destinationPath) {
 				fclose(sourceFile);
 				fclose(destinationFile);
 
-				return 1;
+				return true;
 				break;
 			}
 		}
 
-		return -1;
+		return false;
 	}
 }
 

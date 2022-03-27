@@ -4,6 +4,7 @@
 #include "fileOperations.h"
 #include "font.h"
 #include "language.h"
+#include "main.h"
 #include "screenshot.h"
 
 #include <algorithm>
