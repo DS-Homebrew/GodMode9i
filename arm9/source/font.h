@@ -138,9 +138,9 @@ public:
 
 	void printf(int xPos, int yPos, bool top, Alignment align, Palette palette, const char *format, ...);
 
-	void print(int xPos, int yPos, bool top, int value, Alignment align = Alignment::left, Palette palette = Palette::white) { print(xPos, yPos, top, std::to_string(value), align, palette); }
-	void print(int xPos, int yPos, bool top, std::string_view text, Alignment align = Alignment::left, Palette palette = Palette::white) { print(xPos, yPos, top, utf8to16(text), align, palette); }
-	void print(int xPos, int yPos, bool top, std::u16string_view text, Alignment align = Alignment::left, Palette palette = Palette::white, bool rtl = false);
+	void print(int xPos, int yPos, bool top, int value, Alignment align = Alignment::left, Palette palette = Palette::white, bool noWrap = false) { print(xPos, yPos, top, std::to_string(value), align, palette, noWrap); }
+	void print(int xPos, int yPos, bool top, std::string_view text, Alignment align = Alignment::left, Palette palette = Palette::white, bool noWrap = false) { print(xPos, yPos, top, utf8to16(text), align, palette, noWrap); }
+	void print(int xPos, int yPos, bool top, std::u16string_view text, Alignment align = Alignment::left, Palette palette = Palette::white, bool noWrap = false, bool rtl = false);
 };
 
 extern Font *font;

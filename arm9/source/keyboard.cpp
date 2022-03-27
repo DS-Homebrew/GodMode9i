@@ -23,10 +23,10 @@ std::string kbdGetString(std::string label, int maxSize, std::string oldStr) {
 	bool done = false;
 	while(!done) {
 		font->clear(false);
-		font->print(0, 0, false, label);
+		font->print(firstCol, 0, false, label, alignStart);
 		font->printf(0, labelHeight, false, Alignment::left, Palette::white, "> %s", output.c_str());
 		font->printf(2 + cursorPosition, labelHeight, false, Alignment::left, Palette::blackWhite, "%c", cursorPosition < (int)output.length() ? output[cursorPosition] : ' ');
-		font->print(0, labelHeight + 2, false, STR_START_RETURN_B_BACKSPACE);
+		font->print(firstCol, labelHeight + 2, false, STR_START_RETURN_B_BACKSPACE, alignStart);
 		font->update(false);
 
 		do {

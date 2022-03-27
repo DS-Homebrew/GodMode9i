@@ -8,6 +8,8 @@
 #include <stdarg.h>
 #include <string.h>
 
+#include <nds.h>
+
 u8 Font::textBuf[2][256 * 192];
 bool Font::mainScreen = false;
 
@@ -250,7 +252,7 @@ void Font::printf(int xPos, int yPos, bool top, Alignment align, Palette palette
 	print(xPos, yPos, top, str, align, palette);
 }
 
-ITCM_CODE void Font::print(int xPos, int yPos, bool top, std::u16string_view text, Alignment align, Palette palette, bool rtl) {
+ITCM_CODE void Font::print(int xPos, int yPos, bool top, std::u16string_view text, Alignment align, Palette palette, bool noWrap, bool rtl) {
 	int x = xPos * tileWidth, y = yPos * tileHeight;
 	if(x < 0 && align != Alignment::center)
 		x += 256;
@@ -285,13 +287,28 @@ ITCM_CODE void Font::print(int xPos, int yPos, bool top, std::u16string_view tex
 			x = ((256 - (text.length() * tileWidth)) / 2) + x;
 			break;
 		} case Alignment::right: {
-			size_t newline = text.find('\n');
-			while(newline != text.npos) {
-				print(xPos, yPos, top, text.substr(0, newline), Alignment::left, palette, rtl);
-				text = text.substr(newline + 1);
-				newline = text.find('\n');
-				yPos++;
-				y += tileHeight;
+			if(!noWrap) {
+				int cols = SCREEN_COLS;
+				for(auto it = text.begin(); it < text.end(); ++it) {
+					int idx = std::distance(text.begin(), it);
+					std::u16string_view substr;
+					// Wrap at edge
+					if(idx >= cols) {
+						substr = text.substr(0, idx);
+						text = text.substr(idx);
+
+					// or line break on newline or last space within 10 chars of edge
+					} else if(*it == '\n' || (*it == ' ' && (cols - idx) < 10 && std::distance(it, text.end()) > (cols - idx) && *std::find(it + 1, std::min(it + (cols - idx) , text.end()), ' ') != ' ')) {
+						substr = text.substr(0, idx);
+						text = text.substr(idx + ((*it == ' ' || *it == '\n') ? 1 : 0));
+					} else {
+						continue;
+					}
+
+					print(xPos - substr.length() + 1, yPos, top, substr, Alignment::left, palette, rtl);
+					yPos++;
+					y += tileHeight;
+				}
 			}
 			break;
 		}
@@ -384,7 +401,10 @@ ITCM_CODE void Font::print(int xPos, int yPos, bool top, std::u16string_view tex
 			x = xStart;
 			y += tileHeight;
 
-			continue;
+			if(noWrap)
+				break;
+			else
+				continue;
 		}
 
 		// Wrap at edge if left aligning
@@ -395,6 +415,9 @@ ITCM_CODE void Font::print(int xPos, int yPos, bool top, std::u16string_view tex
 			// Skip to next char if a space
 			if(*it == ' ')
 				it++;
+
+			if(noWrap)
+				break;
 		}
 
 		// Brackets are flipped in RTL

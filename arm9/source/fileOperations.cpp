@@ -70,7 +70,7 @@ bool calculateSHA1(const char *fileName, u8 *sha1) {
 	u8 *buf = (u8*) malloc(shaChunkSize);
 	if (!buf) {
 		font->clear(false);
-		font->print(0, 0, false, STR_COULD_NOT_ALLOCATE_BUFFER);
+		font->print(firstCol, 0, false, STR_COULD_NOT_ALLOCATE_BUFFER, alignStart);
 		font->update(false);
 		for(int i = 0; i < 60 * 2; i++)
 			swiWaitForVBlank();
@@ -79,7 +79,7 @@ bool calculateSHA1(const char *fileName, u8 *sha1) {
 	FILE* fp = fopen(fileName, "rb");
 	if (!fp) {
 		font->clear(false);
-		font->print(0, 0, false, STR_COULD_NOT_OPEN_FILE_READING);
+		font->print(firstCol, 0, false, STR_COULD_NOT_OPEN_FILE_READING, alignStart);
 		font->update(false);
 		for(int i = 0; i < 60 * 2; i++)
 			swiWaitForVBlank();
@@ -92,12 +92,12 @@ bool calculateSHA1(const char *fileName, u8 *sha1) {
 	swiSHA1Init(&ctx);
 
 	font->clear(false);
-	font->printf(0, 0, false, Alignment::left, Palette::white, STR_CALCULATING_SHA1.c_str(), fileName);
+	font->printf(firstCol, 0, false, alignStart, Palette::white, STR_CALCULATING_SHA1.c_str(), fileName);
 
 	int nameHeight = font->calcHeight(fileName);
-	font->print(0, nameHeight + 2, false, STR_START_CANCEL);
+	font->print(firstCol, nameHeight + 2, false, STR_START_CANCEL, alignStart);
 
-	font->print(0, nameHeight + 4, false, STR_PROGRESS);
+	font->print(firstCol, nameHeight + 4, false, STR_PROGRESS, alignStart);
 	font->print(0, nameHeight + 5, false, "[");
 	font->print(-1, nameHeight + 5, false, "]");
 
@@ -113,8 +113,11 @@ bool calculateSHA1(const char *fileName, u8 *sha1) {
 			return false;
 		}
 
-		font->print((ftell(fp) / (fsize / (SCREEN_COLS - 2))) + 1, nameHeight + 5, false, "=");
-		font->printf(0, nameHeight + 6, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES_PROCESSED.c_str(), ftell(fp), fsize);
+		int progressPos = (ftell(fp) / (fsize / (SCREEN_COLS - 2))) + 1;
+		if(rtl)
+			progressPos = (progressPos + 1) * -1;
+		font->print(progressPos, nameHeight + 5, false, "=");
+		font->printf(firstCol, nameHeight + 6, false, alignStart, Palette::white, STR_N_OF_N_BYTES_PROCESSED.c_str(), ftell(fp), fsize);
 		font->update(false);
 	}
 	swiSHA1Final(sha1, &ctx);
@@ -140,7 +143,7 @@ int trimNds(const char *fileName) {
 
 		if(fileSize == romSize) {
 			font->clear(false);
-			font->print(0, 0, false, STR_FILE_ALREADY_TRIMMED + "\n\n" + STR_A_OK);
+			font->print(firstCol, 0, false, STR_FILE_ALREADY_TRIMMED + "\n\n" + STR_A_OK, alignStart);
 			font->update(false);
 
 			do {
@@ -149,7 +152,7 @@ int trimNds(const char *fileName) {
 			} while(!(keysDown() & KEY_A));
 		} else {
 			font->clear(false);
-			font->printf(0, 0, false, Alignment::left, Palette::white, (STR_TRIM_TO_N_BYTES + "\n\n" + STR_A_YES_B_NO).c_str(), getBytes(romSize).c_str());
+			font->printf(firstCol, 0, false, alignStart, Palette::white, (STR_TRIM_TO_N_BYTES + "\n\n" + STR_A_YES_B_NO).c_str(), getBytes(romSize).c_str());
 			font->update(false);
 
 			u16 pressed;
@@ -221,7 +224,7 @@ int fcopy(const char *sourcePath, const char *destinationPath) {
 		}
 
 		font->clear(false);
-		font->print(0, 0, false, STR_PROGRESS);
+		font->print(firstCol, 0, false, STR_PROGRESS, alignStart);
 		font->print(0, 1, false, "[");
 		font->print(-1, 1, false, "]");
 
@@ -237,8 +240,11 @@ int fcopy(const char *sourcePath, const char *destinationPath) {
 				break;
 			}
 
-			font->print((offset / (fsize / (SCREEN_COLS - 2))) + 1, 1, false, "=");
-			font->printf(0, 2, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), (int)offset, (int)fsize);
+			int progressPos = (offset / (fsize / (SCREEN_COLS - 2))) + 1;
+			if(rtl)
+				progressPos = (progressPos + 1) * -1;
+			font->print(progressPos, 1, false, "=");
+			font->printf(firstCol, 2, false, alignStart, Palette::white, STR_N_OF_N_BYTES.c_str(), (int)offset, (int)fsize);
 			font->update(false);
 
 			// Copy file to destination path
@@ -274,21 +280,21 @@ void changeFileAttribs(const DirEntry *entry) {
 
 	while (1) {
 		font->clear(false);
-		font->print(0, 0, false, entry->name);
+		font->print(firstCol, 0, false, entry->name, alignStart);
 		if (!entry->isDirectory) {
-			font->printf(0, cursorScreenPos + 1, false, Alignment::left, Palette::white, STR_FILESIZE.c_str(), getBytes(entry->size).c_str());
+			font->printf(firstCol, cursorScreenPos + 1, false, alignStart, Palette::white, STR_FILESIZE.c_str(), getBytes(entry->size).c_str());
 
 			char str[32];
 			strftime(str, sizeof(str), "%Y-%m-%d %H:%M:%S", localtime(&st.st_ctime));
-			font->printf(0, cursorScreenPos + 2, false, Alignment::left, Palette::white, STR_CREATED.c_str(), str);
+			font->printf(firstCol, cursorScreenPos + 2, false, alignStart, Palette::white, STR_CREATED.c_str(), str);
 			strftime(str, sizeof(str), "%Y-%m-%d %H:%M:%S", localtime(&st.st_mtime));
-			font->printf(0, cursorScreenPos + 3, false, Alignment::left, Palette::white, STR_MODIFIED.c_str(), str);
+			font->printf(firstCol, cursorScreenPos + 3, false, alignStart, Palette::white, STR_MODIFIED.c_str(), str);
 		}
-		font->printf(0, cursorScreenPos + 5, false, Alignment::left, Palette::white, "[%c]%-13s[%c]%s", (newAttribs & ATTR_READONLY) ? 'X' : ' ', STR_UP_READONLY.c_str(), (newAttribs & ATTR_HIDDEN) ? 'X' : ' ', STR_LEFT_HIDDEN.c_str());
-		font->printf(0, cursorScreenPos + 6, false, Alignment::left, Palette::white, "[%c]%-13s[%c]%s", (newAttribs & ATTR_SYSTEM) ? 'X' : ' ', STR_DOWN_SYSTEM.c_str(), (newAttribs & ATTR_ARCHIVE) ? 'X' : ' ', STR_RIGHT_ARCHIVE.c_str());
-		font->printf(0, cursorScreenPos + 7, false, Alignment::left, Palette::white, "[%c] %s", (newAttribs & ATTR_VOLUME) ? 'X' : ' ', STR_VIRTUAL.c_str());
-		font->printf(0, cursorScreenPos + 8, false, Alignment::left, Palette::white, STR_UDLR_CHANGE_ATTRIBUTES.c_str());
-		font->print(0, cursorScreenPos + 10, false, (currentAttribs == newAttribs) ? STR_A_CONTINUE : STR_A_APPLY_B_CANCEL);
+		font->printf(firstCol, cursorScreenPos + 5, false, alignStart, Palette::white, "[%c]%-13s[%c]%s", (newAttribs & ATTR_READONLY) ? 'X' : ' ', STR_UP_READONLY.c_str(), (newAttribs & ATTR_HIDDEN) ? 'X' : ' ', STR_LEFT_HIDDEN.c_str());
+		font->printf(firstCol, cursorScreenPos + 6, false, alignStart, Palette::white, "[%c]%-13s[%c]%s", (newAttribs & ATTR_SYSTEM) ? 'X' : ' ', STR_DOWN_SYSTEM.c_str(), (newAttribs & ATTR_ARCHIVE) ? 'X' : ' ', STR_RIGHT_ARCHIVE.c_str());
+		font->printf(firstCol, cursorScreenPos + 7, false, alignStart, Palette::white, "[%c] %s", (newAttribs & ATTR_VOLUME) ? 'X' : ' ', STR_VIRTUAL.c_str());
+		font->printf(firstCol, cursorScreenPos + 8, false, alignStart, Palette::white, STR_UDLR_CHANGE_ATTRIBUTES.c_str());
+		font->print(firstCol, cursorScreenPos + 10, false, (currentAttribs == newAttribs) ? STR_A_CONTINUE : STR_A_APPLY_B_CANCEL, alignStart);
 		font->update(false);
 
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do

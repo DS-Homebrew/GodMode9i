@@ -67,28 +67,29 @@ void dumpTitle(TitleInfo &title) {
 	while (true) {
 		font->clear(false);
 
-		font->print(0, 0, false, dumpToStr);
+		font->print(firstCol, 0, false, dumpToStr, alignStart);
 
+		int optionsCol = rtl ? -4 : 3;
 		int row = y;
 		for(TitleDumpOption option : allowedOptions) {
 			switch(option) {
 				case TitleDumpOption::all:
-					font->print(3, row++, false, STR_DUMP_ALL);
+					font->print(optionsCol, row++, false, STR_DUMP_ALL, alignStart);
 					break;
 				case TitleDumpOption::rom:
-					font->print(3, row++, false, STR_DUMP_ROM);
+					font->print(optionsCol, row++, false, STR_DUMP_ROM, alignStart);
 					break;
 				case TitleDumpOption::publicSave:
-					font->print(3, row++, false, STR_DUMP_PUBLIC_SAVE);
+					font->print(optionsCol, row++, false, STR_DUMP_PUBLIC_SAVE, alignStart);
 					break;
 				case TitleDumpOption::privateSave:
-					font->print(3, row++, false, STR_DUMP_PRIVATE_SAVE);
+					font->print(optionsCol, row++, false, STR_DUMP_PRIVATE_SAVE, alignStart);
 					break;
 				case TitleDumpOption::bannerSave:
-					font->print(3, row++, false, STR_DUMP_BANNER_SAVE);
+					font->print(optionsCol, row++, false, STR_DUMP_BANNER_SAVE, alignStart);
 					break;
 				case TitleDumpOption::tmd:
-					font->print(3, row++, false, STR_DUMP_TMD);
+					font->print(optionsCol, row++, false, STR_DUMP_TMD, alignStart);
 					break;
 				case TitleDumpOption::none:
 					row++;
@@ -96,10 +97,10 @@ void dumpTitle(TitleInfo &title) {
 			}
 		}
 
-		font->print(3, ++row, false, STR_A_SELECT_B_CANCEL);
+		font->print(optionsCol, ++row, false, STR_A_SELECT_B_CANCEL, alignStart);
 
 		// Show cursor
-		font->print(0, y + optionOffset, false, "->");
+		font->print(firstCol, y + optionOffset, false, rtl ? "<-" : "->", alignStart);
 
 		font->update(false);
 
@@ -134,14 +135,14 @@ void dumpTitle(TitleInfo &title) {
 			sprintf(folderPath, "%s:/gm9i", (sdMounted ? "sd" : "fat"));
 			if (access(folderPath, F_OK) != 0) {
 				font->clear(false);
-				font->print(0, 0, false, STR_CREATING_DIRECTORY);
+				font->print(firstCol, 0, false, STR_CREATING_DIRECTORY, alignStart);
 				font->update(false);
 				mkdir(folderPath, 0777);
 			}
 			sprintf(folderPath, "%s:/gm9i/out", (sdMounted ? "sd" : "fat"));
 			if (access(folderPath, F_OK) != 0) {
 				font->clear(false);
-				font->print(0, 0, false, STR_CREATING_DIRECTORY);
+				font->print(firstCol, 0, false, STR_CREATING_DIRECTORY, alignStart);
 				font->update(false);
 				mkdir(folderPath, 0777);
 			}
@@ -282,14 +283,14 @@ void titleManager() {
 	int cursorPosition = 0, scrollOffset = 0;
 	while(1) {
 		font->clear(false);
-		font->printf(0, 0, false, Alignment::left, Palette::blackGreen, "%*c", SCREEN_COLS, ' ');
+		font->printf(firstCol, 0, false, alignStart, Palette::blackGreen, "%*c", SCREEN_COLS, ' ');
 		font->print(0, 0, false, STR_TITLE_MANAGER, Alignment::center, Palette::blackGreen);
 
 		for(int i = 0; i < ((int)titles.size() - scrollOffset) && i < ENTRIES_PER_SCREEN; i++) {
 			const TitleInfo &title = titles[scrollOffset + i];
 			Palette pal = scrollOffset + i == cursorPosition ? Palette::white : Palette::gray;
-			font->print(0, 1 + i, false, title.bannerTitle.substr(0, title.bannerTitle.find(u'\n')), Alignment::left, pal);
-			font->printf(-1, 1 + i, false, Alignment::right, pal, " (%s)", title.gameCode);
+			font->print(firstCol, 1 + i, false, title.bannerTitle.substr(0, title.bannerTitle.find(u'\n')), alignStart, pal);
+			font->printf(lastCol, 1 + i, false, alignEnd, pal, rtl ? "(%s) " : " (%s)", title.gameCode);
 		}
 
 		font->update(false);

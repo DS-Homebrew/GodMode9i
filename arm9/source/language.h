@@ -2,11 +2,19 @@
 #ifndef LANGUAGE_H
 #define LANGUAGE_H
 
+#include "font.h"
+
 #include <string>
 
 #define STRING(what, def) extern std::string STR_##what;
 #include "language.inl"
 #undef STRING
+
+extern bool rtl;
+extern int firstCol;
+extern int lastCol;
+extern Alignment alignStart;
+extern Alignment alignEnd;
 
 /**
  * Initialize translations.
