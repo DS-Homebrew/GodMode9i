@@ -100,7 +100,7 @@ void ndsInfo(const char *path) {
 	oamInit(&oamSub, SpriteMapping_Bmp_1D_128, false);
 
 	u16 *iconGfx = oamAllocateGfx(&oamSub, SpriteSize_32x32, SpriteColorFormat_16Color);
-	oamSet(&oamSub, 0, 256 - 36, 4, 0, 0, SpriteSize_32x32, SpriteColorFormat_16Color, iconGfx, -1, false, false, false, false, false);
+	oamSet(&oamSub, 0, rtl ? 4 : 256 - 36, 4, 0, 0, SpriteSize_32x32, SpriteColorFormat_16Color, iconGfx, -1, false, false, false, false, false);
 	
 	if(version == 0x0103) {
 		tonccpy(iconGfx, iconBitmap + ((iconAnimation[0] >> 8) & 7) * 0x200, 0x200);
@@ -117,10 +117,10 @@ void ndsInfo(const char *path) {
 	int animationFrame = 0, frameDelay = 0, lang = 1;
 	while(1) {
 		font->clear(false);
-		font->printf(0, 0, false, Alignment::left, Palette::white, STR_HEADER_TITLE.c_str(), headerTitle);
-		font->printf(0, 1, false, Alignment::left, Palette::white, STR_TITLE_ID.c_str(), tid);
-		font->printf(0, 2, false, Alignment::left, Palette::white, STR_TITLE_IN_LANGUAGE.c_str(), langNames[lang]->c_str());
-		font->print(2, 3, false, titles + lang * 0x80);
+		font->printf(firstCol, 0, false, alignStart, Palette::white, STR_HEADER_TITLE.c_str(), headerTitle);
+		font->printf(firstCol, 1, false, alignStart, Palette::white, STR_TITLE_ID.c_str(), tid);
+		font->printf(firstCol, 2, false, alignStart, Palette::white, STR_TITLE_IN_LANGUAGE.c_str(), langNames[lang]->c_str());
+		font->print(rtl ? -3 : 2, 3, false, titles + lang * 0x80, alignStart);
 		font->update(false);
 
 		do {

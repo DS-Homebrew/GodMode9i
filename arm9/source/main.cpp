@@ -92,7 +92,7 @@ void vblankHandler (void) {
 	if(time != prevTime) {
 		prevTime = time;
 		if(font) {
-			font->print(-1, 0, true, time, Alignment::right, Palette::blackGreen);
+			font->print(lastCol, 0, true, time, alignEnd, Palette::blackGreen);
 			font->update(true);
 		}
 	}
@@ -322,9 +322,9 @@ int main(int argc, char **argv) {
 				free(argarray[0]);
 				argarray[0] = filePath;
 				font->clear(false);
-				font->printf(0, 0, false, Alignment::left, Palette::white, STR_RUNNING_X_WITH_N_PARAMETERS.c_str(), argarray[0], argarray.size());
+				font->printf(firstCol, 0, false, alignStart, Palette::white, STR_RUNNING_X_WITH_N_PARAMETERS.c_str(), argarray[0], argarray.size());
 				int err = runNdsFile(argarray[0], argarray.size(), (const char **)&argarray[0]);
-				font->printf(0, 1, false, Alignment::left, Palette::white, STR_START_FAILED_ERROR_N.c_str(), err);
+				font->printf(firstCol, 1, false, alignStart, Palette::white, STR_START_FAILED_ERROR_N.c_str(), err);
 			}
 
 			if (extension(filename, {"firm"})) {

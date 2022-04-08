@@ -52,31 +52,32 @@ DumpOption dumpMenu(std::vector<DumpOption> allowedOptions, const char *dumpName
 	while (true) {
 		font->clear(false);
 
-		font->print(0, 0, false, dumpToStr);
+		font->print(firstCol, 0, false, dumpToStr, alignStart);
 
+		int optionsCol = rtl ? -4 : 3;
 		int row = y;
 		for(DumpOption option : allowedOptions) {
 			switch(option) {
 				case DumpOption::all:
-					font->print(3, row++, false, STR_DUMP_ALL);
+					font->print(optionsCol, row++, false, STR_DUMP_ALL, alignStart);
 					break;
 				case DumpOption::allTrimmed:
-					font->print(3, row++, false, STR_DUMP_ALL_TRIMMED);
+					font->print(optionsCol, row++, false, STR_DUMP_ALL_TRIMMED, alignStart);
 					break;
 				case DumpOption::rom:
-					font->print(3, row++, false, STR_DUMP_ROM);
+					font->print(optionsCol, row++, false, STR_DUMP_ROM, alignStart);
 					break;
 				case DumpOption::romTrimmed:
-					font->print(3, row++, false, STR_DUMP_ROM_TRIMMED);
+					font->print(optionsCol, row++, false, STR_DUMP_ROM_TRIMMED, alignStart);
 					break;
 				case DumpOption::save:
-					font->print(3, row++, false, STR_DUMP_SAVE);
+					font->print(optionsCol, row++, false, STR_DUMP_SAVE, alignStart);
 					break;
 				case DumpOption::ndsSave:
-					font->print(3, row++, false, STR_DUMP_DS_SAVE);
+					font->print(optionsCol, row++, false, STR_DUMP_DS_SAVE, alignStart);
 					break;
 				case DumpOption::metadata:
-					font->print(3, row++, false, STR_DUMP_METADATA);
+					font->print(optionsCol, row++, false, STR_DUMP_METADATA, alignStart);
 					break;
 				case DumpOption::none:
 					row++;
@@ -84,10 +85,10 @@ DumpOption dumpMenu(std::vector<DumpOption> allowedOptions, const char *dumpName
 			}
 		}
 
-		font->print(3, ++row, false, STR_A_SELECT_B_CANCEL);
+		font->print(optionsCol, ++row, false, STR_A_SELECT_B_CANCEL, alignStart);
 
 		// Show cursor
-		font->print(0, y + optionOffset, false, "->");
+		font->print(firstCol, y + optionOffset, false, rtl ? "<-" : "->", alignStart);
 
 		font->update(false);
 
@@ -127,8 +128,8 @@ DumpOption dumpMenu(std::vector<DumpOption> allowedOptions, const char *dumpName
 
 void dumpFailMsg(std::string_view msg) {
 	font->clear(false);
-	font->print(0, 0, false, msg, Alignment::left, Palette::red);
-	font->print(0, font->calcHeight(msg) + 1, false, STR_A_OK);
+	font->print(firstCol, 0, false, msg, alignStart, Palette::red);
+	font->print(firstCol, font->calcHeight(msg) + 1, false, STR_A_OK, alignStart);
 	font->update(false);
 
 	u16 pressed;
@@ -291,7 +292,7 @@ u32 cardNandGetSaveSize(void) {
 
 bool writeToGbaSave(const char* fileName, u8* buffer, u32 size) {
 	font->clear(false);
-	font->print(0, 0, false, STR_COMPRESSING_SAVE);
+	font->print(firstCol, 0, false, STR_COMPRESSING_SAVE, alignStart);
 	font->update(false);
 	int compressedSize = 0;
 	u8 *compressedBuffer = LZS_Encode(buffer, size, LZS_VFAST, &compressedSize);
@@ -300,7 +301,7 @@ bool writeToGbaSave(const char* fileName, u8* buffer, u32 size) {
 	u32 bytesWritten = 0;
 	while((int)bytesWritten < compressedSize) {
 		font->clear(false);
-		font->print(0, 0, false, STR_LOADING);
+		font->print(firstCol, 0, false, STR_LOADING, alignStart);
 		font->update(false);
 		saveTypeGBA type = gbaGetSaveType();
 		u32 gbaSize = gbaGetSaveSize(type);
@@ -308,7 +309,7 @@ bool writeToGbaSave(const char* fileName, u8* buffer, u32 size) {
 		u32 writeSize = std::min(gbaSize - 0x30, (u32)(compressedSize - bytesWritten));
 
 		font->clear(false);
-		font->printf(0, 0, false, Alignment::left, Palette::white, (STR_WRITE_TO_GBA + "\n\n" + STR_A_YES_B_NO).c_str(), getBytes(writeSize).c_str(), getBytes(compressedSize - bytesWritten).c_str());
+		font->printf(firstCol, 0, false, alignStart, Palette::white, (STR_WRITE_TO_GBA + "\n\n" + STR_A_YES_B_NO).c_str(), getBytes(writeSize).c_str(), getBytes(compressedSize - bytesWritten).c_str(), alignStart);
 		font->update(false);
 
 		u16 pressed;
@@ -320,7 +321,7 @@ bool writeToGbaSave(const char* fileName, u8* buffer, u32 size) {
 
 		if(pressed & KEY_A) {
 			font->clear(false);
-			font->print(0, 0, false, STR_WRITING_SAVE);
+			font->print(firstCol, 0, false, STR_WRITING_SAVE, alignStart);
 			font->update(false);
 
 			u8* writeBuffer = (u8*)memalign(4, gbaSize);
@@ -349,7 +350,7 @@ bool writeToGbaSave(const char* fileName, u8* buffer, u32 size) {
 
 		if((int)bytesWritten < compressedSize) {
 			font->clear(false);
-			font->print(0, 0, false, STR_SWITCH_CART);
+			font->print(firstCol, 0, false, STR_SWITCH_CART, alignStart);
 			font->update(false);
 
 			// Wait for GBA cart to be removed and reinserted
@@ -373,7 +374,7 @@ bool readFromGbaCart() {
 	u32 bytesRead = 0;
 	do {
 		font->clear(false);
-		font->print(0, 0, false, STR_LOADING);
+		font->print(firstCol, 0, false, STR_LOADING, alignStart);
 		font->update(false);
 
 		saveTypeGBA saveType = gbaGetSaveType();
@@ -419,9 +420,9 @@ bool readFromGbaCart() {
 		if(bytesRead < compressedSize) {
 			font->clear(false);
 			if(section != -1)
-				font->printf(0, 0, false, Alignment::left, Palette::white, (STR_SWITCH_CART_TO_SECTION_THIS_WAS + "\n\n" + STR_B_CANCEL).c_str(), currentSection + 1, section + 1);
+				font->printf(firstCol, 0, false, alignStart, Palette::white, (STR_SWITCH_CART_TO_SECTION_THIS_WAS + "\n\n" + STR_B_CANCEL).c_str(), currentSection + 1, section + 1, alignStart);
 			else
-				font->printf(0, 0, false, Alignment::left, Palette::white, (STR_SWITCH_CART_TO_SECTION + "\n\n" + STR_B_CANCEL).c_str(), currentSection + 1);
+				font->printf(firstCol, 0, false, alignStart, Palette::white, (STR_SWITCH_CART_TO_SECTION + "\n\n" + STR_B_CANCEL).c_str(), currentSection + 1, alignStart);
 			font->update(false);
 
 			if(*(u8*)(0x080000B2) == 0x96) {
@@ -467,8 +468,8 @@ bool readFromGbaCart() {
 
 void ndsCardSaveDump(const char* filename) {
 	font->clear(false);
-	font->print(0, 0, false, STR_DUMPING_SAVE);
-	font->print(0, 1, false, STR_DO_NOT_REMOVE_CARD);
+	font->print(firstCol, 0, false, STR_DUMPING_SAVE, alignStart);
+	font->print(firstCol, 1, false, STR_DO_NOT_REMOVE_CARD, alignStart);
 	font->update(false);
 
 	int type = cardEepromGetTypeFixed();
@@ -485,12 +486,15 @@ void ndsCardSaveDump(const char* filename) {
 		FILE* destinationFile = fopen(filename, "wb");
 		if (destinationFile) {
 
-			font->print(0, 4, false, STR_PROGRESS);
+			font->print(firstCol, 4, false, STR_PROGRESS, alignStart);
 			font->print(0, 5, false, "[");
 			font->print(-1, 5, false, "]");
 			for (u32 src = 0; src < saveSize; src += 0x8000) {
-				font->print((src / (saveSize / (SCREEN_COLS - 2))) + 1, 5, false, "=");
-				font->printf(0, 6, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), src, saveSize);
+				int progressPos = (src / (saveSize / (SCREEN_COLS - 2))) + 1;
+				if(rtl)
+					progressPos = (progressPos + 1) * -1;
+				font->print(progressPos, 5, false, "=");
+				font->printf(firstCol, 6, false, alignStart, Palette::white, STR_N_OF_N_BYTES.c_str(), src, saveSize);
 				font->update(false);
 
 				for (u32 i = 0; i < 0x8000; i += 0x200) {
@@ -544,7 +548,7 @@ void ndsCardSaveRestore(const char *filename) {
 	bool usingFlashcard = (io_dldi_data->ioInterface.features & FEATURE_SLOT_NDS) && flashcardMounted;
 
 	font->clear(false);
-	font->print(0, 0, false, (usingFlashcard ? STR_RESTORE_SELECTED_SAVE_CARD_FLASHCARD : STR_RESTORE_SELECTED_SAVE_CARD) + "\n\n" + STR_A_YES_B_NO);
+	font->print(firstCol, 0, false, (usingFlashcard ? STR_RESTORE_SELECTED_SAVE_CARD_FLASHCARD : STR_RESTORE_SELECTED_SAVE_CARD) + "\n\n" + STR_A_YES_B_NO, alignStart);
 	font->update(false);
 
 	// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
@@ -585,12 +589,15 @@ void ndsCardSaveRestore(const char *filename) {
 
 			u32 currentSize = saveSize;
 			if (in) {
-				font->print(0, 4, false, STR_PROGRESS);
+				font->print(firstCol, 4, false, STR_PROGRESS);
 				font->print(0, 5, false, "[");
 				font->print(-1, 5, false, "]");
 				for (u32 dest = 0; dest < saveSize; dest += 0x8000) {
-					font->print((dest / (saveSize / (SCREEN_COLS - 2))) + 1, 5, false, "=");
-					font->printf(0, 6, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), dest, saveSize);
+					int progressPos = (dest / (saveSize / (SCREEN_COLS - 2))) + 1;
+					if(rtl)
+						progressPos = (progressPos + 1) * -1;
+					font->print(progressPos, 5, false, "=");
+					font->printf(firstCol, 6, false, alignStart, Palette::white, STR_N_OF_N_BYTES.c_str(), dest, saveSize);
 					font->update(false);
 
 					fread(copyBuf, 1, 0x8000, in);
@@ -624,7 +631,7 @@ void ndsCardSaveRestore(const char *filename) {
 					flashcardUnmount();
 
 					font->clear(false);
-					font->print(0, 0, false, STR_EJECT_FLASHCARD_INSERT_GAME + "\n\n" + STR_A_CONTINUE);
+					font->print(firstCol, 0, false, STR_EJECT_FLASHCARD_INSERT_GAME + "\n\n" + STR_A_CONTINUE, alignStart);
 					font->update(false);
 
 					// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
@@ -669,9 +676,9 @@ void ndsCardSaveRestore(const char *filename) {
 				}
 
 				font->clear(false);
-				font->print(0, 0, false, STR_RESTORING_SAVE);
-				font->print(0, 1, false, STR_DO_NOT_REMOVE_CARD);
-				font->print(0, 4, false, STR_PROGRESS);
+				font->print(firstCol, 0, false, STR_RESTORING_SAVE, alignStart);
+				font->print(firstCol, 1, false, STR_DO_NOT_REMOVE_CARD, alignStart);
+				font->print(firstCol, 4, false, STR_PROGRESS, alignStart);
 				font->update(false);
 
 				if(type == 3) {
@@ -689,8 +696,11 @@ void ndsCardSaveRestore(const char *filename) {
 					font->print(0, 5, false, "[");
 					font->print(-1, 5, false, "]");
 					for(unsigned int i = 0; i < num_blocks; i++) {
-						font->print((i * (SCREEN_COLS - 2) / num_blocks) + 1, 5, false, "=");
-						font->printf(0, 6, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), i * LEN, length);
+						int progressPos = (i * (SCREEN_COLS - 2) / num_blocks) + 1;
+						if(rtl)
+							progressPos = (progressPos + 1) * -1;
+						font->print(progressPos, 5, false, "=");
+						font->printf(firstCol, 6, false, alignStart, Palette::white, STR_N_OF_N_BYTES.c_str(), i * LEN, length);
 						font->update(false);
 
 						if(usingFlashcard) {
@@ -708,8 +718,11 @@ void ndsCardSaveRestore(const char *filename) {
 					font->print(0, 5, false, "[");
 					font->print(-1, 5, false, "]");
 					for(unsigned int i = 0; i < 32; i++) {
-						font->print((i * (SCREEN_COLS - 2) / 32) + 1, 5, false, "=");
-						font->printf(0, 6, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), written, size);
+						int progressPos = (i * (SCREEN_COLS - 2) / 32) + 1;
+						if(rtl)
+							progressPos = (progressPos + 1) * -1;
+						font->print(progressPos, 5, false, "=");
+						font->printf(firstCol, 6, false, alignStart, Palette::white, STR_N_OF_N_BYTES.c_str(), written, size);
 						font->update(false);
 
 						if(usingFlashcard) {
@@ -738,8 +751,8 @@ void ndsCardDump(void) {
 
 	font->clear(false);
 	if ((io_dldi_data->ioInterface.features & FEATURE_SLOT_NDS) && flashcardMounted) {
-		font->print(0, 0, false, STR_FLASHCARD_WILL_UNMOUNT);
-		font->print(0, 3, false, STR_A_YES_B_NO);
+		font->print(firstCol, 0, false, STR_FLASHCARD_WILL_UNMOUNT, alignStart);
+		font->print(firstCol, 3, false, STR_A_YES_B_NO, alignStart);
 		font->update(false);
 
 		while (true) {
@@ -760,7 +773,7 @@ void ndsCardDump(void) {
 		}
 	}
 
-	font->print(0, 0, false, STR_LOADING);
+	font->print(firstCol, 0, false, STR_LOADING, alignStart);
 	font->update(false);
 
 	std::vector allowedOptions = {DumpOption::all};
@@ -829,13 +842,13 @@ void ndsCardDump(void) {
 		sprintf(folderPath[1], "%s:/gm9i/out", (sdMounted ? "sd" : "fat"));
 		if (access(folderPath[0], F_OK) != 0) {
 			font->clear(false);
-			font->print(0, 0, false, STR_CREATING_DIRECTORY);
+			font->print(firstCol, 0, false, STR_CREATING_DIRECTORY, alignStart);
 			font->update(false);
 			mkdir(folderPath[0], 0777);
 		}
 		if (access(folderPath[1], F_OK) != 0) {
 			font->clear(false);
-			font->print(0, 0, false, STR_CREATING_DIRECTORY);
+			font->print(firstCol, 0, false, STR_CREATING_DIRECTORY, alignStart);
 			font->update(false);
 			mkdir(folderPath[1], 0777);
 		}
@@ -844,8 +857,8 @@ void ndsCardDump(void) {
 	// Dump ROM
 	if((dumpOption & allowedBitfield) & (DumpOption::rom | DumpOption::romTrimmed)) {
 		font->clear(false);
-		font->printf(0, 0, false, Alignment::left, Palette::white, STR_NDS_IS_DUMPING.c_str(), fileName);
-		font->print(0, 2, false, STR_DO_NOT_REMOVE_CARD);
+		font->printf(firstCol, 0, false, alignStart, Palette::white, STR_NDS_IS_DUMPING.c_str(), fileName);
+		font->print(firstCol, 2, false, STR_DO_NOT_REMOVE_CARD, alignStart);
 		font->update(false);
 
 		// Determine ROM size
@@ -863,12 +876,15 @@ void ndsCardDump(void) {
 		u32 currentSize = romSize;
 		FILE* destinationFile = fopen(destPath, "wb");
 		if (destinationFile) {
-			font->print(0, 4, false, STR_PROGRESS);
+			font->print(firstCol, 4, false, STR_PROGRESS, alignStart);
 			font->print(0, 5, false, "[");
 			font->print(-1, 5, false, "]");
 			for (u32 src = 0; src < romSize; src += 0x8000) {
-				font->print((src / (romSize / (SCREEN_COLS - 2))) + 1, 5, false, "=");
-				font->printf(0, 6, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), src, romSize);
+				int progressPos = (src / (romSize / (SCREEN_COLS - 2))) + 1;
+				if(rtl)
+					progressPos = (progressPos + 1) * -1;
+				font->print(progressPos, 5, false, "=");
+				font->printf(firstCol, 6, false, alignStart, Palette::white, STR_N_OF_N_BYTES.c_str(), src, romSize);
 				font->update(false);
 
 				for (u32 i = 0; i < 0x8000; i += 0x200) {
@@ -896,7 +912,7 @@ void ndsCardDump(void) {
 	// Dump metadata
 	if ((dumpOption & allowedBitfield) & DumpOption::metadata) {
 		font->clear(false);
-		font->print(0, 0, false, STR_DUMPING_METADATA);
+		font->print(firstCol, 0, false, STR_DUMPING_METADATA, alignStart);
 		font->update(false);
 
 		char destPath[256];
@@ -933,8 +949,8 @@ void ndsCardDump(void) {
 
 void gbaCartSaveDump(const char *filename) {
 	font->clear(false);
-	font->print(0, 0, false, STR_DUMPING_SAVE);
-	font->print(0, 1, false, STR_DO_NOT_REMOVE_CART);
+	font->print(firstCol, 0, false, STR_DUMPING_SAVE, alignStart);
+	font->print(firstCol, 1, false, STR_DO_NOT_REMOVE_CART, alignStart);
 	font->update(false);
 
 	saveTypeGBA type = gbaGetSaveType();
@@ -953,7 +969,7 @@ void gbaCartSaveDump(const char *filename) {
 
 void gbaCartSaveRestore(const char *filename) {
 	font->clear(false);
-	font->print(0, 0, false, STR_RESTORE_SELECTED_SAVE_CART + "\n\n" + STR_A_YES_B_NO);
+	font->print(firstCol, 0, false, STR_RESTORE_SELECTED_SAVE_CART + "\n\n" + STR_A_YES_B_NO, alignStart);
 	font->update(false);
 
 	// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
@@ -996,8 +1012,8 @@ void gbaCartSaveRestore(const char *filename) {
 		}
 
 		font->clear(false);
-		font->print(0, 0, false, STR_RESTORING_SAVE);
-		font->print(0, 1, false, STR_DO_NOT_REMOVE_CART);
+		font->print(firstCol, 0, false, STR_RESTORING_SAVE, alignStart);
+		font->print(firstCol, 1, false, STR_DO_NOT_REMOVE_CART, alignStart);
 		font->update(false);
 
 		gbaFormatSave(type);
@@ -1028,7 +1044,7 @@ void gbaCartDump(void) {
 #endif
 
 	font->clear(false);
-	font->print(0, 0, false, STR_LOADING);
+	font->print(firstCol, 0, false, STR_LOADING, alignStart);
 	font->update(false);
 
 	std::vector allowedOptions = {DumpOption::all, DumpOption::rom};
@@ -1089,13 +1105,13 @@ void gbaCartDump(void) {
 		sprintf(folderPath[1], "%s:/gm9i/out", (sdMounted ? "sd" : "fat"));
 		if (access(folderPath[0], F_OK) != 0) {
 			font->clear(false);
-			font->print(0, 0, false, STR_CREATING_DIRECTORY);
+			font->print(firstCol, 0, false, STR_CREATING_DIRECTORY, alignStart);
 			font->update(false);
 			mkdir(folderPath[0], 0777);
 		}
 		if (access(folderPath[1], F_OK) != 0) {
 			font->clear(false);
-			font->print(0, 0, false, STR_CREATING_DIRECTORY);
+			font->print(firstCol, 0, false, STR_CREATING_DIRECTORY, alignStart);
 			font->update(false);
 			mkdir(folderPath[1], 0777);
 		}
@@ -1104,8 +1120,8 @@ void gbaCartDump(void) {
 	// Dump ROM
 	if ((dumpOption & allowedBitfield) & DumpOption::rom) {
 		font->clear(false);
-		font->printf(0, 0, false, Alignment::left, Palette::white, STR_GBA_IS_DUMPING.c_str(), fileName);
-		font->print(0, 2, false, STR_DO_NOT_REMOVE_CART);
+		font->printf(firstCol, 0, false, alignStart, Palette::white, STR_GBA_IS_DUMPING.c_str(), fileName);
+		font->print(firstCol, 2, false, STR_DO_NOT_REMOVE_CART, alignStart);
 		font->update(false);
 
 		// Determine ROM size
@@ -1139,12 +1155,15 @@ void gbaCartDump(void) {
 		if (destinationFile) {
 			bool failed = false;
 
-			font->print(0, 4, false, STR_PROGRESS);
+			font->print(firstCol, 4, false, STR_PROGRESS, alignStart);
 			font->print(0, 5, false, "[");
 			font->print(-1, 5, false, "]");
 			for (u32 src = 0; src < romSize; src += 0x8000) {
-				font->print((src / (romSize / (SCREEN_COLS - 2))) + 1, 5, false, "=");
-				font->printf(0, 6, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), src, romSize);
+				int progressPos = (src / (romSize / (SCREEN_COLS - 2))) + 1;
+				if(rtl)
+					progressPos = (progressPos + 1) * -1;
+				font->print(progressPos, 5, false, "=");
+				font->printf(firstCol, 6, false, alignStart, Palette::white, STR_N_OF_N_BYTES.c_str(), src, romSize);
 				font->update(false);
 
 				if (fwrite(GBAROM + src / sizeof(u16), 1, 0x8000, destinationFile) != 0x8000) {
@@ -1171,8 +1190,11 @@ void gbaCartDump(void) {
 				font->print(0, 5, false, "[");
 				font->print(-1, 5, false, "]");
 				for (size_t i = 0x02000000; i < 0x04000000; i += 0x1000) {
-					font->print((i / (0x04000000 / (SCREEN_COLS - 2))) + 1, 5, false, "=");
-					font->printf(0, 7, false, Alignment::left, Palette::white, STR_N_OF_N_BYTES.c_str(), i - 0x02000000, 0x04000000 - 0x02000000);
+					int progressPos = (i / (0x04000000 / (SCREEN_COLS - 2))) + 1;
+					if(rtl)
+						progressPos = (progressPos + 1) * -1;
+					font->print(progressPos, 5, false, "=");
+					font->printf(firstCol, 7, false, alignStart, Palette::white, STR_N_OF_N_BYTES.c_str(), i - 0x02000000, 0x04000000 - 0x02000000);
 					font->update(false);
 
 					cmd[1] = i,
@@ -1206,7 +1228,7 @@ void gbaCartDump(void) {
 	// Dump metadata
 	if ((dumpOption & allowedBitfield) & DumpOption::metadata) {
 		font->clear(false);
-		font->print(0, 0, false, STR_DUMPING_METADATA);
+		font->print(firstCol, 0, false, STR_DUMPING_METADATA, alignStart);
 		font->update(false);
 
 		char destPath[256];

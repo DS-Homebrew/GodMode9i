@@ -14,9 +14,11 @@
 #include "language.inl"
 #undef STRING
 
-const char *getLanguageString() {
-	return "en-US";
-}
+bool rtl = false;
+int firstCol =0;
+int lastCol = -1;
+Alignment alignStart = Alignment::left;
+Alignment alignEnd = Alignment::right;
 
 /**
  * Get strings from the ini with special processing
@@ -116,4 +118,17 @@ void langInit(bool reloading) {
 #define STRING(what, def) STR_##what = getString(languageini, ""#what, def);
 #include "language.inl"
 #undef STRING
+
+	rtl = languageini.GetString("PROPERTIES", "DIR", "ltr") == "rtl";
+	if(rtl) {
+		firstCol = -1;
+		lastCol = 0;
+		alignStart = Alignment::right;
+		alignEnd = Alignment::left;
+	} else {
+		firstCol = 0;
+		lastCol = -1;
+		alignStart = Alignment::left;
+		alignEnd = Alignment::right;
+	}
 }

@@ -28,15 +28,18 @@ constexpr std::array<std::string *, 4> startMenuStrings = {
 	&STR_LANGUAGE
 };
 
-constexpr std::array<std::pair<const char *, const char *>, 11> languageList = {{
+constexpr std::array<std::pair<const char *, const char *>, 14> languageList = {{
 	{"de-DE", "Deutsch"},
 	{"en-US", "English"},
 	{"es-ES", "Español"},
 	{"fr-FR", "Français"},
 	{"it-IT", "Italiano"},
 	{"hu-HU", "Magyar"},
+	{"nl-NL", "Nederlands"},
 	{"ro-RO", "Română"},
 	{"ru-RU", "Русский"},
+	{"uk-UA", "Українська"},
+	{"he-IL", "עברית"},
 	{"zh-CN", "中文 (简体)"},
 	{"ja-JP", "日本語"},
 	{"ja-KANA", "にほんご"}
@@ -115,8 +118,8 @@ void startMenu() {
 void languageMenu() {
 	if(ownNitroFSMounted != 0) {
 		font->clear(false);
-		font->print(0, 0, false, ownNitroFSMounted == 1 ? STR_NITROFS_NOT_MOUNTED : STR_NITROFS_UNMOUNTED);
-		font->print(0, font->calcHeight(ownNitroFSMounted == 1 ? STR_NITROFS_NOT_MOUNTED : STR_NITROFS_UNMOUNTED) + 1, false, STR_A_CONTINUE);
+		font->print(firstCol, 0, false, ownNitroFSMounted == 1 ? STR_NITROFS_NOT_MOUNTED : STR_NITROFS_UNMOUNTED, alignStart);
+		font->print(firstCol, font->calcHeight(ownNitroFSMounted == 1 ? STR_NITROFS_NOT_MOUNTED : STR_NITROFS_UNMOUNTED) + 1, false, STR_A_CONTINUE, alignStart);
 		font->update(false);
 
 		do {

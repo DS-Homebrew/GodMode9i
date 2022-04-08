@@ -35,7 +35,7 @@ std::string kbdGetString(std::string label, int maxSize, std::string oldStr) {
 	bool done = false;
 	while(!done) {
 		font->clear(false);
-		font->print(0, 0, false, label);
+		font->print(firstCol, 0, false, label, alignStart);
 
 		int strSize = 0;
 		for(int i = 0; strSize < (int)output.size() && (i < SCREEN_COLS - 3 || (output[scrollPosition + strSize] & 0xC0) == 0x80); strSize++) {
@@ -59,7 +59,7 @@ std::string kbdGetString(std::string label, int maxSize, std::string oldStr) {
 		}
 		font->printf(2 + cursorPosition, labelHeight, false, Alignment::left, Palette::blackWhite, "%s", stringPosition < (int)output.size() ? output.substr(stringPosition, charLen).c_str() : " ");
 
-		font->print(0, labelHeight + 2, false, STR_START_RETURN_B_BACKSPACE);
+		font->print(firstCol, labelHeight + 2, false, STR_START_RETURN_B_BACKSPACE, alignStart);
 		font->update(false);
 
 		do {
