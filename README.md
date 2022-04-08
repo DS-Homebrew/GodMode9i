@@ -73,7 +73,7 @@ When loading GodMode9i will try to load `/gm9i/font.frf` on your SD card and if 
 * Chinese (Simplified): [cai_miao](https://crowdin.com/profile/cai_miao), [James-Makoto](https://crowdin.com/profile/vcmod55)
 * Dutch: [Minionguyjpro](https://crowdin.com/profile/minionguyjpro)
 * French: [Benjamin](https://crowdin.com/profile/sombrabsol), [Dhalian.](https://crowdin.com/profile/dhalian3630)
-* German: [Kasimir](https://crowdin.com/profile/redstonekasi)
+* German: [redstonekasi](https://crowdin.com/profile/redstonekasi)
 * Hungarian: [Viktor Varga](http://github.com/vargaviktor)
 * Italian: [Malick](https://crowdin.com/profile/malick1160), [TM-47](https://crowdin.com/profile/-tm-), [zacchi4k](https://crowdin.com/profile/zacchi4k)
 * Japanese: [Cloud0835](https://crowdin.com/profile/cloud0835), [Pk11](https://github.com/Epicpkmn11)
