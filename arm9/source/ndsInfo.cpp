@@ -102,8 +102,14 @@ void ndsInfo(const char *path) {
 	u16 *iconGfx = oamAllocateGfx(&oamSub, SpriteSize_32x32, SpriteColorFormat_16Color);
 	oamSet(&oamSub, 0, 256 - 36, 4, 0, 0, SpriteSize_32x32, SpriteColorFormat_16Color, iconGfx, -1, false, false, false, false, false);
 	
-	tonccpy(iconGfx, iconBitmap, 0x200);
-	tonccpy(SPRITE_PALETTE_SUB, iconPalette, 0x20);
+	if(version == 0x0103) {
+		tonccpy(iconGfx, iconBitmap + ((iconAnimation[0] >> 8) & 7) * 0x200, 0x200);
+		tonccpy(SPRITE_PALETTE_SUB, iconPalette + ((iconAnimation[0] >> 0xB) & 7) * 0x10, 0x20);
+		oamSetFlip(&oamSub, 0, iconAnimation[0] & BIT(14), iconAnimation[0] & BIT(15));
+	} else {
+		tonccpy(iconGfx, iconBitmap, 0x200);
+		tonccpy(SPRITE_PALETTE_SUB, iconPalette, 0x20);
+	}
 
 	oamUpdate(&oamSub);
 
