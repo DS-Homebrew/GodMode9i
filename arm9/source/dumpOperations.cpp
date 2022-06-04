@@ -527,6 +527,7 @@ void ndsCardSaveDump(const char* filename) {
 			buffer = new unsigned char[size];
 			auxspi_read_data(0, buffer, size, type, card_type);
 		} else {
+			type = cardEepromGetTypeFixed();
 			size = cardEepromGetSizeFixed();
 			buffer = new unsigned char[size];
 			cardReadEeprom(0, buffer, size, type);
@@ -665,6 +666,7 @@ void ndsCardSaveRestore(const char *filename) {
 					LEN = 1 << shift;
 					num_blocks = 1 << (size - shift);
 				} else {
+					type = cardEepromGetTypeFixed();
 					size = cardEepromGetSizeFixed();
 				}
 
