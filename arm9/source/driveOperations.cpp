@@ -101,7 +101,7 @@ bool imgFound(void) {
 	return (access("img:/", F_OK) == 0);
 }
 
-TWL_CODE bool nandMount(void) {
+bool nandMount(void) {
 	fatMountSimple("nand", &io_dsi_nand);
 	if (nandFound()) {
 		struct statvfs st;
@@ -113,7 +113,7 @@ TWL_CODE bool nandMount(void) {
 	return false;
 }
 
-TWL_CODE void nandUnmount(void) {
+void nandUnmount(void) {
 	fatUnmount("nand");
 	nandSize = 0;
 	nandMounted = false;

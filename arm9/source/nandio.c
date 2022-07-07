@@ -1,5 +1,7 @@
 
 #include <nds.h>
+#include <nds/fifocommon.h>
+#include <nds/fifomessages.h>
 #include <nds/disc_io.h>
 #include <malloc.h>
 #include <stdio.h>
@@ -10,8 +12,6 @@
 
 //#define SECTOR_SIZE 512
 #define CRYPT_BUF_LEN 64
-
-extern bool nand_Startup();
 
 static u8* crypt_buf = 0;
 
@@ -43,10 +43,49 @@ void getConsoleID(u8 *consoleID){
 	tonccpy(&consoleID[4], &key_x[0xC], 4);
 }
 
-bool nandio_startup() {
-	if (!nand_Startup()) return false;
+//---------------------------------------------------------------------------------
+bool my_nand_Startup() {
+//---------------------------------------------------------------------------------
+	fifoSendValue32(FIFO_SDMMC,SDMMC_HAVE_SD);
+	while(!fifoCheckValue32(FIFO_SDMMC));
+	int result = fifoGetValue32(FIFO_SDMMC);
 
-	nand_ReadSectors(0, 1, sector_buf);
+	if(result==0) return false;
+
+	fifoSendValue32(FIFO_SDMMC,SDMMC_NAND_START);
+
+	fifoWaitValue32(FIFO_SDMMC);
+
+	result = fifoGetValue32(FIFO_SDMMC);
+
+	return result == 0;
+}
+
+//---------------------------------------------------------------------------------
+bool my_nand_ReadSectors(sec_t sector, sec_t numSectors,void* buffer) {
+//---------------------------------------------------------------------------------
+	FifoMessage msg;
+
+	DC_FlushRange(buffer,numSectors * 512);
+
+	msg.type = SDMMC_NAND_READ_SECTORS;
+	msg.sdParams.startsector = sector;
+	msg.sdParams.numsectors = numSectors;
+	msg.sdParams.buffer = buffer;
+	
+	fifoSendDatamsg(FIFO_SDMMC, sizeof(msg), (u8*)&msg);
+
+	fifoWaitValue32(FIFO_SDMMC);
+
+	int result = fifoGetValue32(FIFO_SDMMC);
+	
+	return result == 0;
+}
+
+bool nandio_startup() {
+	if (!my_nand_Startup()) return false;
+
+	my_nand_ReadSectors(0, 1, sector_buf);
 	bool isDSi = parse_ncsd(sector_buf, 0) != 0;
 	//if (!isDSi) return false;
 
@@ -97,7 +136,7 @@ bool nandio_is_inserted() {
 
 // len is guaranteed <= CRYPT_BUF_LEN
 static bool read_sectors(sec_t start, sec_t len, void *buffer) {
-	if (nand_ReadSectors(start, len, crypt_buf)) {
+	if (my_nand_ReadSectors(start, len, crypt_buf)) {
 		dsi_nand_crypt(buffer, crypt_buf, start * SECTOR_SIZE / AES_BLOCK_SIZE, len * SECTOR_SIZE / AES_BLOCK_SIZE);
 		if (fat_sig_fix_offset &&
 			start == fat_sig_fix_offset

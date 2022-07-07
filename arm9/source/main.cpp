@@ -154,13 +154,13 @@ int main(int argc, char **argv) {
 
 	if (isDSiMode()) {
 		if (!arm7SCFGLocked) {
-			font->print(-2, -4, false, " Held - Disable NAND access", Alignment::right);
+			//font->print(-2, -4, false, " Held - Disable NAND access", Alignment::right);
 			font->print(-2, -3, false, " Held - Disable cart access", Alignment::right);
-			font->print(-2, -2, false, "Do these if it crashes here", Alignment::right);
-		} else {
+			font->print(-2, -2, false, "Do this if it crashes here", Alignment::right);
+		} /*else {
 			font->print(-2, -3, false, " Held - Disable NAND access", Alignment::right);
 			font->print(-2, -2, false, "Do this if it crashes here", Alignment::right);
-		}
+		}*/
 	}
 
 	// Display for 2 seconds
@@ -193,9 +193,9 @@ int main(int argc, char **argv) {
 		if (ram32MB) {
 			is3DS = fifoGetValue32(FIFO_USER_05) != 0xD2;
 		}
-		if (!(keysHeld() & KEY_X)) {
+		//if (!(keysHeld() & KEY_X)) {
 			nandMounted = nandMount();
-		}
+		//}
 		//is3DS = ((access("sd:/Nintendo 3DS", F_OK) == 0) && (*(vu32*)(0x0DFFFE0C) == 0x474D3969));
 		/*FILE* cidFile = fopen("sd:/gm9i/CID.bin", "wb");
 		fwrite((void*)0x2FFD7BC, 1, 16, cidFile);
@@ -210,6 +210,7 @@ int main(int argc, char **argv) {
 		if (ram32MB) {
 			is3DS = fifoGetValue32(FIFO_USER_05) != 0xD2;
 		}
+		//nandMounted = nandMount();
 	} else if (isRegularDS && (io_dldi_data->ioInterface.features & FEATURE_SLOT_NDS)) {
 		ramdriveMount(false);
 	}

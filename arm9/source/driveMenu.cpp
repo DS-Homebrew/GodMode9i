@@ -360,7 +360,7 @@ void driveMenu (void) {
 				chdir("ram:/");
 				screenMode = 1;
 				break;
-			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::sysNand && isDSiMode() && nandMounted) {
+			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::sysNand && nandMounted) {
 				currentDrive = Drive::nand;
 				chdir("nand:/");
 				screenMode = 1;
