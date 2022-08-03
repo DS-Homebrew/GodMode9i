@@ -39,6 +39,7 @@ Config::Config() {
 	sniprintf(defaultLanguagePath, sizeof(defaultLanguagePath), "nitro:/languages/%s/language.ini", getSystemLanguage());
 	_languageIniPath = ini.GetString("GODMODE9I", "LANGUAGE_INI_PATH", defaultLanguagePath);
 	_fontPath = ini.GetString("GODMODE9I", "FONT_PATH", "sd:/gm9i/font.frf");
+	_screenSwap = ini.GetInt("GODMODE9I", "SCREEN_SWAP", 0);
 
 	// If the config doesn't exist, create it
 	if(access(_configPath, F_OK) != 0)
@@ -50,6 +51,7 @@ void Config::save() {
 
 	ini.SetString("GODMODE9I", "LANGUAGE_INI_PATH", _languageIniPath);
 	ini.SetString("GODMODE9I", "FONT_PATH", _fontPath);
+	ini.SetInt("GODMODE9I", "SCREEN_SWAP", _screenSwap);
 
 	ini.SaveIniFile(_configPath);
 }

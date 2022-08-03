@@ -33,6 +33,7 @@
 #include <fat.h>
 
 #include "main.h"
+#include "config.h"
 #include "date.h"
 #include "screenshot.h"
 #include "fileOperations.h"
@@ -170,9 +171,8 @@ void showDirectoryContents(std::vector<DirEntry> &dirContents, int fileOffset, i
 }
 
 FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
-#ifdef SCREENSWAP
-	lcdMainOnTop();
-#endif
+	if(config->screenSwap())
+		lcdMainOnTop();
 
 	int pressed = 0, held = 0;
 	std::vector<FileOperation> operations;
@@ -301,9 +301,9 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 			swiWaitForVBlank();
 
 			if(driveRemoved(currentDrive)) {
-#ifdef SCREENSWAP
-				screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
-#endif
+				if(config->screenSwap())
+					screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
+
 				return FileOperation::none;
 			}
 		} while (!(pressed & (KEY_UP| KEY_DOWN | KEY_A | KEY_B | KEY_L)));
@@ -468,14 +468,15 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 				}
 			}
 			keysDownRepeat(); // prevent unwanted key repeat
-#ifdef SCREENSWAP
-			screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
-#endif
+
+			if(config->screenSwap())
+				screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
+
 			return operations[optionOffset];
 		} else if (pressed & KEY_B) {
-#ifdef SCREENSWAP
-			screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
-#endif
+			if(config->screenSwap())
+				screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
+
 			return FileOperation::none;
 		}
 		// Make a screenshot
@@ -486,9 +487,8 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 }
 
 bool fileBrowse_paste(char dest[256]) {
-#ifdef SCREENSWAP
-	lcdMainOnTop();
-#endif
+	if(config->screenSwap())
+		lcdMainOnTop();
 
 	int pressed = 0;
 	int optionOffset = 0;
@@ -549,15 +549,16 @@ bool fileBrowse_paste(char dest[256]) {
 			}
 			clipboardUsed = true;		// Disable clipboard restore
 			clipboardOn = false;	// Clear clipboard after copying or moving
-#ifdef SCREENSWAP
-			screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
-#endif
+
+			if(config->screenSwap())
+				screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
+
 			return true;
 		}
 		if (pressed & KEY_B) {
-#ifdef SCREENSWAP
-			screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
-#endif
+			if(config->screenSwap())
+				screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
+
 			return false;
 		}
 	}
@@ -966,18 +967,10 @@ std::string browseForFile (void) {
 			clipboardOn = !clipboardOn;
 		} if (pressed & KEY_START) { // START menu
 			startMenu();
-		}
-
-#ifdef SCREENSWAP
-		// Swap screens
-		else if (pressed & KEY_TOUCH) {
+		} else if (pressed & config->screenSwapKey()) { // Swap screens
 			screenSwapped = !screenSwapped;
 			screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
-		}
-#endif
-
-		// Make a screenshot
-		else if ((held & KEY_R) && (pressed & KEY_L)) {
+		} else if ((held & KEY_R) && (pressed & KEY_L)) { // Make a screenshot
 			if(screenshot())
 				getDirectoryContents(dirContents);
 		}

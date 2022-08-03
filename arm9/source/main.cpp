@@ -50,9 +50,7 @@ char titleName[64] = {" "};
 int screenMode = 0;
 
 bool appInited = false;
-#ifdef SCREENSWAP
 bool screenSwapped = false;
-#endif
 
 bool arm7SCFGLocked = false;
 bool isRegularDS = true;
@@ -115,11 +113,7 @@ int main(int argc, char **argv) {
 	
 	bool yHeld = false;
 
-#ifdef SCREENSWAP
-	sprintf(titleName, "GodMode9i (Screen Swap) %s", VER_NUMBER);
-#else
 	sprintf(titleName, "GodMode9i %s", VER_NUMBER);
-#endif
 
 	// initialize video mode
 	videoSetMode(MODE_5_2D);
