@@ -67,7 +67,7 @@ std::string kbdGetString(std::string label, int maxSize, std::string oldStr) {
 			pressed = keysDownRepeat();
 			key = keyboardUpdate();
 			swiWaitForVBlank();
-		} while (!((pressed & (KEY_LEFT | KEY_RIGHT | KEY_B | KEY_START)) || (key != -1)));
+		} while (!((pressed & (KEY_LEFT | KEY_RIGHT | KEY_B | KEY_START | KEY_TOUCH)) || (key != -1)));
 
 		switch(key) {
 			case NOKEY:
@@ -108,6 +108,33 @@ std::string kbdGetString(std::string label, int maxSize, std::string oldStr) {
 					}
 				}
 				break;
+		}
+
+		if(pressed & KEY_TOUCH) {
+			touchPosition touch;
+			touchRead(&touch);
+			int px = touch.px - (256 % font->width()) / 2;
+			int py = touch.py - (192 % font->height()) / 2;
+			if(py >= font->height() && py < font->height() * 2) {
+				if(px < font->width() * 2) {
+					pressed |= KEY_LEFT;
+				} else if(px > 256 - font->width()) {
+					pressed |= KEY_RIGHT;
+				} else {
+					int pos = (px / font->width()) - 2;
+					while(stringPosition - scrollPosition > pos && stringPosition > 0) {
+						stringPosition--;
+						while((output[stringPosition] & 0xC0) == 0x80) // UTF-8
+							stringPosition--;
+					}
+					while(stringPosition - scrollPosition < pos && stringPosition < (int)output.size()) {
+						stringPosition++;
+						while((output[stringPosition] & 0xC0) == 0x80) // UTF-8
+							stringPosition++;
+					}
+				}
+
+			}
 		}
 
 		if(pressed & KEY_LEFT) {
