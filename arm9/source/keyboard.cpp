@@ -142,6 +142,12 @@ std::string kbdGetString(std::string label, int maxSize, std::string oldStr) {
 					stringPosition--;
 				}
 				output.erase(output.begin() + stringPosition);
+
+				if(cursorPosition - 1 < 0) {
+					scrollPosition--;
+					while((output[scrollPosition] & 0xC0) == 0x80) // UTF-8
+						scrollPosition--;
+				}
 			}
 		} else if(pressed & KEY_START) {
 			done = true;
