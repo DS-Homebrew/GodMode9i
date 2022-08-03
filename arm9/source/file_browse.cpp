@@ -695,15 +695,14 @@ std::string browseForFile (void) {
 
 		if ((!(held & KEY_R) && (pressed & KEY_A))
 		|| (!entry->isDirectory && (held & KEY_R) && (pressed & KEY_A))) {
-			if (entry->name == ".." && strcmp(path, getDrivePath()) == 0)
-			{
+			if (entry->name == ".." && strcmp(path, getDrivePath()) == 0) {
 				screenMode = 0;
 				return "null";
 			} else if (entry->isDirectory) {
 				font->printf(firstCol, fileOffset - screenOffset + ENTRIES_START_ROW, true, alignStart, Palette::white, "%-*s", SCREEN_COLS - 5, STR_ENTERING_DIRECTORY.c_str(), alignStart);
 				font->update(true);
 				// Enter selected directory
-				chdir (entry->name.c_str());
+				chdir(entry->name.c_str());
 				getDirectoryContents(dirContents);
 				screenOffset = 0;
 				fileOffset = 0;
@@ -742,10 +741,24 @@ std::string browseForFile (void) {
 				return "null";
 			}
 			// Go up a directory
-			chdir ("..");
-			getDirectoryContents (dirContents);
+			chdir("..");
+			getDirectoryContents(dirContents);
 			screenOffset = 0;
 			fileOffset = 0;
+
+			// Return selection to where it was
+			char *trailingSlash = strrchr(path, '/');
+			*trailingSlash = '\0';
+			std::string dirName = strrchr(path, '/') + 1;
+			*trailingSlash = '/';
+			for(size_t i = 0; i < dirContents.size(); i++) {
+				if(dirContents[i].name == dirName) {
+					fileOffset = i;
+					if (fileOffset > screenOffset + ENTRIES_PER_SCREEN - 1)
+						screenOffset = fileOffset - ENTRIES_PER_SCREEN + 1;
+					break;
+				}
+			}
 		} else if ((held & KEY_R) && (pressed & KEY_X) && (entry->name != ".." && driveWritable(currentDrive))) { // Rename file/folder
 			pressed = 0;
 
