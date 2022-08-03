@@ -1,4 +1,5 @@
 #include "titleManager.h"
+#include "config.h"
 #include "driveOperations.h"
 #include "file_browse.h"
 #include "fileOperations.h"
@@ -111,11 +112,7 @@ void dumpTitle(TitleInfo &title) {
 			pressed = keysDownRepeat();
 			held = keysHeld();
 			swiWaitForVBlank();
-		} while (!(pressed & (KEY_UP| KEY_DOWN | KEY_A | KEY_B | KEY_L))
-#ifdef SCREENSWAP
-				&& !(pressed & KEY_TOUCH)
-#endif
-				);
+		} while (!(pressed & (KEY_UP| KEY_DOWN | KEY_A | KEY_B | KEY_L | config->screenSwapKey())));
 
 		if (pressed & KEY_UP)
 			optionOffset--;
@@ -186,13 +183,11 @@ void dumpTitle(TitleInfo &title) {
 		if (pressed & KEY_B)
 			return;
 
-#ifdef SCREENSWAP
 		// Swap screens
-		if (pressed & KEY_TOUCH) {
+		if (pressed & config->screenSwapKey()) {
 			screenSwapped = !screenSwapped;
 			screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
 		}
-#endif
 
 		// Make a screenshot
 		if ((held & KEY_R) && (pressed & KEY_L)) {
@@ -301,11 +296,7 @@ void titleManager() {
 			scanKeys();
 			pressed = keysDown();
 			held = keysDownRepeat();
-		} while(!(held & (KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT | KEY_A | KEY_B | KEY_L
-#ifdef SCREENSWAP
-				| KEY_TOUCH
-#endif
-				)));
+		} while(!(held & (KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT | KEY_A | KEY_B | KEY_L | config->screenSwapKey())));
 
 		if(held & KEY_UP) {
 			cursorPosition--;
@@ -335,13 +326,11 @@ void titleManager() {
 		if (cursorPosition > scrollOffset + ENTRIES_PER_SCREEN - 1)
 			scrollOffset = cursorPosition - ENTRIES_PER_SCREEN + 1;
 
-#ifdef SCREENSWAP
 		// Swap screens
-		if (pressed & KEY_TOUCH) {
+		if (pressed & config->screenSwapKey()) {
 			screenSwapped = !screenSwapped;
 			screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
 		}
-#endif
 
 		if((pressed & KEY_L) && (keysHeld() & KEY_R)) {
 			screenshot();

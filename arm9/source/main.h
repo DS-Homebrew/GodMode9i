@@ -6,9 +6,7 @@ extern char titleName[32];
 extern int screenMode;
 
 extern bool appInited;
-#ifdef SCREENSWAP
 extern bool screenSwapped;
-#endif
 
 extern bool arm7SCFGLocked;
 extern bool isRegularDS;

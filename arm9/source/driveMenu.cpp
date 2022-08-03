@@ -28,6 +28,7 @@
 #include <dirent.h>
 
 #include "main.h"
+#include "config.h"
 #include "date.h"
 #include "screenshot.h"
 #include "dumpOperations.h"
@@ -302,11 +303,7 @@ void driveMenu (void) {
 					break;
 				}
 			}
-		} while (!(pressed & (KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT | KEY_A | KEY_B | KEY_X | KEY_L | KEY_START
-#ifdef SCREENSWAP
-				| KEY_TOUCH
-#endif
-		)));
+		} while (!(pressed & (KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT | KEY_A | KEY_B | KEY_X | KEY_L | KEY_START | config->screenSwapKey())));
 
 		if(dmOperations.size() != 0) {
 			if (pressed & KEY_UP) {
@@ -415,13 +412,11 @@ void driveMenu (void) {
 			startMenu();
 		}
 
-#ifdef SCREENSWAP
 		// Swap screens
-		if (pressed & KEY_TOUCH) {
+		if (pressed & config->screenSwapKey()) {
 			screenSwapped = !screenSwapped;
 			screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
 		}
-#endif
 
 		// Make a screenshot
 		if ((held & KEY_R) && (pressed & KEY_L)) {

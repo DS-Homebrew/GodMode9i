@@ -1,6 +1,7 @@
 #include "dumpOperations.h"
 
 #include "auxspi.h"
+#include "config.h"
 #include "date.h"
 #include "driveOperations.h"
 #include "fileOperations.h"
@@ -745,9 +746,8 @@ void ndsCardSaveRestore(const char *filename) {
 }
 
 void ndsCardDump(void) {
-#ifdef SCREENSWAP
-	lcdMainOnTop();
-#endif
+	if(config->screenSwap())
+		lcdMainOnTop();
 
 	u16 pressed;
 
@@ -767,9 +767,9 @@ void ndsCardDump(void) {
 				break;
 			}
 			if (pressed & KEY_B) {
-#ifdef SCREENSWAP
-				screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
-#endif
+				if(config->screenSwap())
+					screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
+
 				return;
 			}
 		}
@@ -944,9 +944,8 @@ void ndsCardDump(void) {
 		}
 	}
 
-#ifdef SCREENSWAP
-	screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
-#endif
+	if(config->screenSwap())
+		screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
 }
 
 void gbaCartSaveDump(const char *filename) {
@@ -1041,9 +1040,8 @@ void readChange(void) {
 }
 
 void gbaCartDump(void) {
-#ifdef SCREENSWAP
-	lcdMainOnTop();
-#endif
+	if(config->screenSwap())
+		lcdMainOnTop();
 
 	font->clear(false);
 	font->print(firstCol, 0, false, STR_LOADING, alignStart);
@@ -1265,7 +1263,6 @@ void gbaCartDump(void) {
 		}
 	}
 
-#ifdef SCREENSWAP
-	screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
-#endif
+	if(config->screenSwap())
+		screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
 }

@@ -1,4 +1,5 @@
 #include "keyboard.h"
+#include "config.h"
 #include "font.h"
 #include "language.h"
 #include "main.h"
@@ -7,9 +8,8 @@
 #include <string.h>
 
 std::string kbdGetString(std::string label, int maxSize, std::string oldStr) {
-#ifdef SCREENSWAP
-	lcdMainOnTop();
-#endif
+	if(config->screenSwap())
+		lcdMainOnTop();
 
 	font->clear(false);
 	font->update(false);
@@ -155,9 +155,8 @@ std::string kbdGetString(std::string label, int maxSize, std::string oldStr) {
 	}
 	keyboardHide();
 
-#ifdef SCREENSWAP
-	screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
-#endif
+	if(config->screenSwap())
+		screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
 
 	return output;
 }
