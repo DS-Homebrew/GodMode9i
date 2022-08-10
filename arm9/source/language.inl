@@ -78,8 +78,8 @@ STRING(DIRECTORY_OPTIONS, "\\R+\\A - Directory options")
 STRING(COPY_FILE, "\\Y - COPY file")
 STRING(COPY_FILES_CREATE_ENTRY, "\\Y - COPY file/[+\\R] CREATE entry")
 STRING(PASTE_FILES_CREATE_ENTRY, "\\Y - PASTE file/[+\\R] CREATE entry")
-STRING(SELECT_FILES, "\\L - SELECT files (with \\D)")
-STRING(DESELECT_FILES, "\\L - DESELECT files (with \\D)")
+STRING(SELECT_FILES, "\\L - SELECT files/[+\\DR] all")
+STRING(DESELECT_FILES, "\\L - DESELECT files/[+\\DL] all")
 STRING(DELETE_RENAME_FILE, "\\X - DELETE/[+\\R] RENAME file")
 
 // START menu
