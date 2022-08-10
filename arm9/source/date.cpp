@@ -12,14 +12,7 @@
  */
 std::string RetTime()
 {
-	time_t raw;
-	time(&raw);
-	const struct tm *Time = localtime(&raw);
-
-	char tmp[8];
-	strftime(tmp, sizeof(tmp), STR_TIME_FORMAT.c_str(), Time);
-
-	return tmp;
+	return RetTime(STR_TIME_FORMAT.c_str());
 }
 
 /**
