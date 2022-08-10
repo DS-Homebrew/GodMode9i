@@ -44,6 +44,9 @@ jobs:
           7z a GodMode9i.7z GodMode9i/
 
           mkdir -p ~/artifacts
+          cp GodMode9i.dsi ~/artifacts
+          cp GodMode9i.nds ~/artifacts
+          cp GodMode9i.cia ~/artifacts
           cp GodMode9i.7z ~/artifacts
 
           echo ::set-output name=commit_tag::$(git describe --abbrev=0 --tags)
