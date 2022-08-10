@@ -123,14 +123,16 @@ void showDirectoryContents(std::vector<DirEntry> &dirContents, int fileOffset, i
 	// Top bar
 	font->printf(firstCol, 0, true, alignStart, Palette::blackGreen, "%*c", 256 / font->width(), ' ');
 
+	std::string time = RetTime();
+
 	// Print the path
 	if(font->calcWidth(path) > SCREEN_COLS - 6)
-		font->print(rtl ? -1 : -6, 0, true, path, Alignment::right, Palette::blackGreen, true);
+		font->print(rtl ? -1 : (-1 - time.size()), 0, true, path, Alignment::right, Palette::blackGreen, true);
 	else
 		font->print(firstCol, 0, true, path, alignStart, Palette::blackGreen);
 
 	// Print time
-	font->print(lastCol, 0, true, RetTime(), alignEnd, Palette::blackGreen);
+	font->print(lastCol, 0, true, time, alignEnd, Palette::blackGreen);
 
 	// Print directory listing
 	for (int i = 0; i < ((int)dirContents.size() - startRow) && i < ENTRIES_PER_SCREEN; i++) {
