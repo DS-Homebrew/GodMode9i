@@ -345,7 +345,8 @@ void changeFileAttribs(const DirEntry *entry) {
 		font->printf(firstCol, cursorScreenPos + 5, false, alignStart, Palette::white, "[%c]%-13s[%c]%s", (newAttribs & ATTR_READONLY) ? 'X' : ' ', STR_UP_READONLY.c_str(), (newAttribs & ATTR_HIDDEN) ? 'X' : ' ', STR_LEFT_HIDDEN.c_str());
 		font->printf(firstCol, cursorScreenPos + 6, false, alignStart, Palette::white, "[%c]%-13s[%c]%s", (newAttribs & ATTR_SYSTEM) ? 'X' : ' ', STR_DOWN_SYSTEM.c_str(), (newAttribs & ATTR_ARCHIVE) ? 'X' : ' ', STR_RIGHT_ARCHIVE.c_str());
 		font->printf(firstCol, cursorScreenPos + 7, false, alignStart, Palette::white, "[%c] %s", (newAttribs & ATTR_VOLUME) ? 'X' : ' ', STR_VIRTUAL.c_str());
-		font->printf(firstCol, cursorScreenPos + 8, false, alignStart, Palette::white, STR_UDLR_CHANGE_ATTRIBUTES.c_str());
+		if(driveWritable(currentDrive))
+			font->printf(firstCol, cursorScreenPos + 8, false, alignStart, Palette::white, STR_UDLR_CHANGE_ATTRIBUTES.c_str());
 		font->print(firstCol, cursorScreenPos + 10, false, (currentAttribs == newAttribs) ? STR_A_CONTINUE : STR_A_APPLY_B_CANCEL, alignStart);
 		font->update(false);
 
@@ -358,18 +359,22 @@ void changeFileAttribs(const DirEntry *entry) {
 		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN) && !(pressed & KEY_RIGHT) && !(pressed & KEY_LEFT)
 				&& !(pressed & KEY_A) && !(pressed & KEY_B));
 
-		if (pressed & KEY_UP) {
-			newAttribs ^= ATTR_READONLY;
-		} else if (pressed & KEY_DOWN) {
-			newAttribs ^= ATTR_SYSTEM;
-		} else if (pressed & KEY_RIGHT) {
-			newAttribs ^= ATTR_ARCHIVE;
-		} else if (pressed & KEY_LEFT) {
-			newAttribs ^= ATTR_HIDDEN;
-		} else if ((pressed & KEY_A) && (currentAttribs != newAttribs)) {
-			FAT_setAttr(entry->name.c_str(), newAttribs);
-			break;
-		} else if (pressed & (KEY_A | KEY_B)) {
+		if(driveWritable(currentDrive)) {
+			if (pressed & KEY_UP) {
+				newAttribs ^= ATTR_READONLY;
+			} else if (pressed & KEY_DOWN) {
+				newAttribs ^= ATTR_SYSTEM;
+			} else if (pressed & KEY_RIGHT) {
+				newAttribs ^= ATTR_ARCHIVE;
+			} else if (pressed & KEY_LEFT) {
+				newAttribs ^= ATTR_HIDDEN;
+			} else if ((pressed & KEY_A) && (currentAttribs != newAttribs)) {
+				FAT_setAttr(entry->name.c_str(), newAttribs);
+				break;
+			}
+		}
+
+		if (pressed & (KEY_A | KEY_B)) {
 			break;
 		} else if (held & KEY_R && pressed & KEY_L) {
 			screenshot();
