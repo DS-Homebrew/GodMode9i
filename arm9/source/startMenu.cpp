@@ -28,7 +28,8 @@ constexpr std::array<std::string *, 4> startMenuStrings = {
 	&STR_LANGUAGE
 };
 
-constexpr std::array<std::pair<const char *, const char *>, 15> languageList = {{
+constexpr std::array<std::pair<const char *, const char *>, 18> languageList = {{
+	{"id-ID", "Bahasa Indonesia"},
 	{"de-DE", "Deutsch"},
 	{"en-US", "English"},
 	{"es-ES", "Español"},
@@ -36,6 +37,7 @@ constexpr std::array<std::pair<const char *, const char *>, 15> languageList = {
 	{"it-IT", "Italiano"},
 	{"hu-HU", "Magyar"},
 	{"nl-NL", "Nederlands"},
+	{"pl-PL", "Polski"},
 	{"ro-RO", "Română"},
 	{"tr-TR", "Türkçe"},
 	{"ru-RU", "Русский"},
@@ -43,7 +45,8 @@ constexpr std::array<std::pair<const char *, const char *>, 15> languageList = {
 	{"he-IL", "עברית"},
 	{"zh-CN", "中文 (简体)"},
 	{"ja-JP", "日本語"},
-	{"ja-KANA", "にほんご"}
+	{"ja-KANA", "にほんご"},
+	{"ry-JP", "琉球諸語"}
 }};
 
 void startMenu() {
