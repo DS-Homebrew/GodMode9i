@@ -15,15 +15,16 @@
 #include <vector>
 
 struct TitleInfo {
-	TitleInfo(std::string path, const char *gameTitle, const char *gameCode, u8 appVersion, u8 romVersion, std::u16string bannerTitle) : path(path), appVersion(appVersion), romVersion(romVersion), bannerTitle(bannerTitle) {
+	TitleInfo(std::string path, const char *gameTitle, const char *gameCode, u8 *appVersion, u8 romVersion, std::u16string bannerTitle) : path(path), romVersion(romVersion), bannerTitle(bannerTitle) {
 		strcpy(this->gameTitle, gameTitle);
 		strcpy(this->gameCode, gameCode);
+		tonccpy(this->appVersion, appVersion, 4);
 	}
 
 	std::string path;
 	char gameTitle[13];
 	char gameCode[7];
-	u8 appVersion;
+	u8 appVersion[4];
 	u8 romVersion;
 	std::u16string bannerTitle;
 };
@@ -148,7 +149,7 @@ void dumpTitle(TitleInfo &title) {
 			// Dump to /gm9i/out
 			char inpath[64], outpath[64];
 			if((selectedOption & TitleDumpOption::rom) && (allowedBitfield & TitleDumpOption::rom)) {
-				snprintf(inpath, sizeof(inpath), "%s/content/000000%02x.app", title.path.c_str(), title.appVersion);
+				snprintf(inpath, sizeof(inpath), "%s/content/%02x%02x%02x%02x.app", title.path.c_str(), title.appVersion[0], title.appVersion[1], title.appVersion[2], title.appVersion[3]);
 				snprintf(outpath, sizeof(outpath), "%s:/gm9i/out/%s.nds", sdMounted ? "sd" : "fat", dumpName);
 				fcopy(inpath, outpath);
 			}
@@ -215,15 +216,15 @@ void titleManager() {
 				if(entry.name[0] == '.')
 					continue;
 
-				u8 appVersion;
+				u8 appVersion[4];
 				snprintf(path, sizeof(path), "nand:/title/%08lx/%s/content/title.tmd", tidHigh, entry.name.c_str());
 				FILE *tmd = fopen(path, "rb");
 				if(tmd) {
-					fseek(tmd, 0x1E7, SEEK_SET);
-					fread(&appVersion, sizeof(appVersion), 1, tmd);
+					fseek(tmd, 0x1E4, SEEK_SET);
+					fread(appVersion, 1, 4, tmd);
 					fclose(tmd);
 
-					snprintf(path, sizeof(path), "nand:/title/%08lx/%s/content/000000%02x.app", tidHigh, entry.name.c_str(), appVersion);
+					snprintf(path, sizeof(path), "nand:/title/%08lx/%s/content/%02x%02x%02x%02x.app", tidHigh, entry.name.c_str(), appVersion[0], appVersion[1], appVersion[2], appVersion[3]);
 					FILE *app = fopen(path, "rb");
 					if(app) {
 						char gameTitle[13] = {0};
