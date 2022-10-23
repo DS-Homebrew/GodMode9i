@@ -9,11 +9,13 @@ enum class Drive : u8 {
 	flashcard,
 	ramDrive,
 	nand,
+	nandPhoto,
 	nitroFS,
 	fatImg
 };
 
 extern bool nandMounted;
+extern bool photoMounted;
 extern bool sdMounted;
 extern bool sdMountedDone;				// true if SD mount is successful once
 extern bool flashcardMounted;
@@ -30,6 +32,7 @@ extern char fatLabel[12];
 extern char imgLabel[12];
 
 extern u32 nandSize;
+extern u32 photoSize;
 extern u64 sdSize;
 extern u64 fatSize;
 extern u64 imgSize;
@@ -38,6 +41,7 @@ extern u32 ramdSize;
 extern const char* getDrivePath(void);
 
 extern bool nandFound(void);
+extern bool photoFound(void);
 extern bool sdFound(void);
 extern bool flashcardFound(void);
 extern bool bothSDandFlashcard(void);

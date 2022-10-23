@@ -18,6 +18,7 @@
 #include "imgio.h"
 #include "tonccpy.h"
 #include "language.h"
+#include "sector0.h"
 
 #include "io_m3_common.h"
 #include "io_g6_common.h"
@@ -29,6 +30,7 @@ static sNDSHeader nds;
 static bool slot1Enabled = true;
 
 bool nandMounted = false;
+bool photoMounted = false;
 bool sdMounted = false;
 bool sdMountedDone = false;				// true if SD mount is successful once
 bool flashcardMounted = false;
@@ -45,6 +47,7 @@ char fatLabel[12];
 char imgLabel[12];
 
 u32 nandSize = 0;
+u32 photoSize = 0;
 u64 sdSize = 0;
 u64 fatSize = 0;
 u64 imgSize = 0;
@@ -60,6 +63,8 @@ const char* getDrivePath(void) {
 			return "ram:/";
 		case Drive::nand:
 			return "nand:/";
+		case Drive::nandPhoto:
+			return "photo:/";
 		case Drive::nitroFS:
 			return "nitro:/";
 		case Drive::fatImg:
@@ -79,6 +84,10 @@ void fixLabel(char* label) {
 
 bool nandFound(void) {
 	return (access("nand:/", F_OK) == 0);
+}
+
+bool photoFound(void) {
+	return (access("photo:/", F_OK) == 0);
 }
 
 bool sdFound(void) {
@@ -107,14 +116,29 @@ bool nandMount(void) {
 		struct statvfs st;
 		if (statvfs("nand:/", &st) == 0) {
 			nandSize = st.f_bsize * st.f_blocks;
+			nandMounted = true;
 		}
-		return true;
+
+		// Photo partition
+		mbr_t mbr;
+		io_dsi_nand.readSectors(0, 1, &mbr);
+		fatMount("photo", &io_dsi_nand, mbr.partitions[1].offset, 16, 8);
+
+		if (photoFound() && statvfs("photo:/", &st) == 0) {
+			photoSize = st.f_bsize * st.f_blocks;
+			photoMounted = true;
+		}
 	}
-	return false;
+
+
+	return nandMounted && photoMounted;
 }
 
 void nandUnmount(void) {
-	fatUnmount("nand");
+	if(nandMounted)
+		fatUnmount("nand");
+	if(photoMounted)
+		fatUnmount("photo");
 	nandSize = 0;
 	nandMounted = false;
 }
@@ -415,6 +439,7 @@ bool driveWritable(Drive drive) {
 		case Drive::ramDrive:
 			return io_ram_drive.features & FEATURE_MEDIUM_CANWRITE;
 		case Drive::nand:
+		case Drive::nandPhoto:
 			return io_dsi_nand.features & FEATURE_MEDIUM_CANWRITE;
 		case Drive::nitroFS:
 			return false;
@@ -435,6 +460,8 @@ bool driveRemoved(Drive drive) {
 			return (isDSiMode() || REG_SCFG_EXT != 0) ? !ramdriveMounted : !(*(u16*)(0x020000C0) != 0 || *(vu16*)(0x08240000) == 1);
 		case Drive::nand:
 			return !nandMounted;
+		case Drive::nandPhoto:
+			return !photoMounted;
 		case Drive::nitroFS:
 			return driveRemoved(nitroCurrentDrive);
 		case Drive::fatImg:
@@ -454,6 +481,8 @@ u64 driveSizeFree(Drive drive) {
 			return getBytesFree("ram:/");
 		case Drive::nand:
 			return getBytesFree("nand:/");
+		case Drive::nandPhoto:
+			return getBytesFree("photo:/");
 		case Drive::nitroFS:
 			return 0;
 		case Drive::fatImg:

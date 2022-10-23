@@ -90,11 +90,13 @@ int parse_mbr(const uint8_t sector0[SECTOR_SIZE], int is3DS, int verbose) {
 	} else {
 		ref_ptable = ptable_3DS;
 	}
-	// only test the 1st partition now, we've seen variations on the 3rd partition
-	// and after all we only care about the 1st partition
-	if (memcmp(ref_ptable, m->partitions, sizeof(mbr_partition_t))) {
-		//printf("invalid partition table\n");
-		ret = -2;
+	// Only check the first two as those are the only ones we mount
+	// There's some variation in the 3rd
+	for(int i = 0; i < 2; i++) {
+		if (memcmp(&ref_ptable[i], &m->partitions[i], sizeof(mbr_partition_t))) {
+			//printf("invalid partition table\n");
+			ret = -2;
+		}
 	}
 	return ret;
 }

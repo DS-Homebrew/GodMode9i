@@ -188,7 +188,7 @@ int main(int argc, char **argv) {
 			is3DS = fifoGetValue32(FIFO_USER_05) != 0xD2;
 		}
 		//if (!(keysHeld() & KEY_X)) {
-			nandMounted = nandMount();
+			nandMount();
 		//}
 		//is3DS = ((access("sd:/Nintendo 3DS", F_OK) == 0) && (*(vu32*)(0x0DFFFE0C) == 0x474D3969));
 		/*FILE* cidFile = fopen("sd:/gm9i/CID.bin", "wb");
@@ -204,7 +204,7 @@ int main(int argc, char **argv) {
 		if (ram32MB) {
 			is3DS = fifoGetValue32(FIFO_USER_05) != 0xD2;
 		}
-		//nandMounted = nandMount();
+		//nandMount();
 	} else if (isRegularDS && (io_dldi_data->ioInterface.features & FEATURE_SLOT_NDS)) {
 		ramdriveMount(false);
 	}

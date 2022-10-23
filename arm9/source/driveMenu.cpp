@@ -49,6 +49,7 @@ enum class DriveMenuOperation {
 	flashcard,
 	ramDrive,
 	sysNand,
+	sysNandPhoto,
 	nitroFs,
 	fatImage,
 	gbaCart,
@@ -101,6 +102,11 @@ void dm_drawTopScreen(void) {
 			case DriveMenuOperation::sysNand:
 				font->print(firstCol, i + 1, true, STR_SYSNAND_LABEL, alignStart, pal);
 				if(!driveWritable(Drive::nand))
+					font->print(lastCol, i + 1, true, "[R]", alignEnd, pal);
+				break;
+			case DriveMenuOperation::sysNandPhoto:
+				font->print(firstCol, i + 1, true, STR_SYSNAND_PHOTO_LABEL, alignStart, pal);
+				if(!driveWritable(Drive::nandPhoto))
 					font->print(lastCol, i + 1, true, "[R]", alignEnd, pal);
 				break;
 			case DriveMenuOperation::nitroFs:
@@ -194,6 +200,11 @@ void dm_drawBottomScreen(void) {
 			font->printf(firstCol, 1, false, alignStart, Palette::white, STR_SYSNAND_FAT.c_str(), getBytes(nandSize).c_str());
 			font->printf(firstCol, 2, false, alignStart, Palette::white, STR_N_FREE.c_str(), getBytes(driveSizeFree(Drive::nand)).c_str());
 			break;
+		case DriveMenuOperation::sysNandPhoto:
+			font->print(firstCol, 0, false, STR_SYSNAND_LABEL, alignStart);
+			font->printf(firstCol, 1, false, alignStart, Palette::white, STR_SYSNAND_FAT.c_str(), getBytes(photoSize).c_str());
+			font->printf(firstCol, 2, false, alignStart, Palette::white, STR_N_FREE.c_str(), getBytes(driveSizeFree(Drive::nandPhoto)).c_str());
+			break;
 		case DriveMenuOperation::fatImage:
 			font->printf(firstCol, 0, false, alignStart, Palette::white, STR_FAT_LABEL.c_str(), imgLabel[0] == 0 ? STR_UNTITLED.c_str() : imgLabel);
 			font->printf(firstCol, 1, false, alignStart, Palette::white, STR_FAT_IMAGE.c_str(), getBytes(imgSize).c_str());
@@ -220,6 +231,8 @@ void driveMenu (void) {
 			dmOperations.push_back(DriveMenuOperation::sdCard);
 		if (nandMounted)
 			dmOperations.push_back(DriveMenuOperation::sysNand);
+		if (photoMounted)
+			dmOperations.push_back(DriveMenuOperation::sysNandPhoto);
 		if (flashcardMounted && !driveRemoved(Drive::flashcard))
 			dmOperations.push_back(DriveMenuOperation::flashcard);
 		if (ramdriveMounted)
@@ -343,6 +356,7 @@ void driveMenu (void) {
 				|| (flashcardMounted && nitroCurrentDrive == Drive::flashcard)
 				|| (ramdriveMounted && nitroCurrentDrive == Drive::ramDrive)
 				|| (nandMounted && nitroCurrentDrive == Drive::nand)
+				|| (nandMounted && nitroCurrentDrive == Drive::nandPhoto)
 				|| (imgMounted && nitroCurrentDrive == Drive::fatImg))
 				{
 					currentDrive = Drive::nitroFS;
@@ -362,11 +376,17 @@ void driveMenu (void) {
 				chdir("nand:/");
 				screenMode = 1;
 				break;
+			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::sysNandPhoto && photoMounted) {
+				currentDrive = Drive::nandPhoto;
+				chdir("photo:/");
+				screenMode = 1;
+				break;
 			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::fatImage && imgMounted) {
 				if ((sdMounted && imgCurrentDrive == Drive::sdCard)
 				|| (flashcardMounted && imgCurrentDrive == Drive::flashcard)
 				|| (ramdriveMounted && imgCurrentDrive == Drive::ramDrive)
-				|| (nandMounted && imgCurrentDrive == Drive::nand))
+				|| (nandMounted && imgCurrentDrive == Drive::nand)
+				|| (nandMounted && imgCurrentDrive == Drive::nandPhoto))
 				{
 					currentDrive = Drive::fatImg;
 					chdir("img:/");
