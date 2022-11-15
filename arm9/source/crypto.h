@@ -18,7 +18,7 @@ typedef enum {
 } key_mode_t;
 
 // don't want to include nds.h just for this
-void swiSHA1Calc(void *digest, const void *buf, size_t len);
+void my_swiSHA1Calc(void *digest, const void *buf, size_t len);
 
 int dsi_sha1_verify(const void *digest_verify, const void *data, unsigned len);
 

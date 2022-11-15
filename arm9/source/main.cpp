@@ -54,6 +54,7 @@ bool screenSwapped = false;
 
 bool arm7SCFGLocked = false;
 bool isRegularDS = true;
+bool bios9iEnabled = false;
 bool is3DS = false;
 int ownNitroFSMounted;
 std::string prevTime;
@@ -147,6 +148,7 @@ int main(int argc, char **argv) {
 	fifoSendValue32(FIFO_USER_07, 0);
 
 	if (isDSiMode()) {
+		bios9iEnabled = true;
 		if (!arm7SCFGLocked) {
 			//font->print(-2, -4, false, " Held - Disable NAND access", Alignment::right);
 			font->print(-2, -3, false, " Held - Disable cart access", Alignment::right);
@@ -204,7 +206,57 @@ int main(int argc, char **argv) {
 		if (ram32MB) {
 			is3DS = fifoGetValue32(FIFO_USER_05) != 0xD2;
 		}
-		//nandMount();
+
+		FILE* bios = fopen("sd:/_nds/bios9i.bin", "rb");
+		if (!bios) {
+			bios = fopen("sd:/_nds/bios9i_part1.bin", "rb");
+		}
+		if (bios) {
+			tonccpy((u32*)0x02008000, (u32*)0x02000000, 0x4000);
+
+			extern u32* copyBuf;
+			copyBuf = new u32[0x8000/4];
+
+			fread((u32*)0x02000000, 1, 0x8000, bios);
+			fclose(bios);
+
+			// Relocate addresses
+			*(u32*)0x020000CC -= 0xFFFF0000;
+			*(u32*)0x02003264 -= 0xFFFF0000;
+			*(u32*)0x02003268 -= 0xFFFF0000;
+			*(u32*)0x0200326C -= 0xFFFF0000;
+			*(u32*)0x020033E0 -= 0xFFFF0000;
+			*(u32*)0x020042C0 -= 0xFFFF0000;
+			*(u32*)0x02004B88 -= 0xFFFF0000;
+			*(u32*)0x02004B90 -= 0xFFFF0000;
+			*(u32*)0x02004B9C -= 0xFFFF0000;
+			*(u32*)0x02004BA0 -= 0xFFFF0000;
+			*(u32*)0x02004E1C -= 0xFFFF0000;
+			*(u32*)0x02004F18 -= 0xFFFF0000;
+
+			*(u32*)0x020000CC += 0x02000000;
+			*(u32*)0x02003264 += 0x02000000;
+			*(u32*)0x02003268 += 0x02000000;
+			*(u32*)0x0200326C += 0x02000000;
+			*(u32*)0x020033E0 += 0x02000000;
+			*(u32*)0x020042C0 += 0x02000000;
+			*(u32*)0x02004B88 += 0x02000000;
+			*(u32*)0x02004B90 += 0x02000000;
+			*(u32*)0x02004B9C += 0x02000000;
+			*(u32*)0x02004BA0 += 0x02000000;
+			*(u32*)0x02004E1C += 0x02000000;
+			*(u32*)0x02004F18 += 0x02000000;
+
+			u32* itcmAddr = (u32*)0x01000000;
+			for (int i = 0; i < 8; i++) {
+				itcmAddr[i] = 0xEA7FFFFE;
+			}
+
+			setVectorBase(0);
+			bios9iEnabled = true;
+
+			// nandMount(); // Returns corrupt data for some reason
+		}
 	} else if (isRegularDS && (io_dldi_data->ioInterface.features & FEATURE_SLOT_NDS)) {
 		ramdriveMount(false);
 	}

@@ -89,8 +89,8 @@ void aes(void* in, void* out, void* iv, u32 method){ //this is sort of a bodged 
 					AES_CNT_DMA_WRITE_SIZE(2) |
 					AES_CNT_DMA_READ_SIZE(1)
 					);
-					
-    if (iv != NULL) set_ctr((u32*)iv);
+
+	if (iv != NULL) set_ctr((u32*)iv);
 	REG_AES_BLKCNT = (1 << 16);
 	REG_AES_CNT |= 0x80000000;
 	
@@ -137,7 +137,7 @@ int main() {
 	setPowerButtonCB(powerButtonCB);
 
 	// Check for 3DS
-	if(isDSiMode() || REG_SCFG_EXT != 0) {
+	if(isDSiMode() || (REG_SCFG_EXT & BIT(22))) {
 		u8 byteBak = my_i2cReadRegister(0x4A, 0x71);
 		my_i2cWriteRegister(0x4A, 0x71, 0xD2);
 		fifoSendValue32(FIFO_USER_05, my_i2cReadRegister(0x4A, 0x71));
@@ -154,8 +154,8 @@ int main() {
 		u8 base[16]={0};
 		u8 in[16]={0};
 		u8 iv[16]={0};
-		u8 *scratch=(u8*)0x02300200; 
-		u8 *out=(u8*)0x02300000;
+		u8 *scratch=(u8*)0x02F00200; 
+		u8 *out=(u8*)0x02F00000;
 		u8 *key3=(u8*)0x40044D0;
 		
 		aes(in, base, iv, 2);

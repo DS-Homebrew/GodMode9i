@@ -99,7 +99,7 @@ bool getDirectoryContents(std::vector<DirEntry>& dirContents) {
 			if (extension(pent->d_name, {"nds", "argv", "dsi", "ids", "app", "srl"})) {
 				isApp = (currentDrive == Drive::sdCard && sdMounted) || (currentDrive == Drive::flashcard && flashcardMounted);
 			} else if (extension(pent->d_name, {"firm"})) {
-				isApp = (isDSiMode() && is3DS && sdMounted);
+				isApp = (is3DS && sdMounted);
 			}
 
 			dirContents.emplace_back(pent->d_name, pent->d_type == DT_DIR ? 0 : -1, pent->d_type == DT_DIR, isApp);
@@ -213,7 +213,7 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 
 		// The bios SHA1 functions are only available on the DSi
 		// https://problemkaputt.de/gbatek.htm#biossha1functionsdsionly
-		if (isDSiMode()) {
+		if (bios9iEnabled) {
 			operations.push_back(FileOperation::calculateSHA1);
 		}
 	}
