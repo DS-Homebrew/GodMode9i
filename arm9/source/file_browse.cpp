@@ -185,9 +185,6 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 	if (!entry->isDirectory) {
 		if (entry->isApp) {
 			operations.push_back(FileOperation::bootFile);
-			if (!extension(entry->name, {"firm"})) {
-				operations.push_back(FileOperation::bootstrapFile);
-			}
 		}
 
 		if(extension(entry->name, {"nds", "dsi", "ids", "app", "srl"})) {
@@ -239,9 +236,6 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 			switch(operation) {
 				case FileOperation::bootFile:
 					font->print(optionsCol, row++, false, extension(entry->name, {"firm"}) ? STR_BOOT_FILE : STR_BOOT_FILE_DIRECT, alignStart);
-					break;
-				case FileOperation::bootstrapFile:
-					font->print(optionsCol, row++, false, STR_BOOTSTRAP_FILE, alignStart);
 					break;
 				case FileOperation::mountNitroFS:
 					font->print(optionsCol, row++, false, STR_MOUNT_NITROFS, alignStart);
@@ -325,24 +319,6 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					applaunch = true;
 					font->print(optionsCol, optionOffset + y, false, STR_LOADING, alignStart);
 					font->update(false);
-					break;
-				} case FileOperation::bootstrapFile: {
-					char baseFile[256], savePath[PATH_MAX]; //, bootstrapConfigPath[32];
-					//snprintf(bootstrapConfigPath, 32, "%s:/_nds/nds-bootstrap.ini", isDSiMode() ? "sd" : "fat");
-					strncpy(baseFile, entry->name.c_str(), 255);
-					*strrchr(baseFile, '.') = 0;
-					snprintf(savePath, PATH_MAX, "%s%s%s.sav", path, !access("saves", F_OK) ? "saves/" : "", baseFile);
-					CIniFile bootstrapConfig("/_nds/nds-bootstrap.ini");
-					bootstrapConfig.SetString("NDS-BOOTSTRAP", "NDS_PATH", fullPath);
-					bootstrapConfig.SetString("NDS-BOOTSTRAP", "SAV_PATH", savePath);
-					bootstrapConfig.SetInt("NDS-BOOTSTRAP", "DSI_MODE", 0);
-					bootstrapConfig.SaveIniFile("/_nds/nds-bootstrap.ini");
-					// TODO Something less hacky lol
-					chdir(isDSiMode()&&sdMounted ? "sd:/_nds" : "fat:/_nds");
-					// TODO Read header and check for homebrew flag, based on that runNdsFile nds-bootstrap(-hb)-release
-					entry->name = "nds-bootstrap-release.nds";
-					applaunch = true;
-					return FileOperation::bootFile;
 					break;
 				} case FileOperation::restoreSaveNds: {
 					ndsCardSaveRestore(entry->name.c_str());

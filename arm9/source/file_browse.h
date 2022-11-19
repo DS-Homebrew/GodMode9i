@@ -39,7 +39,6 @@ struct DirEntry {
 enum class FileOperation {
 	none,
 	bootFile,
-	bootstrapFile,
 	mountNitroFS,
 	ndsInfo,
 	trimNds,
