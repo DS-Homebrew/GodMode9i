@@ -214,8 +214,8 @@ int main(int argc, char **argv) {
 		if (bios) {
 			tonccpy((u32*)0x02008000, (u32*)0x02000000, 0x4000);
 
-			extern u32* copyBuf;
-			copyBuf = new u32[0x8000/4];
+			extern u8* copyBuf;
+			copyBuf = new u8[0x8000];
 
 			fread((u32*)0x02000000, 1, 0x8000, bios);
 			fclose(bios);
