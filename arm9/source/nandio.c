@@ -20,7 +20,7 @@ static u32 fat_sig_fix_offset = 0;
 static u32 sector_buf32[SECTOR_SIZE/sizeof(u32)];
 static u8 *sector_buf = (u8*)sector_buf32;
 
-void nandio_set_fat_sig_fix(u32 offset) {
+static inline void nandio_set_fat_sig_fix(u32 offset) {
 	fat_sig_fix_offset = offset;
 }
 
