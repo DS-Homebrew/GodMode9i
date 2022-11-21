@@ -101,7 +101,7 @@ devoptab_t nitroFSdevoptab = {
 //how to read the proper way can replace these 4 functions and everything should work normally :)
 
 //reads from rom image either gba rom or dldi
-inline ssize_t nitroSubRead(off_t *npos, void *ptr, size_t len)
+static inline ssize_t nitroSubRead(off_t *npos, void *ptr, size_t len)
 {
     if (ndsFile != NULL)
     { //read from ndsfile
@@ -120,7 +120,7 @@ inline ssize_t nitroSubRead(off_t *npos, void *ptr, size_t len)
 }
 
 //seek around
-inline void nitroSubSeek(off_t *npos, int pos, int dir)
+static inline void nitroSubSeek(off_t *npos, int pos, int dir)
 {
     if ((dir == SEEK_SET) || (dir == SEEK_END)) //otherwise just set the pos :)
         *npos = pos;
