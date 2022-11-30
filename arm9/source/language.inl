@@ -97,7 +97,6 @@ STRING(TITLE_MANAGER, "Title Manager")
 // File options
 STRING(BOOT_FILE, "Boot file")
 STRING(BOOT_FILE_DIRECT, "Boot file (Direct)")
-STRING(BOOTSTRAP_FILE, "Bootstrap file")
 STRING(MOUNT_NITROFS, "Mount NitroFS")
 STRING(SHOW_NDS_INFO, "Show NDS file info")
 STRING(TRIM_NDS, "Trim NDS file")
