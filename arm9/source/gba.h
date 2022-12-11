@@ -34,6 +34,17 @@ enum saveTypeGBA {
 	SAVE_GBA_FLASH_128 // 128k
 };
 
+enum GbaRtc {
+	RTC_YEAR,
+	RTC_MONTH,
+	RTC_DAY,
+	RTC_WEEKDAY,
+	RTC_HOUR,
+	RTC_MINUTE,
+	RTC_SECOND,
+	RTC_CONTROL,
+	RTC_SIZE
+};
 
 // --------------------
 bool gbaIsGame();
@@ -42,11 +53,10 @@ uint32 gbaGetSaveSize(saveTypeGBA type = SAVE_GBA_NONE);
 uint32 gbaGetSaveSizeLog2(saveTypeGBA type = SAVE_GBA_NONE);
 u16 gbaGetFlashId();
 
-bool gbaIsRtc();
-
 bool gbaReadSave(u8 *dst, u32 src, u32 len, saveTypeGBA type);
 bool gbaWriteSave(u32 dst, u8 *src, u32 len, saveTypeGBA type);
 bool gbaFormatSave(saveTypeGBA type);
 
+bool gbaGetRtc(u8 *rtc);
 
 #endif // __GBA_H__

@@ -1254,11 +1254,14 @@ void gbaCartDump(void) {
 			if(saveType == SAVE_GBA_FLASH_64 || saveType == SAVE_GBA_FLASH_128)
 				fprintf(destinationFile, "Save chip ID : 0x%04X\n", gbaGetFlashId());
 
+			u8 cartTime[RTC_SIZE];
+			gbaGetRtc(cartTime);
+
 			fprintf(destinationFile,
-				"RTC Present  : %s\n"
+				"Cart time    : %x-%x-%x\n"
 				"Timestamp    : %s\n"
 				"GM9i Version : " VER_NUMBER "\n",
-				gbaIsRtc() ? "Yes" : "No",
+				cartTime[RTC_YEAR], cartTime[RTC_MONTH], cartTime[RTC_DAY],
 				RetTime("%Y-%m-%d %H:%M:%S").c_str());
 
 			fclose(destinationFile);
