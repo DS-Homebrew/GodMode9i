@@ -42,6 +42,8 @@ uint32 gbaGetSaveSize(saveTypeGBA type = SAVE_GBA_NONE);
 uint32 gbaGetSaveSizeLog2(saveTypeGBA type = SAVE_GBA_NONE);
 u16 gbaGetFlashId();
 
+bool gbaIsRtc();
+
 bool gbaReadSave(u8 *dst, u32 src, u32 len, saveTypeGBA type);
 bool gbaWriteSave(u32 dst, u8 *src, u32 len, saveTypeGBA type);
 bool gbaFormatSave(saveTypeGBA type);

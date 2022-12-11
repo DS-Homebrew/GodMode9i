@@ -168,6 +168,12 @@ uint32 gbaGetSaveSize(saveTypeGBA type)
 		return 1 << gbaGetSaveSizeLog2(type);
 }
 
+bool gbaIsRtc()
+{
+	// heuristic
+	return !*(vu16*) 0x080000c4;
+}
+
 bool gbaReadSave(u8 *dst, u32 src, u32 len, saveTypeGBA type)
 {
 	int nbanks = 2; // for type 4,5

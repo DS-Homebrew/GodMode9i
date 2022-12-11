@@ -1255,8 +1255,10 @@ void gbaCartDump(void) {
 				fprintf(destinationFile, "Save chip ID : 0x%04X\n", gbaGetFlashId());
 
 			fprintf(destinationFile,
+				"RTC Present  : %s\n"
 				"Timestamp    : %s\n"
 				"GM9i Version : " VER_NUMBER "\n",
+				gbaIsRtc() ? "Yes" : "No",
 				RetTime("%Y-%m-%d %H:%M:%S").c_str());
 
 			fclose(destinationFile);
