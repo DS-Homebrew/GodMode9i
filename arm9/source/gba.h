@@ -58,5 +58,6 @@ bool gbaWriteSave(u32 dst, u8 *src, u32 len, saveTypeGBA type);
 bool gbaFormatSave(saveTypeGBA type);
 
 bool gbaGetRtc(u8 *rtc);
+struct tm gbaRtcToTm(const u8 *rtc);
 
 #endif // __GBA_H__

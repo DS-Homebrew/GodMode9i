@@ -461,3 +461,20 @@ bool gbaGetRtc(u8 *rtc)
 	
 	rtcDisable();
 }
+
+static uint8_t unBCD(uint8_t byte) {
+	return (byte >> 4) * 10 + (byte & 0xF);
+}
+
+struct tm gbaRtcToTm(const u8 *rtc)
+{
+	struct tm res;
+	res.tm_year = unBCD(rtc[RTC_YEAR]) + 100;
+	res.tm_mon = unBCD(rtc[RTC_MONTH]) - 1;
+	res.tm_mday = unBCD(rtc[RTC_DAY]);
+	res.tm_hour = unBCD(rtc[RTC_HOUR]);
+	res.tm_min = unBCD(rtc[RTC_MINUTE]);
+	res.tm_sec = unBCD(rtc[RTC_SECOND]);
+	res.tm_isdst = -1;
+	return res;
+}

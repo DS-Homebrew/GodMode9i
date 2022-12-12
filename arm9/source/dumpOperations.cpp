@@ -1254,14 +1254,16 @@ void gbaCartDump(void) {
 			if(saveType == SAVE_GBA_FLASH_64 || saveType == SAVE_GBA_FLASH_128)
 				fprintf(destinationFile, "Save chip ID : 0x%04X\n", gbaGetFlashId());
 
-			u8 cartTime[RTC_SIZE];
-			gbaGetRtc(cartTime);
+			u8 cartRtc[RTC_SIZE];
+			gbaGetRtc(cartRtc);
+			struct tm cartTm = gbaRtcToTm(cartRtc);
+			time_t cartTime = mktime(&cartTm);
 
 			fprintf(destinationFile,
-				"Cart time    : %x-%x-%x\n"
+				"Cart time    : %s\n"
 				"Timestamp    : %s\n"
 				"GM9i Version : " VER_NUMBER "\n",
-				cartTime[RTC_YEAR], cartTime[RTC_MONTH], cartTime[RTC_DAY],
+				RetTime("%Y-%m-%d %H:%M:%S", &cartTime).c_str(),
 				RetTime("%Y-%m-%d %H:%M:%S").c_str());
 
 			fclose(destinationFile);
