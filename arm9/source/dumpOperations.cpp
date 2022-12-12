@@ -964,6 +964,14 @@ void gbaCartSaveDump(const char *filename) {
 
 	FILE *destinationFile = fopen(filename, "wb");
 	fwrite(buffer, 1, size, destinationFile);
+	
+	u8 cartRtc[RTC_SIZE];
+	if (gbaGetRtc(cartRtc)) {
+		fwrite(cartRtc, 1, RTC_SIZE, destinationFile);
+		u64 systime = time(nullptr);
+		fwrite(&systime, 1, 8, destinationFile);
+	}
+
 	fclose(destinationFile);
 	delete[] buffer;
 }
