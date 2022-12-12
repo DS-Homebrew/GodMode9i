@@ -457,9 +457,12 @@ bool gbaGetRtc(u8 *rtc)
 	GPIO_DIR = 5;
 	for(i=4; i<7; i++)
 		rtc[i] = rtcReadData();
-	return 0;
 	
 	rtcDisable();
+	
+	// Month must be 1 to 12 in BCD for valid RTC
+	// If month is 0, invalid RTC
+	return rtc[RTC_MONTH] >= 0x01 && rtc[RTC_MONTH] <= 0x12;
 }
 
 static uint8_t unBCD(uint8_t byte) {

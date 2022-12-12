@@ -1255,15 +1255,17 @@ void gbaCartDump(void) {
 				fprintf(destinationFile, "Save chip ID : 0x%04X\n", gbaGetFlashId());
 
 			u8 cartRtc[RTC_SIZE];
-			gbaGetRtc(cartRtc);
-			struct tm cartTm = gbaRtcToTm(cartRtc);
-			time_t cartTime = mktime(&cartTm);
+			if (gbaGetRtc(cartRtc)) {
+				struct tm cartTm = gbaRtcToTm(cartRtc);
+				time_t cartTime = mktime(&cartTm);
+				fprintf(destinationFile,
+					"Cart time    : %s\n",
+					RetTime("%Y-%m-%d %H:%M:%S", &cartTime).c_str());
+			}
 
 			fprintf(destinationFile,
-				"Cart time    : %s\n"
 				"Timestamp    : %s\n"
 				"GM9i Version : " VER_NUMBER "\n",
-				RetTime("%Y-%m-%d %H:%M:%S", &cartTime).c_str(),
 				RetTime("%Y-%m-%d %H:%M:%S").c_str());
 
 			fclose(destinationFile);
