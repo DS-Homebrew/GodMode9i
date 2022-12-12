@@ -1004,7 +1004,7 @@ void gbaCartSaveRestore(const char *filename) {
 		fseek(sourceFile, 0, SEEK_END);
 		size_t length = ftell(sourceFile);
 		fseek(sourceFile, 0, SEEK_SET);
-		if(length != size) {
+		if(length != size && length != size + 16) {
 			fclose(sourceFile);
 
 			dumpFailMsg(STR_SAVE_SIZE_MISMATCH_CART);
