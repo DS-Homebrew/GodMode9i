@@ -144,7 +144,7 @@ int main() {
 		my_i2cWriteRegister(0x4A, 0x71, byteBak);
 	}
 
-	if (isDSiMode() /*|| ((REG_SCFG_EXT & BIT(17)) && (REG_SCFG_EXT & BIT(18)))*/) {
+	if (isDSiMode() || ((REG_SCFG_EXT & BIT(17)) && (REG_SCFG_EXT & BIT(18)))) {
 		/*for (int i = 0; i < 8; i++) {
 			*(u8*)(0x2FFFD00+i) = *(u8*)(0x4004D07-i);	// Get ConsoleID
 		}*/
