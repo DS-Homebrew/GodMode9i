@@ -196,7 +196,8 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 		if(extension(entry->name, {"sav", "sav1", "sav2", "sav3", "sav4", "sav5", "sav6", "sav7", "sav8", "sav9"})) {
 			if(!(io_dldi_data->ioInterface.features & FEATURE_SLOT_NDS) || entry->size <= (1 << 20))
 				operations.push_back(FileOperation::restoreSaveNds);
-			if(isRegularDS && (entry->size == 512 || entry->size == 8192 || entry->size == 32768 || entry->size == 65536 || entry->size == 131072))
+			if(isRegularDS && (entry->size == 512 || entry->size == 8192 || entry->size == 32768 || entry->size == 65536 || entry->size == 131072 
+				|| entry->size == 528 || entry->size == 8208 || entry->size == 32784 || entry->size == 65552 || entry->size == 131088))
 				operations.push_back(FileOperation::restoreSaveGba);
 		}
 		if(currentDrive != Drive::fatImg && extension(entry->name, {"img", "sd", "sav", "pub", "pu1", "pu2", "pu3", "pu4", "pu5", "pu6", "pu7", "pu8", "pu9", "prv", "pr1", "pr2", "pr3", "pr4", "pr5", "pr6", "pr7", "pr8", "pr9", "0000"})) {

@@ -964,6 +964,14 @@ void gbaCartSaveDump(const char *filename) {
 
 	FILE *destinationFile = fopen(filename, "wb");
 	fwrite(buffer, 1, size, destinationFile);
+	
+	u8 cartRtc[RTC_SIZE];
+	if (gbaGetRtc(cartRtc)) {
+		fwrite(cartRtc, 1, RTC_SIZE, destinationFile);
+		u64 systime = time(nullptr);
+		fwrite(&systime, 1, 8, destinationFile);
+	}
+
 	fclose(destinationFile);
 	delete[] buffer;
 }
@@ -996,7 +1004,7 @@ void gbaCartSaveRestore(const char *filename) {
 		fseek(sourceFile, 0, SEEK_END);
 		size_t length = ftell(sourceFile);
 		fseek(sourceFile, 0, SEEK_SET);
-		if(length != size) {
+		if(length != size && length != size + 16) {
 			fclose(sourceFile);
 
 			dumpFailMsg(STR_SAVE_SIZE_MISMATCH_CART);
@@ -1253,6 +1261,15 @@ void gbaCartDump(void) {
 
 			if(saveType == SAVE_GBA_FLASH_64 || saveType == SAVE_GBA_FLASH_128)
 				fprintf(destinationFile, "Save chip ID : 0x%04X\n", gbaGetFlashId());
+
+			u8 cartRtc[RTC_SIZE];
+			if (gbaGetRtc(cartRtc)) {
+				struct tm cartTm = gbaRtcToTm(cartRtc);
+				time_t cartTime = mktime(&cartTm);
+				fprintf(destinationFile,
+					"Cart time    : %s\n",
+					RetTime("%Y-%m-%d %H:%M:%S", &cartTime).c_str());
+			}
 
 			fprintf(destinationFile,
 				"Timestamp    : %s\n"

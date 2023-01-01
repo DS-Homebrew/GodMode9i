@@ -45,15 +45,12 @@
 inline u32 min(u32 i, u32 j) { return (i < j) ? i : j;}
 inline u32 max(u32 i, u32 j) { return (i > j) ? i : j;}
 
-
-
 // -----------------------------------------------------
 #define MAGIC_EEPR 0x52504545
 #define MAGIC_SRAM 0x4d415253
 #define MAGIC_FLAS 0x53414c46
 
 #define MAGIC_H1M_ 0x5f4d3148
-
 
 // -----------------------------------------------------------
 bool gbaIsGame()
@@ -379,4 +376,116 @@ bool gbaFormatSave(saveTypeGBA type)
 			break;
 	}
 	return true;
+}
+
+#define GPIO_DAT (*(vu16*) 0x080000c4)
+#define GPIO_DIR (*(vu16*) 0x080000c6)
+#define GPIO_CNT (*(vu16*) 0x080000c8)
+
+#define RTC_CMD_READ(x) (((x)<<1) | 0x61)
+#define RTC_CMD_WRITE(x) (((x)<<1) | 0x60)
+
+static void rtcEnable()
+{
+	GPIO_CNT = 1;
+}
+
+static void rtcDisable()
+{
+	GPIO_CNT = 0;
+}
+
+static void rtcWriteCmd(u8 cmd)
+{
+	int l;
+	u16 b;
+	u16 v = cmd <<1;
+	for(l=7; l>=0; l--)
+	{
+		b = (v>>l) & 0x2;
+		GPIO_DAT = b | 4;
+		GPIO_DAT = b | 4;
+		GPIO_DAT = b | 4;
+		GPIO_DAT = b | 5;
+	}
+}
+
+static void rtcWriteData(u8 data)
+{
+	int l;
+	u16 b;
+	u16 v = data <<1;
+	for(l=0; l<8; l++)
+	{
+		b = (v>>l) & 0x2;
+		GPIO_DAT = b | 4;
+		GPIO_DAT = b | 4;
+		GPIO_DAT = b | 4;
+		GPIO_DAT = b | 5;
+	}
+}
+static u8 rtcReadData()
+{
+	int j,l;
+	u16 b;
+	int v = 0;
+	for(l=0; l<8; l++)
+	{
+		for(j=0;j<5; j++)
+			GPIO_DAT = 4;
+		GPIO_DAT = 5;
+		b = GPIO_DAT;
+		v = v | ((b & 2)<<l);
+	}
+	v = v>>1;
+	return v;
+}
+
+bool gbaGetRtc(u8 *rtc)
+{
+	rtcEnable();
+	
+	int i;
+	GPIO_DAT = 1;
+	GPIO_DIR = 7;
+	GPIO_DAT = 1;
+	GPIO_DAT = 5;
+	rtcWriteCmd(RTC_CMD_READ(2));
+	GPIO_DIR = 5;
+	for(i=0; i<4; i++)
+		rtc[i] = rtcReadData();
+	GPIO_DIR = 5;
+	for(i=4; i<7; i++)
+		rtc[i] = rtcReadData();
+	
+	GPIO_DAT = 1;
+	GPIO_DIR = 7;
+	GPIO_DAT = 1;
+	GPIO_DAT = 5;
+	rtcWriteCmd(RTC_CMD_READ(4));
+	GPIO_DIR = 5;
+	rtc[7] = rtcReadData();
+	
+	rtcDisable();
+	
+	// Month must be 1 to 12 in BCD for valid RTC
+	// If month is 0, invalid RTC
+	return rtc[RTC_MONTH] >= 0x01 && rtc[RTC_MONTH] <= 0x12;
+}
+
+static uint8_t unBCD(uint8_t byte) {
+	return (byte >> 4) * 10 + (byte & 0xF);
+}
+
+struct tm gbaRtcToTm(const u8 *rtc)
+{
+	struct tm res;
+	res.tm_year = unBCD(rtc[RTC_YEAR]) + 100;
+	res.tm_mon = unBCD(rtc[RTC_MONTH]) - 1;
+	res.tm_mday = unBCD(rtc[RTC_DAY]);
+	res.tm_hour = unBCD(rtc[RTC_HOUR]);
+	res.tm_min = unBCD(rtc[RTC_MINUTE]);
+	res.tm_sec = unBCD(rtc[RTC_SECOND]);
+	res.tm_isdst = -1;
+	return res;
 }
