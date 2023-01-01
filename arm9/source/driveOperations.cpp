@@ -120,18 +120,18 @@ bool nandMount(void) {
 		}
 
 		// Photo partition
-		mbr_t mbr;
+		/* mbr_t mbr;
 		io_dsi_nand.readSectors(0, 1, &mbr);
 		fatMount("photo", &io_dsi_nand, mbr.partitions[1].offset, 16, 8);
 
 		if (photoFound() && statvfs("photo:/", &st) == 0) {
 			photoSize = st.f_bsize * st.f_blocks;
 			photoMounted = true;
-		}
+		} */
 	}
 
 
-	return nandMounted && photoMounted;
+	return nandMounted /*&& photoMounted*/;
 }
 
 void nandUnmount(void) {
