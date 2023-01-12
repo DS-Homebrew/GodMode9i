@@ -220,7 +220,7 @@ bool fcopy(const char *sourcePath, const char *destinationPath) {
 		getDirectoryContents(dirContents);
 
 		// Check that everything will fit
-		if(dirSize(dirContents) > driveSizeFree(currentDrive)) {
+		if(dirSize(dirContents) > driveSizeFree(getDriveFromPath(destinationPath))) {
 			font->clear(false);
 			font->printf(0, 0, false, Alignment::left, Palette::white, (STR_FILE_TOO_BIG + "\n\n" + STR_A_OK).c_str(), sourcePath);
 			font->update(false);
@@ -258,7 +258,7 @@ bool fcopy(const char *sourcePath, const char *destinationPath) {
 		}
 
 		// Check that the file will fit
-		if((u64)fsize > driveSizeFree(currentDrive)) {
+		if((u64)fsize > driveSizeFree(getDriveFromPath(destinationPath))) {
 			font->clear(false);
 			font->printf(0, 0, false, Alignment::left, Palette::white, (STR_FILE_TOO_BIG + "\n\n" + STR_A_OK).c_str(), sourcePath);
 			font->update(false);
