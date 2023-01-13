@@ -73,6 +73,27 @@ const char* getDrivePath(void) {
 	return "";
 }
 
+Drive getDriveFromPath(const char *path) {
+	Drive destDrive = currentDrive;
+	if(strncmp(path, "sd:", 3) == 0) {
+		return Drive::sdCard;
+	} else if(strncmp(path, "fat:", 4) == 0) {
+		return Drive::flashcard;
+	} else if(strncmp(path, "ram:", 4)) {
+		return Drive::ramDrive;
+	} else if(strncmp(path, "nand:", 5)) {
+		return Drive::nand;
+	} else if(strncmp(path, "photo:", 6)) {
+		return Drive::nandPhoto;
+	} else if(strncmp(path, "nitro:", 6)) {
+		return Drive::nitroFS;
+	} else if(strncmp(path, "img:", 4)) {
+		return Drive::fatImg;
+	}
+
+	return currentDrive;
+}
+
 void fixLabel(char* label) {
 	for (int i = strlen(label) - 1; i >= 0; i--) {
 		if(label[i] != ' ') {

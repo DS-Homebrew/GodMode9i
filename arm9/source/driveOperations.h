@@ -39,6 +39,7 @@ extern u64 imgSize;
 extern u32 ramdSize;
 
 extern const char* getDrivePath(void);
+extern Drive getDriveFromPath(const char *path);
 
 extern bool nandFound(void);
 extern bool photoFound(void);
