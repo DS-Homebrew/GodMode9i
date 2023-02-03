@@ -867,7 +867,7 @@ void ndsCardDump(void) {
 		u32 romSize;
 		if (dumpOption & DumpOption::romTrimmed) {
 			romSize = (isDSiMode() && (ndsCardHeader.unitCode != 0) && (ndsCardHeader.twlRomSize > 0))
-						? ndsCardHeader.twlRomSize : ndsCardHeader.romSize+0x88;
+						? ndsCardHeader.twlRomSize : ndsCardHeader.romSize + 0x88;
 		} else {
 			romSize = 0x20000 << ndsCardHeader.deviceSize;
 		}
@@ -892,10 +892,31 @@ void ndsCardDump(void) {
 				for (u32 i = 0; i < 0x8000; i += 0x200) {
 					cardRead (src+i, copyBuf+i, false);
 				}
-				if (fwrite(copyBuf, 1, (currentSize>=0x8000 ? 0x8000 : currentSize), destinationFile) < 1) {
+
+				if (currentSize < 0x8000) {
+					if (romSize == ndsCardHeader.romSize + 0x88) {
+						// Trimming with RSA, check if it's real
+						u8 *ptr = copyBuf + (ndsCardHeader.romSize % 0x8000);
+						bool hasRsa = false;
+						for (int i = 0; i < 0x88; i++) {
+							if (ptr[i] != 0xFF) {
+								hasRsa = true;
+								break;
+							}
+						}
+
+						if (!hasRsa) {
+							romSize -= 0x88;
+							currentSize -= 0x88;
+						}
+					}
+
+					fwrite(copyBuf, 1, currentSize, destinationFile);
+				} else if (fwrite(copyBuf, 1, 0x8000, destinationFile) < 1) {
 					dumpFailMsg(STR_FAILED_TO_DUMP_ROM);
 					break;
 				}
+
 				currentSize -= 0x8000;
 			}
 			fclose(destinationFile);
