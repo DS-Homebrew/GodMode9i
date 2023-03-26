@@ -136,11 +136,26 @@ int trimNds(const char *fileName) {
 
 		fseek(file, 0, SEEK_END);
 		u32 fileSize = ftell(file);
+		fseek(file, 0, SEEK_SET);
+
+		u32 romSize;
+		if((ndsCardHeader.unitCode != 0) && (ndsCardHeader.twlRomSize > 0)) {
+			romSize = ndsCardHeader.twlRomSize;
+		} else {
+			romSize = ndsCardHeader.romSize;
+
+			// Check if it has an RSA key or not
+			fseek(file, romSize, SEEK_SET);
+			u16 magic;
+			if(fread(&magic, sizeof(u16), 1, file) == 1) {
+				// 'ac', auth code -- magic number
+				if(magic == 0x6361)
+					romSize += 0x88;
+			}
+
+		}
 
 		fclose(file);
-
-		u32 romSize = ((ndsCardHeader.unitCode != 0) && (ndsCardHeader.twlRomSize > 0))
-						? ndsCardHeader.twlRomSize : ndsCardHeader.romSize + 0x88;
 
 		if(fileSize == romSize) {
 			font->clear(false);

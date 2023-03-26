@@ -895,17 +895,9 @@ void ndsCardDump(void) {
 
 				if (currentSize < 0x8000) {
 					if (romSize == ndsCardHeader.romSize + 0x88) {
-						// Trimming with RSA, check if it's real
-						u8 *ptr = copyBuf + (ndsCardHeader.romSize % 0x8000);
-						bool hasRsa = false;
-						for (int i = 0; i < 0x88; i++) {
-							if (ptr[i] != 0xFF) {
-								hasRsa = true;
-								break;
-							}
-						}
-
-						if (!hasRsa) {
+						// Trimming, check for RSA key
+						// 'ac', auth code -- magic number
+						if (*(u16 *)(copyBuf + (ndsCardHeader.romSize % 0x8000)) != 0x6361) {
 							romSize -= 0x88;
 							currentSize -= 0x88;
 						}
