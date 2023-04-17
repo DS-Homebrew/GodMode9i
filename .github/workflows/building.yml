@@ -31,6 +31,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install p7zip-full -y
+      - name: Setup environment
+        run: git config --global safe.directory '*'
       - name: Build & Package GodMode9i
         id: build
         run: |
