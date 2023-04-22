@@ -55,8 +55,6 @@
 #define OPTIONS_ENTRIES_START_ROW 2
 #define ENTRY_PAGE_LENGTH 10
 
-static char path[PATH_MAX];
-
 bool extension(const std::string_view filename, const std::vector<std::string_view> &extensions) {
 	for(const std::string_view &ext : extensions) {
 		if(filename.length() >= ext.length() && strcasecmp(filename.substr(filename.length() - ext.length()).data(), ext.data()) == 0)
@@ -115,9 +113,7 @@ bool getDirectoryContents(std::vector<DirEntry>& dirContents) {
 	return true;
 }
 
-void showDirectoryContents(std::vector<DirEntry> &dirContents, int fileOffset, int startRow) {
-	getcwd(path, PATH_MAX);
-
+void showDirectoryContents(std::vector<DirEntry> &dirContents, int fileOffset, int startRow, const char *curdir) {
 	font->clear(true);
 
 	// Top bar
@@ -126,10 +122,10 @@ void showDirectoryContents(std::vector<DirEntry> &dirContents, int fileOffset, i
 	std::string time = RetTime();
 
 	// Print the path
-	if(font->calcWidth(path) > SCREEN_COLS - 6)
-		font->print(rtl ? -1 : (-1 - time.size()), 0, true, path, Alignment::right, Palette::blackGreen, true);
+	if(font->calcWidth(curdir) > SCREEN_COLS - 6)
+		font->print(rtl ? -1 : (-1 - time.size()), 0, true, curdir, Alignment::right, Palette::blackGreen, true);
 	else
-		font->print(firstCol, 0, true, path, alignStart, Palette::blackGreen);
+		font->print(firstCol, 0, true, curdir, alignStart, Palette::blackGreen);
 
 	// Print time
 	font->print(lastCol, 0, true, time, alignEnd, Palette::blackGreen);
@@ -172,14 +168,14 @@ void showDirectoryContents(std::vector<DirEntry> &dirContents, int fileOffset, i
 	font->update(true);
 }
 
-FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
+FileOperation fileBrowse_A(DirEntry* entry, const char *curdir) {
 	if(config->screenSwap())
 		lcdMainOnTop();
 
 	int pressed = 0, held = 0;
 	std::vector<FileOperation> operations;
 	int optionOffset = 0;
-	std::string fullPath = path + entry->name;
+	std::string fullPath = curdir + entry->name;
 	int y = font->calcHeight(fullPath) + 1;
 
 	if (!entry->isDirectory) {
@@ -218,11 +214,11 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 
 	operations.push_back(FileOperation::showInfo);
 
-	if (sdMounted && (strcmp(path, "sd:/gm9i/out/") != 0)) {
+	if (sdMounted && (strcmp(curdir, "sd:/gm9i/out/") != 0)) {
 		operations.push_back(FileOperation::copySdOut);
 	}
 
-	if (flashcardMounted && (strcmp(path, "fat:/gm9i/out/") != 0)) {
+	if (flashcardMounted && (strcmp(curdir, "fat:/gm9i/out/") != 0)) {
 		operations.push_back(FileOperation::copyFatOut);
 	}
 
@@ -343,12 +339,10 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					font->print(optionsCol, optionOffset + y, false, STR_COPYING, alignStart);
 					font->update(false);
 					remove(destPath);
-					char sourceFolder[PATH_MAX];
-					getcwd(sourceFolder, PATH_MAX);
 					char sourcePath[PATH_MAX];
-					snprintf(sourcePath, sizeof(sourcePath), "%s%s", sourceFolder, entry->name.c_str());
+					snprintf(sourcePath, sizeof(sourcePath), "%s%s", curdir, entry->name.c_str());
 					fcopy(sourcePath, destPath);
-					chdir(sourceFolder);	// For after copying a folder
+					chdir(curdir); // For after copying a folder
 					break;
 				} case FileOperation::copyFatOut: {
 					if (access("fat:/gm9i", F_OK) != 0) {
@@ -366,12 +360,10 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					font->print(optionsCol, (optionOffset + y), false, STR_COPYING, alignStart);
 					font->update(false);
 					remove(destPath);
-					char sourceFolder[PATH_MAX];
-					getcwd(sourceFolder, PATH_MAX);
 					char sourcePath[PATH_MAX];
-					snprintf(sourcePath, sizeof(sourcePath), "%s%s", sourceFolder, entry->name.c_str());
+					snprintf(sourcePath, sizeof(sourcePath), "%s%s", curdir, entry->name.c_str());
 					fcopy(sourcePath, destPath);
-					chdir(sourceFolder);	// For after copying a folder
+					chdir(curdir);	// For after copying a folder
 					break;
 				} case FileOperation::mountNitroFS: {
 					if(nitroMounted)
@@ -417,7 +409,9 @@ FileOperation fileBrowse_A(DirEntry* entry, char path[PATH_MAX]) {
 					break;
 				} case FileOperation::calculateSHA1: {
 					u8 sha1[20] = {0};
-					bool ret = calculateSHA1(strcat(getcwd(path, PATH_MAX), entry->name.c_str()), sha1);
+					char filePath[PATH_MAX];
+					snprintf(filePath, sizeof(filePath), "%s%s", curdir, entry->name.c_str());
+					bool ret = calculateSHA1(filePath, sha1);
 					if (!ret)
 						break;
 
@@ -622,14 +616,25 @@ std::string browseForFile (void) {
 	int screenOffset = 0;
 	int fileOffset = 0;
 	std::vector<DirEntry> dirContents;
+	char curdir[PATH_MAX];
 
-	getDirectoryContents (dirContents);
+	getDirectoryContents(dirContents);
 
 	while (true) {
+		getcwd(curdir, PATH_MAX);
+
+		// Ensure the path ends in a slash
+		int pathLen = strlen(curdir);
+		if(pathLen < PATH_MAX && curdir[pathLen - 1] != '/') {
+			curdir[pathLen] = '/';
+			curdir[pathLen + 1] = '\0';
+			pathLen++;
+		}
+
 		DirEntry* entry = &dirContents[fileOffset];
 
 		fileBrowse_drawBottomScreen(entry);
-		showDirectoryContents(dirContents, fileOffset, screenOffset);
+		showDirectoryContents(dirContents, fileOffset, screenOffset, curdir);
 
 		// Power saving loop. Only poll the keys once per frame and sleep the CPU if there is nothing else to do
 		do {
@@ -671,11 +676,9 @@ std::string browseForFile (void) {
 			screenOffset = fileOffset - ENTRIES_PER_SCREEN + 1;
 		}
 
-		getcwd(path, PATH_MAX);
-
 		if ((!(held & KEY_R) && (pressed & KEY_A))
 		|| (!entry->isDirectory && (held & KEY_R) && (pressed & KEY_A))) {
-			if (entry->name == ".." && strcmp(path, getDrivePath()) == 0) {
+			if (entry->name == ".." && strcmp(curdir, getDrivePath()) == 0) {
 				screenMode = 0;
 				return "null";
 			} else if (entry->isDirectory) {
@@ -687,7 +690,7 @@ std::string browseForFile (void) {
 				screenOffset = 0;
 				fileOffset = 0;
 			} else {
-				FileOperation getOp = fileBrowse_A(entry, path);
+				FileOperation getOp = fileBrowse_A(entry, curdir);
 				if(getOp == FileOperation::bootFile) {
 					// Return the chosen file
 					return entry->name;
@@ -708,7 +711,7 @@ std::string browseForFile (void) {
 				screenMode = 0;
 				return "null";
 			} else {
-				FileOperation getOp = fileBrowse_A(entry, path);
+				FileOperation getOp = fileBrowse_A(entry, curdir);
 				if (getOp == FileOperation::copySdOut || getOp == FileOperation::copyFatOut) {
 					getDirectoryContents (dirContents);		// Refresh directory listing
 				} else if (getOp == FileOperation::showInfo) {
@@ -716,7 +719,7 @@ std::string browseForFile (void) {
 				}
 			}
 		} else if (pressed & KEY_B) {
-			if (strcmp(path, getDrivePath()) == 0) {
+			if (strcmp(curdir, getDrivePath()) == 0) {
 				screenMode = 0;
 				return "null";
 			}
@@ -727,9 +730,9 @@ std::string browseForFile (void) {
 			fileOffset = 0;
 
 			// Return selection to where it was
-			char *trailingSlash = strrchr(path, '/');
+			char *trailingSlash = strrchr(curdir, '/');
 			*trailingSlash = '\0';
-			std::string dirName = strrchr(path, '/') + 1;
+			std::string dirName = strrchr(curdir, '/') + 1;
 			*trailingSlash = '/';
 			for(size_t i = 0; i < dirContents.size(); i++) {
 				if(dirContents[i].name == dirName) {
@@ -918,7 +921,7 @@ std::string browseForFile (void) {
 				}
 
 				fileBrowse_drawBottomScreen(entry);
-				showDirectoryContents(dirContents, fileOffset, screenOffset);
+				showDirectoryContents(dirContents, fileOffset, screenOffset, curdir);
 			}
 		} else if (pressed & KEY_Y) {
 			// Copy
@@ -930,16 +933,16 @@ std::string browseForFile (void) {
 					if (entry->selected) {
 						for (auto &item : dirContents) {
 							if(item.selected) {
-								clipboard.emplace_back(path + item.name, item.name, item.isDirectory, currentDrive);
+								clipboard.emplace_back(curdir + item.name, item.name, item.isDirectory, currentDrive);
 								item.selected = false;
 							}
 						}
 					} else {
-						clipboard.emplace_back(path + entry->name, entry->name, entry->isDirectory, currentDrive);
+						clipboard.emplace_back(curdir + entry->name, entry->name, entry->isDirectory, currentDrive);
 					}
 				}
 			// Paste
-			} else if (driveWritable(currentDrive) && fileBrowse_paste(path)) {
+			} else if (driveWritable(currentDrive) && fileBrowse_paste(curdir)) {
 				getDirectoryContents (dirContents);
 			}
 		} else if ((pressed & KEY_SELECT) && !clipboardUsed) {

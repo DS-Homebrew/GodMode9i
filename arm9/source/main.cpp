@@ -76,8 +76,6 @@ void vblankHandler (void) {
 	}
 }
 
-char filePath[PATH_MAX];
-
 //---------------------------------------------------------------------------------
 int main(int argc, char **argv) {
 //---------------------------------------------------------------------------------
@@ -88,7 +86,6 @@ int main(int argc, char **argv) {
 
 	defaultExceptionHandler();
 
-	int pathLen;
 	std::string filename;
 	
 	bool yHeld = false;
@@ -312,8 +309,15 @@ int main(int argc, char **argv) {
 
 		if (applaunch) {
 			// Construct a command line
-			getcwd (filePath, PATH_MAX);
-			pathLen = strlen (filePath);
+			char filePath[PATH_MAX];
+			getcwd(filePath, PATH_MAX);
+			int pathLen = strlen(filePath);
+			if(pathLen < PATH_MAX && filePath[pathLen - 1] != '/') {
+				filePath[pathLen] = '/';
+				filePath[pathLen + 1] = '\0';
+				pathLen++;
+			}
+
 			std::vector<char*> argarray;
 
 			if ((strcasecmp (filename.c_str() + filename.size() - 5, ".argv") == 0)
@@ -344,7 +348,7 @@ int main(int argc, char **argv) {
 
 			if (extension(filename, {"nds", "dsi", "ids", "app", "srl"})) {
 				char *name = argarray[0];
-				strcpy (filePath + pathLen, name);
+				strcpy(filePath + pathLen, name);
 				free(argarray[0]);
 				argarray[0] = filePath;
 				font->clear(false);
@@ -355,7 +359,7 @@ int main(int argc, char **argv) {
 
 			if (extension(filename, {"firm"})) {
 				char *name = argarray[0];
-				strcpy (filePath + pathLen, name);
+				strcpy(filePath + pathLen, name);
 				free(argarray[0]);
 				argarray[0] = filePath;
 				fcopy(argarray[0], "sd:/bootonce.firm");

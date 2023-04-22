@@ -358,7 +358,12 @@ int runNdsFile (const char* filename, int argc, const char** argv)  {
 		if (!getcwd (filePath, PATH_MAX)) {
 			return 2;
 		}
-		pathLen = strlen (filePath);
+		pathLen = strlen(filePath);
+		if(pathLen < PATH_MAX && filePath[pathLen - 1] != '/') {
+			filePath[pathLen] = '/';
+			filePath[pathLen + 1] = '\0';
+			pathLen++;
+		}
 		strcpy (filePath + pathLen, filename);
 		args[0] = filePath;
 		argv = args;
