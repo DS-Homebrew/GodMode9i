@@ -2,6 +2,7 @@
 #define DATE_H
 
 #include <string>
+#include <sys/types.h>
 
 /**
  * Format the time as specified.
