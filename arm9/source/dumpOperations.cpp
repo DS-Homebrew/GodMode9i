@@ -1181,6 +1181,14 @@ void gbaCartDump(void) {
 				}
 			}
 
+			// 32MB + EEPROM: Fix last 256 bytes
+			if(!failed && (romSize == (32 << 20) && (saveType == SAVE_GBA_EEPROM_05 || saveType == SAVE_GBA_EEPROM_8))) {
+				u8 buffer[256];
+				toncset(buffer, ((u8 *)GBAROM)[((32 << 20) - 257)], 256);
+				fseek(destinationFile, -256, SEEK_END);
+				fwrite(buffer, 1, 256, destinationFile);
+			}
+
 			// Check for 64MB GBA Video ROM
 			if ((strncmp((char*)0x080000AC, "MSAE", 4) == 0 // Shark Tale
 			|| strncmp((char*)0x080000AC, "MSKE", 4) == 0   // Shrek
