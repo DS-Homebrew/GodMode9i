@@ -867,7 +867,7 @@ void ndsCardDump(void) {
 		u32 romSize;
 		if (dumpOption & DumpOption::romTrimmed) {
 			romSize = (isDSiMode() && (ndsCardHeader.unitCode != 0) && (ndsCardHeader.twlRomSize > 0))
-						? ndsCardHeader.twlRomSize : ndsCardHeader.romSize+0x88;
+						? ndsCardHeader.twlRomSize : ndsCardHeader.romSize + 0x88;
 		} else {
 			romSize = 0x20000 << ndsCardHeader.deviceSize;
 		}
@@ -892,10 +892,23 @@ void ndsCardDump(void) {
 				for (u32 i = 0; i < 0x8000; i += 0x200) {
 					cardRead (src+i, copyBuf+i, false);
 				}
-				if (fwrite(copyBuf, 1, (currentSize>=0x8000 ? 0x8000 : currentSize), destinationFile) < 1) {
+
+				if (currentSize < 0x8000) {
+					if (romSize == ndsCardHeader.romSize + 0x88) {
+						// Trimming, check for RSA key
+						// 'ac', auth code -- magic number
+						if (*(u16 *)(copyBuf + (ndsCardHeader.romSize % 0x8000)) != 0x6361) {
+							romSize -= 0x88;
+							currentSize -= 0x88;
+						}
+					}
+
+					fwrite(copyBuf, 1, currentSize, destinationFile);
+				} else if (fwrite(copyBuf, 1, 0x8000, destinationFile) < 1) {
 					dumpFailMsg(STR_FAILED_TO_DUMP_ROM);
 					break;
 				}
+
 				currentSize -= 0x8000;
 			}
 			fclose(destinationFile);
