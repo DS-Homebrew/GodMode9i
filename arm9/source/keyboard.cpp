@@ -59,7 +59,7 @@ std::string kbdGetString(std::string label, int maxSize, std::string oldStr) {
 		}
 		font->printf(2 + cursorPosition, labelHeight, false, Alignment::left, Palette::blackWhite, "%s", stringPosition < (int)output.size() ? output.substr(stringPosition, charLen).c_str() : " ");
 
-		font->print(firstCol, labelHeight + 2, false, STR_START_RETURN_B_BACKSPACE, alignStart);
+		font->print(firstCol, labelHeight + 2, false, STR_START_RETURN_B_BACKSPACE_X_CLEAR, alignStart);
 		font->update(false);
 
 		do {
@@ -67,7 +67,7 @@ std::string kbdGetString(std::string label, int maxSize, std::string oldStr) {
 			pressed = keysDownRepeat();
 			key = keyboardUpdate();
 			swiWaitForVBlank();
-		} while (!((pressed & (KEY_LEFT | KEY_RIGHT | KEY_B | KEY_START | KEY_TOUCH)) || (key != -1)));
+		} while (!((pressed & (KEY_LEFT | KEY_RIGHT | KEY_B | KEY_X | KEY_START | KEY_TOUCH)) || (key != -1)));
 
 		switch(key) {
 			case NOKEY:
@@ -176,6 +176,10 @@ std::string kbdGetString(std::string label, int maxSize, std::string oldStr) {
 						scrollPosition--;
 				}
 			}
+		} else if(pressed & KEY_X) {
+			output = "";
+			stringPosition = 0;
+			scrollPosition = 0;
 		} else if(pressed & KEY_START) {
 			done = true;
 		}

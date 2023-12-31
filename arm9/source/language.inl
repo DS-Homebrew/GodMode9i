@@ -189,7 +189,7 @@ STRING(A_SELECT_B_CANCEL, "(\\A select, \\B cancel)")
 STRING(START_CANCEL, "(START cancel)")
 STRING(UDLR_CHANGE_ATTRIBUTES, "(\\D change attributes)")
 STRING(A_APPLY_B_CANCEL, "(\\A apply, \\B cancel)")
-STRING(START_RETURN_B_BACKSPACE, "(START Return, \\B Backspace)")
+STRING(START_RETURN_B_BACKSPACE_X_CLEAR, "(START Return, \\B Backspace, \\X Clear)")
 
 // Byte counts
 STRING(1_BYTE, "1 Byte")
