@@ -34,8 +34,10 @@ enum DumpOption {
 	save = 4,
 	metadata = 8,
 	ndsSave = 16,
+	saveNoRtc = 32,
 	all = rom | save | metadata,
-	allTrimmed = romTrimmed | save | metadata
+	allTrimmed = romTrimmed | save | metadata,
+	allNoRtc = rom | saveNoRtc | metadata
 };
 
 DumpOption dumpMenu(std::vector<DumpOption> allowedOptions, const char *dumpName) {
@@ -65,6 +67,9 @@ DumpOption dumpMenu(std::vector<DumpOption> allowedOptions, const char *dumpName
 				case DumpOption::allTrimmed:
 					font->print(optionsCol, row++, false, STR_DUMP_ALL_TRIMMED, alignStart);
 					break;
+				case DumpOption::allNoRtc:
+					font->print(optionsCol, row++, false, STR_DUMP_ALL_NO_RTC, alignStart);
+					break;
 				case DumpOption::rom:
 					font->print(optionsCol, row++, false, STR_DUMP_ROM, alignStart);
 					break;
@@ -76,6 +81,9 @@ DumpOption dumpMenu(std::vector<DumpOption> allowedOptions, const char *dumpName
 					break;
 				case DumpOption::ndsSave:
 					font->print(optionsCol, row++, false, STR_DUMP_DS_SAVE, alignStart);
+					break;
+				case DumpOption::saveNoRtc:
+					font->print(optionsCol, row++, false, STR_DUMP_SAVE_NO_RTC, alignStart);
 					break;
 				case DumpOption::metadata:
 					font->print(optionsCol, row++, false, STR_DUMP_METADATA, alignStart);
@@ -961,7 +969,7 @@ void ndsCardDump(void) {
 		screenSwapped ? lcdMainOnBottom() : lcdMainOnTop();
 }
 
-void gbaCartSaveDump(const char *filename) {
+void gbaCartSaveDump(const char *filename, bool includeRtc) {
 	font->clear(false);
 	font->print(firstCol, 0, false, STR_DUMPING_SAVE, alignStart);
 	font->print(firstCol, 1, false, STR_DO_NOT_REMOVE_CART, alignStart);
@@ -978,11 +986,13 @@ void gbaCartSaveDump(const char *filename) {
 	FILE *destinationFile = fopen(filename, "wb");
 	fwrite(buffer, 1, size, destinationFile);
 	
-	u8 cartRtc[RTC_SIZE];
-	if (gbaGetRtc(cartRtc)) {
-		fwrite(cartRtc, 1, RTC_SIZE, destinationFile);
-		u64 systime = time(nullptr);
-		fwrite(&systime, 1, 8, destinationFile);
+	if(includeRtc) {
+		u8 cartRtc[RTC_SIZE];
+		if (gbaGetRtc(cartRtc)) {
+			fwrite(cartRtc, 1, RTC_SIZE, destinationFile);
+			u64 systime = time(nullptr);
+			fwrite(&systime, 1, 8, destinationFile);
+		}
 	}
 
 	fclose(destinationFile);
@@ -1068,16 +1078,26 @@ void gbaCartDump(void) {
 	font->print(firstCol, 0, false, STR_LOADING, alignStart);
 	font->update(false);
 
-	std::vector allowedOptions = {DumpOption::all, DumpOption::rom};
+	std::vector allowedOptions = {DumpOption::all};
 	u8 allowedBitfield = DumpOption::rom | DumpOption::metadata;
 	char gameTitle[13] = {0};
 	char gameCode[7] = {0};
 	char fileName[32] = {0};
 	saveTypeGBA saveType = gbaGetSaveType();
 
+	u8 cartRtc[RTC_SIZE];
+	bool hasRtc = gbaGetRtc(cartRtc);
+
 	if(saveType != saveTypeGBA::SAVE_GBA_NONE) {
+		if(hasRtc)
+			allowedOptions.push_back(DumpOption::allNoRtc);
+		allowedOptions.push_back(DumpOption::rom);
 		allowedOptions.push_back(DumpOption::save);
 		allowedBitfield |= DumpOption::save;
+		if(hasRtc) {
+			allowedOptions.push_back(DumpOption::saveNoRtc);
+			allowedBitfield |= DumpOption::saveNoRtc;
+		}
 
 		u32 size = gbaGetSaveSize(saveType);
 		u8 *buffer = new u8[size];
@@ -1087,7 +1107,10 @@ void gbaCartDump(void) {
 			allowedBitfield |= DumpOption::ndsSave;
 		}
 		delete[] buffer;
+	} else {
+		allowedOptions.push_back(DumpOption::rom);
 	}
+
 	allowedOptions.push_back(DumpOption::metadata);
 
 	// Get name
@@ -1235,10 +1258,10 @@ void gbaCartDump(void) {
 	}
 
 	// Dump save
-	if((dumpOption & allowedBitfield) & DumpOption::save) {
+	if((dumpOption & allowedBitfield) & (DumpOption::save | DumpOption::saveNoRtc)) {
 		char destPath[256];
 		sprintf(destPath, "fat:/gm9i/out/%s.sav", fileName);
-		gbaCartSaveDump(destPath);
+		gbaCartSaveDump(destPath, (dumpOption & allowedBitfield) & DumpOption::save);
 	}
 
 	// Dump NDS save previously saved to this cart
