@@ -264,10 +264,10 @@ void driveMenu (void) {
 			romTitle[1][0] = 0;
 			romSize[1] = 0;
 		}
-		if (((io_dldi_data->ioInterface.features & FEATURE_SLOT_GBA) || (isRegularDS && !flashcardMounted && romTitle[1][0] != 0))
+		if (((io_dldi_data->ioInterface.features & FEATURE_SLOT_GBA) || ramdriveMounted || (isRegularDS && !flashcardMounted && romTitle[1][0] != 0))
 		|| (isDSiMode() && !arm7SCFGLocked && !(REG_SCFG_MC & BIT(0)))) {
 			dmOperations.push_back(DriveMenuOperation::ndsCard);
-			if(romTitle[0][0] == 0 && ((io_dldi_data->ioInterface.features & FEATURE_SLOT_GBA) || !flashcardMounted) && !isRegularDS) {
+			if(romTitle[0][0] == 0 && ((io_dldi_data->ioInterface.features & FEATURE_SLOT_GBA) || !flashcardMounted || ramdriveMounted) && !isRegularDS) {
 				sNDSHeaderExt ndsHeader;
 				cardInit(&ndsHeader);
 				tonccpy(romTitle[0], ndsHeader.gameTitle, 12);
@@ -364,7 +364,7 @@ void driveMenu (void) {
 					screenMode = 1;
 					break;
 				}
-			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::ndsCard && (sdMounted || flashcardMounted || romTitle[1][0] != 0)) {
+			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::ndsCard && (sdMounted || flashcardMounted || ramdriveMounted || romTitle[1][0] != 0)) {
 				ndsCardDump();
 			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::ramDrive && ramdriveMounted) {
 				currentDrive = Drive::ramDrive;

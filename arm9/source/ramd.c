@@ -13,6 +13,7 @@ const static u8 bootSector[] = {
 	'I', 'V', 'E', ' ', ' ', ' ', 'F', 'A', 'T'
 };
 
+u32 baseSectors = 0;
 u32 ramdSectors = 0;
 u8* ramdLoc = (u8*)NULL;
 u8* ramdLocMep = (u8*)NULL;
@@ -20,10 +21,13 @@ const u16 bootSectorSignature = 0xAA55;
 
 bool ramd_startup() {
 	if(isDSiMode() || REG_SCFG_EXT != 0) {
-		ramdLoc = (u8*)malloc(0x6000 * SECTOR_SIZE);
+		ramdLoc = (u8*)malloc(baseSectors * SECTOR_SIZE);
 	} else {
-		ramdLoc = (u8*)calloc(0x8 * SECTOR_SIZE, 1);
-		toncset(ramdLocMep, 0, (ramdSectors - 0x8) * SECTOR_SIZE); // Fill MEP with 00 to avoid displaying weird files
+		ramdLoc = (u8*)calloc(baseSectors * SECTOR_SIZE, 1);
+		if(ramdLoc == NULL)
+			return false;
+		if(ramdLocMep != NULL)
+			toncset(ramdLocMep, 0, (ramdSectors - baseSectors) * SECTOR_SIZE); // Fill MEP with 00 to avoid displaying weird files
 	}
 
 	tonccpy(ramdLoc, bootSector, sizeof(bootSector));
@@ -34,21 +38,15 @@ bool ramd_startup() {
 }
 
 bool ramd_is_inserted() {
-	return isDSiMode() || REG_SCFG_EXT != 0 || *(u16*)(0x020000C0) != 0 || *(vu16*)(0x08240000) == 1;
+	return ramdLoc != NULL;
 }
 
 bool ramd_read_sectors(sec_t sector, sec_t numSectors, void *buffer) {
 	for(int i = 0; i < numSectors; i++, sector++) {
-		if(isDSiMode() || REG_SCFG_EXT != 0) {
-			if(sector < 0x6000) {
-				tonccpy(buffer + (i * SECTOR_SIZE), ramdLoc + (sector * SECTOR_SIZE), SECTOR_SIZE);
-			} else if(sector <= 0xE000) {
-				tonccpy(buffer + (i * SECTOR_SIZE), (void*)0x0D000000 + ((sector - 0x6000) * SECTOR_SIZE), SECTOR_SIZE);
-			}
-		} else if(sector < 0x8) {
+		if(sector < baseSectors) {
 			tonccpy(buffer + (i * SECTOR_SIZE), ramdLoc + (sector * SECTOR_SIZE), SECTOR_SIZE);
-		} else if(sector <= ramdSectors - 0x8) {
-			tonccpy(buffer + (i * SECTOR_SIZE), ramdLocMep + ((sector - 0x8) * SECTOR_SIZE), SECTOR_SIZE);
+		} else if(sector < ramdSectors) {
+			tonccpy(buffer + (i * SECTOR_SIZE), ramdLocMep + ((sector - baseSectors) * SECTOR_SIZE), SECTOR_SIZE);
 		} else {
 			return false;
 		}
@@ -59,16 +57,10 @@ bool ramd_read_sectors(sec_t sector, sec_t numSectors, void *buffer) {
 
 bool ramd_write_sectors(sec_t sector, sec_t numSectors, const void *buffer) {
 	for(int i = 0; i < numSectors; i++, sector++) {
-		if(isDSiMode() || REG_SCFG_EXT != 0) {
-			if(sector < 0x6000) {
-				tonccpy(ramdLoc + (sector * SECTOR_SIZE), buffer + (i * SECTOR_SIZE), SECTOR_SIZE);
-			} else if(sector <= 0xE000) {
-				tonccpy((void*)0x0D000000 + ((sector - 0x6000) * SECTOR_SIZE), buffer + (i * SECTOR_SIZE), SECTOR_SIZE);
-			}
-		} else if(sector < 0x8) {
+		if(sector < baseSectors) {
 			tonccpy(ramdLoc + (sector * SECTOR_SIZE), buffer + (i * SECTOR_SIZE), SECTOR_SIZE);
-		} else if(sector <= ramdSectors - 0x8) {
-			tonccpy(ramdLocMep + ((sector - 0x8) * SECTOR_SIZE), buffer + (i * SECTOR_SIZE), SECTOR_SIZE);
+		} else if(sector < ramdSectors) {
+			tonccpy(ramdLocMep + ((sector - baseSectors) * SECTOR_SIZE), buffer + (i * SECTOR_SIZE), SECTOR_SIZE);
 		} else {
 			return false;
 		}

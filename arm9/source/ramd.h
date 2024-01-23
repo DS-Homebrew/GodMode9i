@@ -4,6 +4,7 @@
 #include <nds/ndstypes.h>
 #include <nds/disc_io.h>
 
+extern u32 baseSectors;
 extern u32 ramdSectors;
 extern u8* ramdLocMep;
 

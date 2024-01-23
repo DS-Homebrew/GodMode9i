@@ -86,6 +86,15 @@ int main(int argc, char **argv) {
 
 	defaultExceptionHandler();
 
+	sysSetCartOwner (BUS_OWNER_ARM9);	// Allow arm9 to access GBA ROM
+	
+	// Immediately mount RAM drive to ensure we have all the heap available
+	auto ram32MB = []{
+		*(vu32*)(0x0DFFFE0C) = 0x474D3969;
+		return *(vu32*)(0x0DFFFE0C) == 0x474D3969;
+	}();
+	ramdriveMount(ram32MB);
+
 	std::string filename;
 	
 	bool yHeld = false;
@@ -148,8 +157,6 @@ int main(int argc, char **argv) {
 	font->print(-2, -2, false, "Mounting drive(s)...", Alignment::right);
 	font->update(false);
 
-	sysSetCartOwner (BUS_OWNER_ARM9);	// Allow arm9 to access GBA ROM
-
 	if (isDSiMode() || !isRegularDS) {
 		fifoSetValue32Handler(FIFO_USER_04, sdStatusHandler, nullptr);
 		if (!sdRemoved) {
@@ -159,9 +166,6 @@ int main(int argc, char **argv) {
 	if (isDSiMode()) {
 		scanKeys();
 		yHeld = (keysHeld() & KEY_Y);
-		*(vu32*)(0x0DFFFE0C) = 0x474D3969;		// Check for 32MB of RAM
-		bool ram32MB = *(vu32*)(0x0DFFFE0C) == 0x474D3969;
-		ramdriveMount(ram32MB);
 		if (ram32MB) {
 			is3DS = fifoGetValue32(FIFO_USER_05) != 0xD2;
 		}
@@ -176,9 +180,6 @@ int main(int argc, char **argv) {
 		fwrite((void*)0x2FFFD00, 1, 8, cidFile);
 		fclose(cidFile);*/
 	} else if (REG_SCFG_EXT != 0) {
-		*(vu32*)(0x0DFFFE0C) = 0x474D3969;		// Check for 32MB of RAM
-		bool ram32MB = *(vu32*)(0x0DFFFE0C) == 0x474D3969;
-		ramdriveMount(ram32MB);
 		if (ram32MB) {
 			is3DS = fifoGetValue32(FIFO_USER_05) != 0xD2;
 		}
@@ -233,9 +234,8 @@ int main(int argc, char **argv) {
 
 			nandMount(); // Returns corrupt data for some reason
 		}
-	} else if (isRegularDS && (io_dldi_data->ioInterface.features & FEATURE_SLOT_NDS)) {
-		ramdriveMount(false);
 	}
+	
 	if (!isDSiMode() || !yHeld) {
 		flashcardMounted = flashcardMount();
 		flashcardMountSkipped = false;

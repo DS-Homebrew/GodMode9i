@@ -45,8 +45,8 @@ DumpOption dumpMenu(std::vector<DumpOption> allowedOptions, const char *dumpName
 	int optionOffset = 0;
 
 	char dumpToStr[256];
-	if(sdMounted || flashcardMounted)
-		snprintf(dumpToStr, sizeof(dumpToStr), STR_DUMP_TO.c_str(), dumpName, sdMounted ? "sd" : "fat");
+	if(sdMounted || flashcardMounted || ramdriveMounted)
+		snprintf(dumpToStr, sizeof(dumpToStr), STR_DUMP_TO.c_str(), dumpName, getDefaultDrivePath());
 	else
 		snprintf(dumpToStr, sizeof(dumpToStr), STR_DUMP_TO_GBA.c_str(), dumpName);
 
@@ -459,7 +459,7 @@ bool readFromGbaCart() {
 			decompress(compressedBuffer, finalBuffer, LZ77);
 
 			char destPath[256];
-			sprintf(destPath, "%s:/gm9i/out/%s.sav", (sdMounted ? "sd" : "fat"), fileName);
+			sprintf(destPath, "%s:/gm9i/out/%s.sav", getDefaultDrivePath(), fileName);
 			FILE *destinationFile = fopen(destPath, "wb");
 			if(destinationFile) {
 				fwrite(finalBuffer, 1, size, destinationFile);
@@ -541,7 +541,7 @@ void ndsCardSaveDump(const char* filename) {
 			buffer = new unsigned char[size];
 			cardReadEeprom(0, buffer, size, type);
 		}
-		if(sdMounted || flashcardMounted) {
+		if(sdMounted || flashcardMounted || ramdriveMounted) {
 			FILE *out = fopen(filename, "wb");
 			if(out) {
 				fwrite(buffer, 1, size, out);
@@ -796,7 +796,7 @@ void ndsCardDump(void) {
 
 	int cardInited = cardInit(&ndsCardHeader);
 	if(cardInited == 0) {
-		if(sdMounted || flashcardMounted) {
+		if(sdMounted || flashcardMounted || ramdriveMounted) {
 			allowedOptions.push_back(DumpOption::allTrimmed);
 			allowedOptions.push_back(DumpOption::rom);
 			allowedOptions.push_back(DumpOption::romTrimmed);
@@ -805,12 +805,12 @@ void ndsCardDump(void) {
 			nandSave = cardNandGetSaveSize() != 0;
 		}
 
-		if((spiSave && (sdMounted || flashcardMounted || cardEepromGetSizeFixed() <= (1 << 20))) || (nandSave && (sdMounted || flashcardMounted))) {
+		if(ramdriveMounted || (spiSave && (sdMounted || flashcardMounted || cardEepromGetSizeFixed() <= (1 << 20))) || (nandSave && (sdMounted || flashcardMounted))) {
 			allowedOptions.push_back(DumpOption::save);
 			allowedBitfield |= DumpOption::save;
 		}
 	}
-	if(sdMounted || flashcardMounted) {
+	if(sdMounted || flashcardMounted || ramdriveMounted) {
 		allowedBitfield |= DumpOption::metadata;
 		allowedOptions.push_back(DumpOption::metadata);
 	}
@@ -846,10 +846,10 @@ void ndsCardDump(void) {
 		strcat(fileName, "_trim");
 
 	// Ensure directories exist
-	if((dumpOption & allowedBitfield) != DumpOption::none && (sdMounted || flashcardMounted)) {
+	if((dumpOption & allowedBitfield) != DumpOption::none && (sdMounted || flashcardMounted || ramdriveMounted)) {
 		char folderPath[2][256];
-		sprintf(folderPath[0], "%s:/gm9i", (sdMounted ? "sd" : "fat"));
-		sprintf(folderPath[1], "%s:/gm9i/out", (sdMounted ? "sd" : "fat"));
+		sprintf(folderPath[0], "%s:/gm9i", getDefaultDrivePath());
+		sprintf(folderPath[1], "%s:/gm9i/out", getDefaultDrivePath());
 		if (access(folderPath[0], F_OK) != 0) {
 			font->clear(false);
 			font->print(firstCol, 0, false, STR_CREATING_DIRECTORY, alignStart);
@@ -882,7 +882,7 @@ void ndsCardDump(void) {
 
 		// Dump!
 		char destPath[256];
-		sprintf(destPath, "%s:/gm9i/out/%s.nds", (sdMounted ? "sd" : "fat"), fileName);
+		sprintf(destPath, "%s:/gm9i/out/%s.nds", getDefaultDrivePath(), fileName);
 		u32 currentSize = romSize;
 		FILE* destinationFile = fopen(destPath, "wb");
 		if (destinationFile) {
@@ -928,8 +928,8 @@ void ndsCardDump(void) {
 	// Dump save
 	if ((dumpOption & allowedBitfield) & DumpOption::save) {
 		char destPath[256];
-		sprintf(destPath, "%s:/gm9i/out/%s.sav", (sdMounted ? "sd" : "fat"), fileName);
-		ndsCardSaveDump((sdMounted || flashcardMounted) ? destPath : fileName);
+		sprintf(destPath, "%s:/gm9i/out/%s.sav", getDefaultDrivePath(), fileName);
+		ndsCardSaveDump((sdMounted || flashcardMounted || ramdriveMounted) ? destPath : fileName);
 	}
 
 	// Dump metadata
@@ -939,7 +939,7 @@ void ndsCardDump(void) {
 		font->update(false);
 
 		char destPath[256];
-		sprintf(destPath, "%s:/gm9i/out/%s.txt", (sdMounted ? "sd" : "fat"), fileName);
+		sprintf(destPath, "%s:/gm9i/out/%s.txt", getDefaultDrivePath(), fileName);
 		FILE* destinationFile = fopen(destPath, "wb");
 		if (destinationFile) {
 			fprintf(destinationFile,
@@ -1145,8 +1145,8 @@ void gbaCartDump(void) {
 	// Ensure directories exist
 	if((dumpOption & allowedBitfield) != DumpOption::none) {
 		char folderPath[2][256];
-		sprintf(folderPath[0], "%s:/gm9i", (sdMounted ? "sd" : "fat"));
-		sprintf(folderPath[1], "%s:/gm9i/out", (sdMounted ? "sd" : "fat"));
+		sprintf(folderPath[0], "%s:/gm9i", getDefaultDrivePath());
+		sprintf(folderPath[1], "%s:/gm9i/out", getDefaultDrivePath());
 		if (access(folderPath[0], F_OK) != 0) {
 			font->clear(false);
 			font->print(firstCol, 0, false, STR_CREATING_DIRECTORY, alignStart);
@@ -1284,7 +1284,7 @@ void gbaCartDump(void) {
 		font->update(false);
 
 		char destPath[256];
-		sprintf(destPath, "%s:/gm9i/out/%s.txt", (sdMounted ? "sd" : "fat"), fileName);
+		sprintf(destPath, "%s:/gm9i/out/%s.txt", getDefaultDrivePath(), fileName);
 		FILE* destinationFile = fopen(destPath, "wb");
 		if (destinationFile) {
 			fprintf(destinationFile,
