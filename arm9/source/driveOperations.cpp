@@ -53,6 +53,14 @@ u64 fatSize = 0;
 u64 imgSize = 0;
 u32 ramdSize = 0;
 
+const char* getDefaultDrivePath(void) {
+	if(sdMounted)
+		return "sd";
+	if(flashcardMounted)
+		return "fat";
+	return "ram";
+}
+
 const char* getDrivePath(void) {
 	switch (currentDrive) {
 		case Drive::sdCard:
@@ -339,13 +347,18 @@ void flashcardUnmount(void) {
 }
 
 void ramdriveMount(bool ram32MB) {
+	//alloc 1 mb of ram, leaving 3 for the program
+	baseSectors = 0x800;
+	ramdSectors = 0x800;
+	ramdLocMep = nullptr;
 	if(isDSiMode() || REG_SCFG_EXT != 0) {
 		ramdSectors = ram32MB ? 0xE000 : 0x6000;
-
-		fatMountSimple("ram", &io_ram_drive);
+		ramdLocMep = ram32MB ? (u8*)0x0D000000 : nullptr;
+		baseSectors = 0x6000;
 	} else if (isRegularDS) {
-		ramdSectors = 0x8 + 0x4000;
-		ramdLocMep = (u8*)0x09000000;
+		auto mepBaseSectors = 0x8;
+		auto mepRamdSectors = mepBaseSectors + 0x4000;
+		auto mepRamdLocMep = (u8*)0x09000000;
 
 		if (*(u16*)(0x020000C0) != 0x334D && *(u16*)(0x020000C0) != 0x3647 && *(u16*)(0x020000C0) != 0x4353 && *(u16*)(0x020000C0) != 0x5A45) {
 			*(u16*)(0x020000C0) = 0;	// Clear Slot-2 flashcard flag
@@ -382,17 +395,21 @@ void ramdriveMount(bool ram32MB) {
 		}
 
 		if (*(u16*)(0x020000C0) == 0x334D || *(u16*)(0x020000C0) == 0x3647 || *(u16*)(0x020000C0) == 0x4353) {
-			ramdLocMep = (u8*)0x08000000;
-			ramdSectors = 0x8 + 0x10000;
+			mepRamdLocMep = (u8*)0x08000000;
+			mepRamdSectors = mepBaseSectors + 0x10000;
 		} else if (*(u16*)(0x020000C0) == 0x5A45) {
-			ramdLocMep = (u8*)0x08000000;
-			ramdSectors = 0x8 + 0x8000;
+			mepRamdLocMep = (u8*)0x08000000;
+			mepRamdSectors = mepBaseSectors + 0x8000;
 		}
 
 		if (*(u16*)(0x020000C0) != 0 || *(vu16*)(0x08240000) == 1) {
-			fatMountSimple("ram", &io_ram_drive);
+			baseSectors = mepBaseSectors;
+			ramdSectors = mepRamdSectors;
+			ramdLocMep = mepRamdLocMep;
 		}
 	}
+	
+	fatMountSimple("ram", &io_ram_drive);
 
 	ramdriveMounted = (access("ram:/", F_OK) == 0);
 
@@ -478,7 +495,7 @@ bool driveRemoved(Drive drive) {
 		case Drive::flashcard:
 			return isDSiMode() ? REG_SCFG_MC & BIT(0) : !flashcardMounted;
 		case Drive::ramDrive:
-			return (isDSiMode() || REG_SCFG_EXT != 0) ? !ramdriveMounted : !(*(u16*)(0x020000C0) != 0 || *(vu16*)(0x08240000) == 1);
+			return (isDSiMode() || REG_SCFG_EXT != 0 || ramdLocMep == nullptr) ? !ramdriveMounted : !(*(u16*)(0x020000C0) != 0 || *(vu16*)(0x08240000) == 1);
 		case Drive::nand:
 			return !nandMounted;
 		case Drive::nandPhoto:

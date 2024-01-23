@@ -38,6 +38,7 @@ extern u64 fatSize;
 extern u64 imgSize;
 extern u32 ramdSize;
 
+extern const char* getDefaultDrivePath(void);
 extern const char* getDrivePath(void);
 extern Drive getDriveFromPath(const char *path);
 
