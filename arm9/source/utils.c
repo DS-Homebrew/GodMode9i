@@ -2,10 +2,10 @@
 #include <stdio.h>
 #include <sys/statvfs.h>
 #include <nds.h>
-#include "my_sha1.h"
+#include "sha1.h"
 #include "utils.h"
 
-swiSHA1context_t sha1ctx;
+SHA1_CTX sha1ctx;
 
 static inline int htoi(char a){
 	if(a >= '0' && a <= '9'){
@@ -63,9 +63,8 @@ int save_file(const char *filename, const void *buffer, size_t size, int save_sh
 		//iprintf("saved %s\n", filename);
 	}
 	if (save_sha1) {
-		sha1ctx.sha_block = 0;
-		my_swiSHA1Init(&sha1ctx);
-		my_swiSHA1Update(&sha1ctx, buffer, size);
+		SHA1Init(&sha1ctx);
+		SHA1Update(&sha1ctx, buffer, size);
 		save_sha1_file(filename);
 	}
 	return 0;
@@ -147,7 +146,7 @@ int save_sha1_file(const char *filename) {
 	char *sha1_buf = (char *)malloc(len_buf + 1); // extra for \0
 	char *p = sha1_buf;
 	char *digest = (char *)malloc(20);
-	my_swiSHA1Final(digest, &sha1ctx);
+	SHA1Final(digest, &sha1ctx);
 	for (int i = 0; i < 20; ++i) {
 		p += siprintf(p, "%02X", digest[i]);
 	}

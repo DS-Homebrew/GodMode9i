@@ -5,7 +5,7 @@
 #include <dirent.h>
 #include <vector>
 
-#include "my_sha1.h"
+#include "sha1.h"
 #include "file_browse.h"
 #include "font.h"
 #include "ndsheaderbanner.h"
@@ -15,7 +15,8 @@
 #define copyBufSize 0x8000
 #define shaChunkSize 0x10000
 
-u8* copyBuf = (u8*)0x02004000;
+// u8* copyBuf = (u8*)0x02004000;
+u8 copyBuf[copyBufSize];
 
 std::vector<ClipboardFile> clipboard;
 bool clipboardOn = false;
@@ -88,9 +89,8 @@ bool calculateSHA1(const char *fileName, u8 *sha1) {
 		return false;
 	}
 	memset(sha1, 0, 20);
-	swiSHA1context_t ctx;
-	ctx.sha_block=0; //this is weird but it has to be done
-	my_swiSHA1Init(&ctx);
+	SHA1_CTX ctx;
+	SHA1Init(&ctx);
 
 	font->clear(false);
 	font->printf(firstCol, 0, false, alignStart, Palette::white, STR_CALCULATING_SHA1.c_str(), fileName);
@@ -105,7 +105,7 @@ bool calculateSHA1(const char *fileName, u8 *sha1) {
 	while (true) {
 		size_t ret = fread(buf, 1, shaChunkSize, fp);
 		if (!ret) break;
-		my_swiSHA1Update(&ctx, buf, ret);
+		SHA1Update(&ctx, buf, ret);
 		scanKeys();
 		int keys = keysHeld();
 		if (keys & KEY_START) {
@@ -121,7 +121,7 @@ bool calculateSHA1(const char *fileName, u8 *sha1) {
 		font->printf(firstCol, nameHeight + 6, false, alignStart, Palette::white, STR_N_OF_N_BYTES_PROCESSED.c_str(), ftell(fp), fsize);
 		font->update(false);
 	}
-	my_swiSHA1Final(sha1, &ctx);
+	SHA1Final(sha1, &ctx);
 	free(buf);
 	fclose(fp);
 	return true;

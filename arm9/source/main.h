@@ -10,7 +10,7 @@ extern bool screenSwapped;
 
 extern bool arm7SCFGLocked;
 extern bool isRegularDS;
-extern bool bios9iEnabled;
+// extern bool bios9iEnabled;
 extern bool is3DS;
 extern int ownNitroFSMounted;
 

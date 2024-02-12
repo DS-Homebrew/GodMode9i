@@ -204,12 +204,7 @@ FileOperation fileBrowse_A(DirEntry* entry, const char *curdir) {
 		}
 
 		operations.push_back(FileOperation::hexEdit);
-
-		// The bios SHA1 functions are only available on the DSi
-		// https://problemkaputt.de/gbatek.htm#biossha1functionsdsionly
-		if (bios9iEnabled) {
-			operations.push_back(FileOperation::calculateSHA1);
-		}
+		operations.push_back(FileOperation::calculateSHA1);
 	}
 
 	operations.push_back(FileOperation::showInfo);

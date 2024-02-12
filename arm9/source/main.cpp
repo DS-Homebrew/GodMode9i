@@ -33,7 +33,7 @@ bool screenSwapped = false;
 
 bool arm7SCFGLocked = false;
 bool isRegularDS = true;
-bool bios9iEnabled = false;
+// bool bios9iEnabled = false;
 bool is3DS = false;
 int ownNitroFSMounted;
 std::string prevTime;
@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
 	fifoSendValue32(FIFO_USER_07, 0);
 
 	if (isDSiMode()) {
-		bios9iEnabled = true;
+		// bios9iEnabled = true;
 		if (!arm7SCFGLocked) {
 			//font->print(-2, -4, false, " Held - Disable NAND access", Alignment::right);
 			font->print(-2, -3, false, " Held - Disable cart access", Alignment::right);
@@ -183,7 +183,7 @@ int main(int argc, char **argv) {
 			is3DS = fifoGetValue32(FIFO_USER_05) != 0xD2;
 		}
 
-		FILE* bios = fopen("sd:/_nds/bios9i.bin", "rb");
+		/* FILE* bios = fopen("sd:/_nds/bios9i.bin", "rb");
 		if (!bios) {
 			bios = fopen("sd:/_nds/bios9i_part1.bin", "rb");
 		}
@@ -229,10 +229,10 @@ int main(int argc, char **argv) {
 			}
 
 			setVectorBase(0);
-			bios9iEnabled = true;
+			bios9iEnabled = true; */
 
-			nandMount(); // Returns corrupt data for some reason
-		}
+			nandMount();
+		// }
 	} else if (isRegularDS && (io_dldi_data->ioInterface.features & FEATURE_SLOT_NDS)) {
 		ramdriveMount(false);
 	}

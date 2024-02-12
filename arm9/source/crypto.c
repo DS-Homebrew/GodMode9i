@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include "../mbedtls/aes.h"
+#include "sha1.h"
 #include "crypto.h"
 //#include "ticket0.h"
 #include "utils.h"
@@ -117,7 +118,7 @@ static void dsi_aes_set_key(uint32_t *rk, const uint32_t *console_id, key_mode_t
 
 int dsi_sha1_verify(const void *digest_verify, const void *data, unsigned len) {
 	uint8_t digest[SHA1_LEN];
-	my_swiSHA1Calc(digest, data, len);
+	SHA1((char*)digest, data, len);
 	// return type of swiSHA1Verify() is declared void, so how exactly should we use it?
 	int ret = memcmp(digest, digest_verify, SHA1_LEN);
 	if (ret != 0) {
@@ -153,7 +154,7 @@ void dsi_crypt_init(const uint8_t *console_id_be, const uint8_t *emmc_cid, int i
 	aes_set_key_enc_128_be(boot2_rk, (uint8_t*)DSi_BOOT2_KEY);
 
 	uint32_t digest[SHA1_LEN / sizeof(uint32_t)];
-	my_swiSHA1Calc(digest, emmc_cid, 16);
+	SHA1((char*)digest, (char*)emmc_cid, 16);
 	nand_ctr_iv[0] = digest[0];
 	nand_ctr_iv[1] = digest[1];
 	nand_ctr_iv[2] = digest[2];
