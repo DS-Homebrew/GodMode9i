@@ -12,7 +12,6 @@
 #include "screenshot.h"
 #include "language.h"
 
-#define copyBufSize 0x8000
 #define shaChunkSize 0x10000
 
 // u8* copyBuf = (u8*)0x02004000;

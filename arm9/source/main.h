@@ -17,4 +17,6 @@ extern int ownNitroFSMounted;
 extern bool applaunch;
 
 
+#define copyBufSize 0x8000
+
 #endif //MAIN_H
