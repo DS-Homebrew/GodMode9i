@@ -23,6 +23,8 @@
 #include <unistd.h>
 #include <vector>
 
+#define copyBufSize 0x8000
+
 extern u8 copyBuf[copyBufSize];
 
 static sNDSHeaderExt ndsCardHeader;
