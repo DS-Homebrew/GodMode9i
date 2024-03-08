@@ -24,7 +24,7 @@ Modified by Chishm:
 void __attribute__ ((long_call)) __attribute__((naked)) __attribute__((noreturn)) resetMemory2_ARM9 (void) 
 {
  	register int i, reg;
-  
+
 	//clear out ARM9 DMA channels
 	for (i=0; i<4; i++) {
 		DMA_CR(i) = 0;
@@ -41,15 +41,15 @@ void __attribute__ ((long_call)) __attribute__((naked)) __attribute__((noreturn)
 	REG_IPC_FIFO_CR = 0;
 
 	VRAM_CR = (VRAM_CR & 0xffff0000) | 0x00008080 ;
-	
+
 	vu16 *mainregs = (vu16*)0x04000000;
 	vu16 *subregs = (vu16*)0x04001000;
-	
+
 	for (i=0; i<43; i++) {
 		mainregs[i] = 0;
 		subregs[i] = 0;
 	}
-	
+
 	REG_DISPSTAT = 0;
 	GFX_STATUS = 0;
 
