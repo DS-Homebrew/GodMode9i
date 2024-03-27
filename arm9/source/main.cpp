@@ -60,7 +60,7 @@ void vblankHandler (void) {
 	}
 
 	// Check if GBA cart ejected
-	if(isRegularDS && *(u8*)(0x080000B2) != 0x96 && romTitle[1][0] != '\0') {
+	if(isRegularDS && (io_dldi_data->ioInterface.features & FEATURE_SLOT_NDS) && *(u8*)(0x080000B2) != 0x96 && romTitle[1][0] != '\0') {
 		romTitle[1][0] = '\0';
 		romSize[1] = 0;
 	}
