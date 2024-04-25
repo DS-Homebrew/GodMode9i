@@ -145,31 +145,38 @@ int main() {
 	}
 
 	if (isDSiMode() || ((REG_SCFG_EXT & BIT(17)) && (REG_SCFG_EXT & BIT(18)))) {
-		/*for (int i = 0; i < 8; i++) {
-			*(u8*)(0x2FFFD00+i) = *(u8*)(0x4004D07-i);	// Get ConsoleID
-		}*/
 
 		// For getting ConsoleID without reading from 0x4004D00...
 
-		u8 base[16]={0};
-		u8 in[16]={0};
-		u8 iv[16]={0};
-		u8 *scratch=(u8*)0x02F00200; 
 		u8 *out=(u8*)0x02F00000;
-		u8 *key3=(u8*)0x40044D0;
-		
-		aes(in, base, iv, 2);
+		memset(out, 0, 16);
 
-		//write consecutive 0-255 values to any byte in key3 until we get the same aes output as "base" above - this reveals the hidden byte. this way we can uncover all 16 bytes of the key3 normalkey pretty easily.
-		//greets to Martin Korth for this trick https://problemkaputt.de/gbatek.htm#dsiaesioports (Reading Write-Only Values)
-		for(int i=0;i<16;i++){  
-			for(int j=0;j<256;j++){
-				*(key3+i)=j & 0xFF;
-				aes(in, scratch, iv, 2);
-				if(!memcmp(scratch, base, 16)){
-					out[i]=j;
-					//hit++;
-					break;
+		// first check whether we can read the console ID directly and it was not hidden by SCFG
+		if (((*(vu16*)0x04004000) & (1u << 10)) == 0 && ((*(vu8*)0x04004D08) & 0x1) == 0)
+		{
+			// The console id registers are readable, so use them!
+			memcpy(out, (u8*)0x04004D00, 8);
+		}
+		if(out[0] == 0 || out[1] == 0) {
+			u8 base[16]={0};
+			u8 in[16]={0};
+			u8 iv[16]={0};
+			u8 *scratch=(u8*)0x02F00200; 
+			u8 *key3=(u8*)0x40044D0;
+			
+			aes(in, base, iv, 2);
+
+			//write consecutive 0-255 values to any byte in key3 until we get the same aes output as "base" above - this reveals the hidden byte. this way we can uncover all 16 bytes of the key3 normalkey pretty easily.
+			//greets to Martin Korth for this trick https://problemkaputt.de/gbatek.htm#dsiaesioports (Reading Write-Only Values)
+			for(int i=0;i<16;i++){  
+				for(int j=0;j<256;j++){
+					*(key3+i)=j & 0xFF;
+					aes(in, scratch, iv, 2);
+					if(!memcmp(scratch, base, 16)){
+						out[i]=j;
+						//hit++;
+						break;
+					}
 				}
 			}
 		}

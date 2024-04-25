@@ -31,7 +31,16 @@ void getConsoleID(u8 *consoleID){
 	u8 key_x[16];////key3_x - contains a DSi console id (which just happens to be the LFCS on 3ds)
 	u8 key_y[16] = {0x76, 0xDC, 0xB9, 0x0A, 0xD3, 0xC4, 0x4D, 0xBD, 0x1D, 0xDD, 0x2D, 0x20, 0x05, 0x00, 0xA0, 0xE1}; //key3_y NAND constant
 	
+	u8 empty_buff[8] = {0};
+
 	tonccpy(key, fifo, 16);  //receive the goods from arm7
+
+	if(memcmp(key + 8, empty_buff, 8) == 0)
+	{
+		//we got the consoleid directly or nothing at all, don't treat this as key3 output
+		tonccpy(consoleID, key, 8);
+		return;
+	}
 
 	F_XY_reverse((uint32_t*)key, (uint32_t*)key_xy); //work backwards from the normalkey to get key_x that has the consoleID
 
