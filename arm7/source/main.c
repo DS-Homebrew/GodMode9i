@@ -145,9 +145,6 @@ int main() {
 	}
 
 	if (isDSiMode() || ((REG_SCFG_EXT & BIT(17)) && (REG_SCFG_EXT & BIT(18)))) {
-
-		// For getting ConsoleID without reading from 0x4004D00...
-
 		u8 *out=(u8*)0x02F00000;
 		memset(out, 0, 16);
 
@@ -158,6 +155,7 @@ int main() {
 			memcpy(out, (u8*)0x04004D00, 8);
 		}
 		if(out[0] == 0 || out[1] == 0) {
+			// For getting ConsoleID without reading from 0x4004D00...
 			u8 base[16]={0};
 			u8 in[16]={0};
 			u8 iv[16]={0};
