@@ -5,7 +5,7 @@
 	<a href="https://github.com/DS-Homebrew/GodMode9i/actions/workflows/building.yml">
 		<img src="https://github.com/DS-Homebrew/GodMode9i/actions/workflows/building.yml/badge.svg" height="20" alt="Build status on GitHub Actions">
 	</a>
-	<a href="https://discord.gg/yD3spjv" style="padding-left: 5px; padding-right: 5px;">
+	<a href="https://discord.gg/fCzqcWteC4" style="padding-left: 5px; padding-right: 5px;">
 		<img src="https://img.shields.io/badge/Discord%20Server-%23GodMode9i-green.svg">
 	</a>
 	<a href="https://gbatemp.net/threads/release-godmode9i-all-access-file-browser-for-the-ds-i-and-3ds.520096/" style="padding-left: 5px;">
