@@ -74,7 +74,7 @@ const char* getDrivePath(void) {
 }
 
 Drive getDriveFromPath(const char *path) {
-	Drive destDrive = currentDrive;
+	// Drive destDrive = currentDrive;
 	if(strncmp(path, "sd:", 3) == 0) {
 		return Drive::sdCard;
 	} else if(strncmp(path, "fat:", 4) == 0) {
