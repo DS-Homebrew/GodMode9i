@@ -217,6 +217,9 @@ TWL_CODE void dldiLoadFromBin (const u8 dldiAddr[]) {
 	}
 	dldiSize = (dldiSize + 0x03) & ~0x03; 		// Round up to nearest integer multiple
 	
+	// Clear unused space
+	toncset(&_io_dldi_stub, 0, 0x4000);
+
 	tonccpy(&_io_dldi_stub, device, dldiSize);
 
 	dldiFixDriverAddresses (&_io_dldi_stub);
