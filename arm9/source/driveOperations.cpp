@@ -198,12 +198,13 @@ void sdUnmount(void) {
 	sdMounted = false;
 }
 
-TWL_CODE DLDI_INTERFACE* dldiLoadFromBin (const u8 dldiAddr[]) {
+TWL_CODE void dldiLoadFromBin (const u8 dldiAddr[]) {
 	// Check that it is a valid DLDI
 	if (!dldiIsValid ((DLDI_INTERFACE*)dldiAddr)) {
-		return NULL;
+		return;
 	}
 
+	extern DLDI_INTERFACE _io_dldi_stub;
 	DLDI_INTERFACE* device = (DLDI_INTERFACE*)dldiAddr;
 	size_t dldiSize;
 
@@ -216,10 +217,9 @@ TWL_CODE DLDI_INTERFACE* dldiLoadFromBin (const u8 dldiAddr[]) {
 	}
 	dldiSize = (dldiSize + 0x03) & ~0x03; 		// Round up to nearest integer multiple
 	
-	// Clear unused space
-	toncset(device+dldiSize, 0, 0x4000-dldiSize);
+	tonccpy(&_io_dldi_stub, device, dldiSize);
 
-	dldiFixDriverAddresses (device);
+	dldiFixDriverAddresses (&_io_dldi_stub);
 
 	if (device->ioInterface.features & FEATURE_SLOT_GBA) {
 		sysSetCartOwner(BUS_OWNER_ARM9);
@@ -227,8 +227,6 @@ TWL_CODE DLDI_INTERFACE* dldiLoadFromBin (const u8 dldiAddr[]) {
 	if (device->ioInterface.features & FEATURE_SLOT_NDS) {
 		sysSetCardOwner(BUS_OWNER_ARM9);
 	}
-	
-	return device;
 }
 
 TWL_CODE bool UpdateCardInfo(char* gameid, char* gamename) {
@@ -288,10 +286,10 @@ TWL_CODE bool twl_flashcardMount(void) {
 
 		// Read a DLDI driver specific to the cart
 		if (!memcmp(gamename, "QMATETRIAL", 9) || !memcmp(gamename, "R4DSULTRA", 9)) {
-			io_dldi_data = dldiLoadFromBin(r4idsn_sd_dldi);
+			dldiLoadFromBin(r4idsn_sd_dldi);
 			fatMountSimple("fat", dldiGet());
 		} else if (!memcmp(gameid, "ACEK", 4) || !memcmp(gameid, "YCEP", 4) || !memcmp(gameid, "AHZH", 4) || !memcmp(gameid, "CHPJ", 4) || !memcmp(gameid, "ADLP", 4)) {
-			io_dldi_data = dldiLoadFromBin(ak2_sd_dldi);
+			dldiLoadFromBin(ak2_sd_dldi);
 			fatMountSimple("fat", dldiGet());
 		}
 
