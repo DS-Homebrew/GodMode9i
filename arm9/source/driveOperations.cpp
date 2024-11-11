@@ -24,6 +24,7 @@
 #include "io_g6_common.h"
 #include "io_sc_common.h"
 #include "exptools.h"
+#include "read_card.h"
 
 static sNDSHeader nds;
 
@@ -408,6 +409,14 @@ TWL_CODE bool twl_flashcardMount(void) {
 		if (!memcmp(gamename, "QMATETRIAL", 9) || !memcmp(gamename, "R4DSULTRA", 9) // R4iDSN/R4 Ultra
 		 || !memcmp(gameid, "ACEK", 4) || !memcmp(gameid, "YCEP", 4) || !memcmp(gameid, "AHZH", 4) || !memcmp(gameid, "CHPJ", 4) || !memcmp(gameid, "ADLP", 4)) { // Acekard 2(i)
 			dldiLoadFromBin(ak2_dldi);
+			fatMountSimple("fat", dldiGet());
+		} else if (!memcmp(gameid, "ASMA", 4)) {
+			cardInit((sNDSHeaderExt*)((u32*)0x02FFC000)); // Original R4 needs card init for some cursed reason.
+			for (int i = 0; i < 30; i++) swiWaitForVBlank();
+			dldiLoadFromBin(r4tf_dldi);
+			fatMountSimple("fat", dldiGet());
+		} else if (!memcmp(gameid, "DSGB", 4)) {
+			dldiLoadFromBin(nrio_dldi);
 			fatMountSimple("fat", dldiGet());
 		} /* else if (!memcmp(gameid, "ALXX", 4)) { // SuperCard DSTWO
 			dldiLoadFromBin(dstwo_dldi);
