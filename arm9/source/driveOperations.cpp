@@ -412,11 +412,9 @@ TWL_CODE bool twl_flashcardMount(void) {
 		}
 
 		// Read a DLDI driver specific to the cart
-		if (!memcmp(gamename, "QMATETRIAL", 9) || !memcmp(gamename, "R4DSULTRA", 9)) {
-			dldiLoadFromBin(r4idsn_sd_dldi);
-			fatMountSimple("fat", dldiGet());
-		} else if (!memcmp(gameid, "ACEK", 4) || !memcmp(gameid, "YCEP", 4) || !memcmp(gameid, "AHZH", 4) || !memcmp(gameid, "CHPJ", 4) || !memcmp(gameid, "ADLP", 4)) {
-			dldiLoadFromBin(ak2_sd_dldi);
+		if (!memcmp(gamename, "QMATETRIAL", 9) || !memcmp(gamename, "R4DSULTRA", 9) // R4iDSN/R4 Ultra
+		 || !memcmp(gameid, "ACEK", 4) || !memcmp(gameid, "YCEP", 4) || !memcmp(gameid, "AHZH", 4) || !memcmp(gameid, "CHPJ", 4) || !memcmp(gameid, "ADLP", 4)) { // Acekard 2(i)
+			dldiLoadFromBin(ak2_dldi);
 			fatMountSimple("fat", dldiGet());
 		}
 
