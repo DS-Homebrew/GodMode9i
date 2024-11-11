@@ -365,13 +365,13 @@ int runNdsFile (const char* filename, int argc, const char** argv)  {
 		argv = args;
 	}
 
-	bool havedsiSD = false;
+	/* bool havedsiSD = false;
 
 	if(argv[0][0]=='s' && argv[0][1]=='d') havedsiSD = true;
 
 	#ifndef _NO_BOOTSTUB_
 	installBootStub(havedsiSD);
-	#endif
+	#endif */
 
 	return runNds (load_bin, load_bin_size, st.st_ino, true, true, argc, argv);
 }

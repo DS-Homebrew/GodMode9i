@@ -274,6 +274,10 @@ int main(int argc, char **argv) {
 		*(u32*)0x02FF8000 = 0x53535A4C;
 	}
 
+	#ifndef _NO_BOOTSTUB_
+	installBootStub(sdMounted);
+	#endif
+
 	// Ensure gm9i folder exists
 	char folderPath[10];
 	sprintf(folderPath, "%s:/gm9i", (sdMounted ? "sd" : "fat"));
