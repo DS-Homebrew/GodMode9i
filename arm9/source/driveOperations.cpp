@@ -347,13 +347,6 @@ TWL_CODE void dldiLoadFromBin (const u8 dldiAddr[]) {
 	dldiSize = (dldiSize + 0x03) & ~0x03; 		// Round up to nearest integer multiple
 	
 	dldiRelocateBinary ((data_t*)dldiAddr, dldiSize);
-
-	if (device->ioInterface.features & FEATURE_SLOT_GBA) {
-		sysSetCartOwner(BUS_OWNER_ARM9);
-	}
-	if (device->ioInterface.features & FEATURE_SLOT_NDS) {
-		sysSetCardOwner(BUS_OWNER_ARM9);
-	}
 }
 
 TWL_CODE bool UpdateCardInfo(char* gameid, char* gamename) {
@@ -416,7 +409,10 @@ TWL_CODE bool twl_flashcardMount(void) {
 		 || !memcmp(gameid, "ACEK", 4) || !memcmp(gameid, "YCEP", 4) || !memcmp(gameid, "AHZH", 4) || !memcmp(gameid, "CHPJ", 4) || !memcmp(gameid, "ADLP", 4)) { // Acekard 2(i)
 			dldiLoadFromBin(ak2_dldi);
 			fatMountSimple("fat", dldiGet());
-		}
+		} /* else if (!memcmp(gameid, "ALXX", 4)) { // SuperCard DSTWO
+			dldiLoadFromBin(dstwo_dldi);
+			fatMountSimple("fat", dldiGet());
+		} */
 
 		if (flashcardFound()) {
 			fatGetVolumeLabel("fat", fatLabel);
