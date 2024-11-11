@@ -1,0 +1,3 @@
+[submodule "libnds32"]
+	path = libnds32
+	url = https://github.com/lifehackerhansol/libnds32

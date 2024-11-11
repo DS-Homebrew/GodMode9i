@@ -50,7 +50,7 @@ argStart:
 argSize:
 	.word	0x00000000
 dldiOffset:
-	.word	_dldi_start - _start
+	.word	0
 dsiSD:
 	.word	0
 dsiMode:

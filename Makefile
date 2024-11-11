@@ -37,6 +37,7 @@ arm7/$(TARGET).elf:
 
 #---------------------------------------------------------------------------------
 arm9/$(TARGET).elf:
+	@$(MAKE) -C libnds32 release
 	@$(MAKE) -C arm9
 
 #---------------------------------------------------------------------------------
@@ -50,6 +51,7 @@ clean:
 	@rm -fr $(BUILD) $(TARGET).elf $(TARGET).nds
 	@rm -fr $(TARGET).arm7.elf
 	@rm -fr $(TARGET).arm9.elf
+	@$(MAKE) -C libnds32 clean
 	@$(MAKE) -C bootloader clean
 	@$(MAKE) -C bootstub clean
 	@$(MAKE) -C arm9 clean

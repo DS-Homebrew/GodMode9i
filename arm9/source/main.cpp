@@ -266,6 +266,14 @@ int main(int argc, char **argv) {
 			swiWaitForVBlank();
 	}
 
+	if (nitroMounted && (strcmp(io_dldi_data->friendlyName, "NAND FLASH CARD LIBFATNRIO") == 0) && (*(u32*)0x02FF8000 != 0x53535A4C)) {
+		FILE* file = fopen("nitro:/dldi/nrio.lz77", "rb");
+		fread((void*)0x02FF8004, 1, 0x3FFC, file);
+		fclose(file);
+
+		*(u32*)0x02FF8000 = 0x53535A4C;
+	}
+
 	// Ensure gm9i folder exists
 	char folderPath[10];
 	sprintf(folderPath, "%s:/gm9i", (sdMounted ? "sd" : "fat"));
