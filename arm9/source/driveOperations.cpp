@@ -350,6 +350,35 @@ TWL_CODE void dldiLoadFromBin (const u8 dldiAddr[]) {
 	dldiRelocateBinary ((data_t*)dldiAddr, dldiSize);
 }
 
+TWL_CODE void dldiLoadFromLzss (const u8 dldiLzss[], const u32 len) {
+	*(u32*)0x02FF8000 = 0x53535A4C;
+	tonccpy((u32*)0x02FF8004, dldiLzss, len);
+
+	u32* dldiAddr = new u32[0x8000/sizeof(u32)];
+	LZ77_Decompress((u8*)0x02FF8004, (u8*)dldiAddr);
+
+	// Check that it is a valid DLDI
+	if (!dldiIsValid ((DLDI_INTERFACE*)dldiAddr)) {
+		delete[] dldiAddr;
+		return;
+	}
+
+	DLDI_INTERFACE* device = (DLDI_INTERFACE*)dldiAddr;
+	size_t dldiSize;
+
+	// Calculate actual size of DLDI
+	// Although the file may only go to the dldiEnd, the BSS section can extend past that
+	if (device->dldiEnd > device->bssEnd) {
+		dldiSize = (char*)device->dldiEnd - (char*)device->dldiStart;
+	} else {
+		dldiSize = (char*)device->bssEnd - (char*)device->dldiStart;
+	}
+	dldiSize = (dldiSize + 0x03) & ~0x03; 		// Round up to nearest integer multiple
+	
+	dldiRelocateBinary ((data_t*)dldiAddr, dldiSize);
+	delete[] dldiAddr;
+}
+
 TWL_CODE bool UpdateCardInfo(char* gameid, char* gamename) {
 	cardReadHeader((uint8*)0x02000000);
 	tonccpy(&nds, (void*)0x02000000, sizeof(sNDSHeader));
@@ -416,7 +445,7 @@ TWL_CODE bool twl_flashcardMount(void) {
 			dldiLoadFromBin(r4tf_dldi);
 			fatMountSimple("fat", dldiGet());
 		} else if (!memcmp(gameid, "DSGB", 4)) {
-			dldiLoadFromBin(nrio_dldi);
+			dldiLoadFromLzss(nrio_lz77, 0x30DD);
 			fatMountSimple("fat", dldiGet());
 		} /* else if (!memcmp(gameid, "ALXX", 4)) { // SuperCard DSTWO
 			dldiLoadFromBin(dstwo_dldi);

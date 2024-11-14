@@ -7,7 +7,7 @@
 #include "fileOperations.h"
 #include "font.h"
 #include "gba.h"
-#include "lzss.h"
+#include "lzss_enc.h"
 #include "main.h"
 #include "ndsheaderbanner.h"
 #include "read_card.h"
