@@ -35,7 +35,11 @@ GodMode9i is a full access file browser for the Nintendo DS, Nintendo DSi and th
 - Mount the NitroFS of NDS files, DSiWare saves, and FAT images.
 - View and edit the contents of files with a hex editor.
 - Calculate the SHA-1 hash of files.
-- Browse files on supported flashcards when running GM9i from the NAND or SD Card. (`AceKard 2(i)` & `R4 Ultra (r4ultra.com)`)
+- Browse files on supported flashcards when running GM9i from the NAND or SD Card.
+   - Acekard 2(i)
+   - N-Card
+   - R4 (Original, no SDHC)
+   - R4(i) Ultra (r4ultra.com)
 - Browse files on the internal NAND of Nintendo DSi consoles.
 - Browse files on the SD Card when running GM9i from any DS-mode flashcard. (Requires **TW**i**L**ight Menu++ with Slot-1 SD/SCFG access enabled, and TWLMenu++ installed on the flashcard.)
 - Translated to many different languages. Join the [Crowdin project](https://crowdin.com/project/godmode9i) to contribute more!
