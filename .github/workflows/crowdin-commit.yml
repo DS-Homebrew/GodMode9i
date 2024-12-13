@@ -1,0 +1,57 @@
+name: Import translations from Crowdin
+
+on:
+  schedule:
+    - cron: "0 0 1,15 * *"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: devkitpro/devkitarm:20241104
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          submodules: recursive
+
+      - name: Setup environment
+        run: git config --global safe.directory '*'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Setup Crowdin CLI
+        run: |
+          npm i -g @crowdin/cli
+
+      - name: Pull from Crowdin
+        env:
+          CROWDIN_TOKEN: ${{ secrets.CROWDIN_TOKEN }}
+          GM9I_CROWDIN_ID: ${{ secrets.GM9I_CROWDIN_ID }}
+        run: |
+          ./crowdin-pull.sh
+
+      - name: Pull origin
+        run: git pull origin master --ff-only # Pull origin in case a commit has been done while updating
+
+      # This makes sure that the site actually builds before pushing to master
+      - name: Build GodMode9i
+        run: |
+          make all dsi
+
+      - name: Commit changes
+        run: |
+          git config user.email "twlbot@flashcarts.net"
+          git config user.name "TWLBot"
+
+          git checkout master
+          git commit -a -m "Automatic translation import"
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          branch: master
+          github_token: ${{ secrets.TWLBOT_TOKEN }}

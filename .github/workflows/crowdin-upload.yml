@@ -1,0 +1,34 @@
+name: Upload source files to Crowdin
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - 'nitrofiles/languages/en-US/language.ini'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: devkitpro/devkitarm:20241104
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          submodules: recursive
+
+      - name: Setup environment
+        run: git config --global safe.directory '*'
+
+      - name: Build GodMode9i
+        run: |
+          make all dsi
+
+      - name: Push to Crowdin
+        uses: crowdin/github-action@v2
+        with:
+          upload_sources: true
+        env:
+          GM9I_CROWDIN_ID: ${{ secrets.GM9I_CROWDIN_ID }}
+          CROWDIN_TOKEN: ${{ secrets.CROWDIN_TOKEN }}
