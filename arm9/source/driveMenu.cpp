@@ -27,9 +27,11 @@
 #include <stdio.h>
 #include <dirent.h>
 
+#include "calico/nds/pm.h"
 #include "main.h"
 #include "config.h"
 #include "date.h"
+#include "nds/system.h"
 #include "screenshot.h"
 #include "dumpOperations.h"
 #include "driveOperations.h"
@@ -150,7 +152,7 @@ void dm_drawBottomScreen(void) {
 
 	font->print(firstCol, row--, false, STR_START_START_MENU, alignStart);
 
-	if ((isDSiMode() && memcmp(io_dldi_data->friendlyName, "Default", 7) == 0) || sdMountedDone) {
+	if ((isDSiMode() && memcmp(dldiInterface.iface_name, "Default", 7) == 0) || sdMountedDone) {
 		font->print(firstCol, row--, false, sdMounted ? STR_UNMOUNT_SDCARD : STR_REMOUNT_SDCARD, alignStart);
 	} else if(flashcardMounted) {
 		font->print(firstCol, row--, false, STR_UNMOUNT_FLASHCARD, alignStart);
@@ -221,7 +223,7 @@ void driveMenu (void) {
 	int pressed = 0;
 	int held = 0;
 
-	while (true) {
+	while (pmMainLoop()) {
 		if (!isDSiMode() && isRegularDS) {
 			gbaFixedValue = *(u8*)(0x080000B2);
 		}
@@ -264,10 +266,10 @@ void driveMenu (void) {
 			romTitle[1][0] = 0;
 			romSize[1] = 0;
 		}
-		if (((io_dldi_data->ioInterface.features & FEATURE_SLOT_GBA) || (isRegularDS && !flashcardMounted && romTitle[1][0] != 0))
+		if ((dldiInterface.disc.features & FEATURE_SLOT_GBA || (isRegularDS && !flashcardMounted && romTitle[1][0] != 0))
 		|| (isDSiMode() && !arm7SCFGLocked && !(REG_SCFG_MC & BIT(0)))) {
 			dmOperations.push_back(DriveMenuOperation::ndsCard);
-			if(romTitle[0][0] == 0 && ((io_dldi_data->ioInterface.features & FEATURE_SLOT_GBA) || !flashcardMounted) && !isRegularDS) {
+			if(romTitle[0][0] == 0 && ((dldiInterface.disc.features & FEATURE_SLOT_GBA) || !flashcardMounted) && !isRegularDS) {
 				sNDSHeaderExt ndsHeader;
 				cardInit(&ndsHeader);
 				tonccpy(romTitle[0], ndsHeader.gameTitle, 12);
@@ -316,7 +318,7 @@ void driveMenu (void) {
 					break;
 				}
 			}
-		} while (!(pressed & (KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT | KEY_A | KEY_B | KEY_X | KEY_L | KEY_START | config->screenSwapKey())));
+		} while (pmMainLoop() && !(pressed & (KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT | KEY_A | KEY_B | KEY_X | KEY_L | KEY_START | config->screenSwapKey())));
 
 		if(dmOperations.size() != 0) {
 			if (pressed & KEY_UP) {
@@ -378,7 +380,7 @@ void driveMenu (void) {
 				break;
 			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::sysNandPhoto && photoMounted) {
 				currentDrive = Drive::nandPhoto;
-				chdir("photo:/");
+				chdir("nand2:/");
 				screenMode = 1;
 				break;
 			} else if (dmOperations[dmCursorPosition] == DriveMenuOperation::fatImage && imgMounted) {
@@ -411,13 +413,14 @@ void driveMenu (void) {
 
 		// Unmount/Remount SD card
 		if ((held & KEY_R) && (pressed & KEY_B)) {
-			if ((isDSiMode() && memcmp(io_dldi_data->friendlyName, "Default", 7) == 0) || sdMountedDone) {
+			if ((isDSiMode() && memcmp(dldiInterface.iface_name, "Default", 7) == 0) || sdMountedDone) {
 				if (sdMounted) {
 					currentDrive = Drive::sdCard;
 					chdir("sd:/");
 					sdUnmount();
 				} else if(!sdRemoved) {
-					sdMounted = sdMount();
+					// TODO
+					// sdMounted = sdMount();
 				}
 			} else {
 				if (flashcardMounted) {

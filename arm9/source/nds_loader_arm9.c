@@ -30,6 +30,7 @@
 #include "load_bin.h"
 #include "tonccpy.h"
 
+
 #ifndef _NO_BOOTSTUB_
 struct __my_bootstub {
 	u64	bootsig;
@@ -41,6 +42,8 @@ struct __my_bootstub {
 
 #include "bootstub_bin.h"
 #endif
+
+extern DLDI_INTERFACE dldiInterface;
 
 #include "nds_loader_arm9.h"
 #define LCDC_BANK_C (u16*)0x06848000
@@ -167,7 +170,7 @@ static bool dldiPatchLoader (void)
 
 	size_t dldiFileSize = 0;
 
-	data_t *pDH = (data_t*)(io_dldi_data);
+	data_t *pDH = (data_t*)(&dldiInterface);
 
 	data_t *pAH = (data_t*)0x02FF8000;
 
@@ -331,9 +334,10 @@ int runNds (const void* loader, u32 loaderSize, u32 cluster, bool initDisc, bool
 	*((vu32*)0x02FFFE04) = (u32)0xE59FF018;
 	*((vu32*)0x02FFFE24) = (u32)0x02FFFE04;
 
-	resetARM7(0x06008000);
+	// TODO: Update for calico
+	// resetARM7(0x06008000);
 
-	swiSoftReset(); 
+	// swiSoftReset(); 
 	return true;
 }
 
@@ -372,7 +376,7 @@ int runNdsFile (const char* filename, int argc, const char** argv)  {
 	installBootStub(havedsiSD);
 	#endif */
 
-	return runNds (load_bin, load_bin_size, st.st_ino, true, (memcmp(io_dldi_data->friendlyName, "Default", 7) != 0), argc, argv);
+	return runNds (load_bin, load_bin_size, st.st_ino, true, (memcmp(dldiInterface.iface_name, "Default", 7) != 0), argc, argv);
 }
 
 /*
@@ -396,7 +400,7 @@ dsiSD:
 */
 
 #ifndef _NO_BOOTSTUB_
-bool installBootStub(const bool havedsiSD) {
+void installBootStub(const bool havedsiSD) {
 	extern char *fake_heap_end;
 	struct __my_bootstub *bootstub = (struct __my_bootstub *)fake_heap_end;
 	u32 *bootloader = (u32*)(fake_heap_end+bootstub_bin_size);
@@ -406,7 +410,7 @@ bool installBootStub(const bool havedsiSD) {
 
 	bootloader[8] = isDSiMode();
 	if (havedsiSD) {
-		if (memcmp(io_dldi_data->friendlyName, "Default", 7) != 0) {
+		if (memcmp(dldiInterface.iface_name, "Default", 7) != 0) {
 			dldiPatchLoader ();
 		} else {
 			bootloader[3] = 0; // don't dldi patch

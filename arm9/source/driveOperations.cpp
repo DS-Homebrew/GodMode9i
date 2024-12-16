@@ -8,17 +8,19 @@
 #include <string>
 #include <sys/stat.h>
 #include <sys/statvfs.h>
+#include <unistd.h>
 
+#include "calico/dev/dldi.h"
+#include "calico/dev/dldi_defs.h"
 #include "main.h"
 #include "dldi-include.h"
 #include "lzss.h"
+#include "nds/dldi.h"
 #include "ramd.h"
 #include "my_sd.h"
-#include "nandio.h"
 #include "imgio.h"
 #include "tonccpy.h"
 #include "language.h"
-#include "sector0.h"
 
 #include "io_m3_common.h"
 #include "io_g6_common.h"
@@ -28,16 +30,20 @@
 
 static sNDSHeader nds;
 
-static bool slot1Enabled = true;
+// TODO: Update for calico
+// static bool slot1Enabled = true;
 
 bool nandMounted = false;
 bool photoMounted = false;
 bool sdMounted = false;
 bool sdMountedDone = false;				// true if SD mount is successful once
 bool flashcardMounted = false;
+bool flashcardIsSlot2 = false;
 bool ramdriveMounted = false;
 bool imgMounted = false;
 bool nitroMounted = false;
+
+DLDI_INTERFACE dldiInterface;
 
 Drive currentDrive = Drive::sdCard;
 Drive nitroCurrentDrive = Drive::sdCard;
@@ -54,6 +60,8 @@ u64 fatSize = 0;
 u64 imgSize = 0;
 u32 ramdSize = 0;
 
+extern unsigned g_dvmCalicoNandMount;
+
 const char* getDrivePath(void) {
 	switch (currentDrive) {
 		case Drive::sdCard:
@@ -65,7 +73,7 @@ const char* getDrivePath(void) {
 		case Drive::nand:
 			return "nand:/";
 		case Drive::nandPhoto:
-			return "photo:/";
+			return "nand2:/";
 		case Drive::nitroFS:
 			return "nitro:/";
 		case Drive::fatImg:
@@ -84,7 +92,7 @@ Drive getDriveFromPath(const char *path) {
 		return Drive::ramDrive;
 	} else if(strncmp(path, "nand:", 5)) {
 		return Drive::nand;
-	} else if(strncmp(path, "photo:", 6)) {
+	} else if(strncmp(path, "nand2:", 6)) {
 		return Drive::nandPhoto;
 	} else if(strncmp(path, "nitro:", 6)) {
 		return Drive::nitroFS;
@@ -109,7 +117,7 @@ bool nandFound(void) {
 }
 
 bool photoFound(void) {
-	return (access("photo:/", F_OK) == 0);
+	return (access("nand2:/", F_OK) == 0);
 }
 
 bool sdFound(void) {
@@ -132,6 +140,7 @@ bool imgFound(void) {
 	return (access("img:/", F_OK) == 0);
 }
 
+/* TODO: Update for calico
 bool nandMount(void) {
 	fatMountSimple("nand", &io_dsi_nand);
 	if (nandFound()) {
@@ -142,19 +151,20 @@ bool nandMount(void) {
 		}
 
 		// Photo partition
-		/* mbr_t mbr;
-		io_dsi_nand.readSectors(0, 1, &mbr);
-		fatMount("photo", &io_dsi_nand, mbr.partitions[1].offset, 16, 8);
+		// mbr_t mbr;
+		// io_dsi_nand.readSectors(0, 1, &mbr);
+		// fatMount("photo", &io_dsi_nand, mbr.partitions[1].offset, 16, 8);
 
-		if (photoFound() && statvfs("photo:/", &st) == 0) {
-			photoSize = st.f_bsize * st.f_blocks;
-			photoMounted = true;
-		} */
+		// if (photoFound() && statvfs("nand2:/", &st) == 0) {
+		// 	photoSize = st.f_bsize * st.f_blocks;
+		// 	photoMounted = true;
+		// }
 	}
 
 
-	return nandMounted /*&& photoMounted*/;
+	return nandMounted && photoMounted;
 }
+*/
 
 void nandUnmount(void) {
 	if(nandMounted)
@@ -165,8 +175,9 @@ void nandUnmount(void) {
 	nandMounted = false;
 }
 
+/* TODO: Update for calico
 bool sdMount(void) {
-	fatMountSimple("sd", __my_io_dsisd());
+	fatMountSimple("sd", );
 	if (sdFound()) {
 		sdMountedDone = true;
 		fatGetVolumeLabel("sd", sdLabel);
@@ -179,6 +190,7 @@ bool sdMount(void) {
 	}
 	return false;
 }
+*/
 
 u64 getBytesFree(const char* drivePath) {
     struct statvfs st;
@@ -186,6 +198,7 @@ u64 getBytesFree(const char* drivePath) {
     return (u64)st.f_bsize * (u64)st.f_bavail;
 }
 
+/**/
 void sdUnmount(void) {
 	if(imgMounted && imgCurrentDrive == Drive::sdCard)
 		imgUnmount();
@@ -193,12 +206,12 @@ void sdUnmount(void) {
 		nitroUnmount();
 
 	fatUnmount("sd");
-	my_sdio_Shutdown();
 	sdLabel[0] = '\0';
 	sdSize = 0;
 	sdMounted = false;
 }
 
+/* TODO: Update for calico
 typedef signed int addr_t;
 typedef unsigned char data_t;
 
@@ -378,9 +391,10 @@ TWL_CODE void dldiLoadFromLzss (const u8 dldiLzss[], const u32 len) {
 	dldiRelocateBinary ((data_t*)dldiAddr, dldiSize);
 	delete[] dldiAddr;
 }
+*/
 
 TWL_CODE bool UpdateCardInfo(char* gameid, char* gamename) {
-	cardReadHeader((uint8*)0x02000000);
+	cardReadHeader((u8*)0x02000000);
 	tonccpy(&nds, (void*)0x02000000, sizeof(sNDSHeader));
 	tonccpy(gameid, &nds.gameCode, 4);
 	gameid[4] = 0x00;
@@ -389,6 +403,7 @@ TWL_CODE bool UpdateCardInfo(char* gameid, char* gamename) {
 	return true;
 }
 
+/* TODO: Update for calico
 const DISC_INTERFACE *dldiGet(void) {
 	if(io_dldi_data->ioInterface.features & FEATURE_SLOT_GBA)
 		sysSetCartOwner(BUS_OWNER_ARM9);
@@ -447,10 +462,10 @@ TWL_CODE bool twl_flashcardMount(void) {
 		} else if (!memcmp(gameid, "DSGB", 4)) {
 			dldiLoadFromLzss(nrio_lz77, 0x30DD);
 			fatMountSimple("fat", dldiGet());
-		} /* else if (!memcmp(gameid, "ALXX", 4)) { // SuperCard DSTWO
-			dldiLoadFromBin(dstwo_dldi);
-			fatMountSimple("fat", dldiGet());
-		} */
+		} // else if (!memcmp(gameid, "ALXX", 4)) { // SuperCard DSTWO
+		// 	dldiLoadFromBin(dstwo_dldi);
+		// 	fatMountSimple("fat", dldiGet());
+		// }
 
 		if (flashcardFound()) {
 			fatGetVolumeLabel("fat", fatLabel);
@@ -464,23 +479,31 @@ TWL_CODE bool twl_flashcardMount(void) {
 	}
 	return false;
 }
+*/
 
 bool flashcardMount(void) {
+	flashcardIsSlot2 = false;
 	if (!isDSiMode() || (arm7SCFGLocked && !sdMountedDone)) {
 		fatInitDefault();
 		if (flashcardFound()) {
-			fatGetVolumeLabel("fat", fatLabel);
+			// TODO
+			// fatGetVolumeLabel("fat", fatLabel);
 			fixLabel(fatLabel);
 			struct statvfs st;
 			if (statvfs("fat:/", &st) == 0) {
 				fatSize = st.f_bsize * st.f_blocks;
 			}
+
+			// Load the current DLDI to a buffer for easy access
+			dldiDumpInternal(&dldiInterface);
+
 			return true;
 		}
-		return false;
-	} else {
-		return twl_flashcardMount();
-	}
+	} // else {
+	// 	return twl_flashcardMount();
+	// }
+
+	return false;
 }
 
 void flashcardUnmount(void) {
@@ -586,7 +609,8 @@ bool imgMount(const char* imgName, bool dsiwareSave) {
 	strcpy(currentImgName, imgName);
 	fatMountSimple("img", dsiwareSave ? &io_dsiware_save : &io_img);
 	if (imgFound()) {
-		fatGetVolumeLabel("img", imgLabel);
+		// TODO
+		// fatGetVolumeLabel("img", imgLabel);
 		fixLabel(imgLabel);
 		struct statvfs st;
 		if (statvfs("img:/", &st) == 0) {
@@ -611,14 +635,17 @@ void imgUnmount(void) {
 bool driveWritable(Drive drive) {
 	switch(drive) {
 		case Drive::sdCard:
-			return __my_io_dsisd()->features & FEATURE_MEDIUM_CANWRITE;
+			// TODO: Update for calico
+			// return __my_io_dsisd()->features & FEATURE_MEDIUM_CANWRITE;
+			return true;
 		case Drive::flashcard:
-			return dldiGet()->features & FEATURE_MEDIUM_CANWRITE;
+			return dldiInterface.disc.features & FEATURE_MEDIUM_CANWRITE;
 		case Drive::ramDrive:
 			return io_ram_drive.features & FEATURE_MEDIUM_CANWRITE;
 		case Drive::nand:
 		case Drive::nandPhoto:
-			return io_dsi_nand.features & FEATURE_MEDIUM_CANWRITE;
+			// TODO: Update properly
+			return g_dvmCalicoNandMount >= 2;
 		case Drive::nitroFS:
 			return false;
 		case Drive::fatImg:
@@ -660,7 +687,7 @@ u64 driveSizeFree(Drive drive) {
 		case Drive::nand:
 			return getBytesFree("nand:/");
 		case Drive::nandPhoto:
-			return getBytesFree("photo:/");
+			return getBytesFree("nand2:/");
 		case Drive::nitroFS:
 			return 0;
 		case Drive::fatImg:

@@ -10,6 +10,7 @@
 
 #include <array>
 #include <nds.h>
+#include <unistd.h>
 #include <vector>
 
 #define ITEMS_PER_SCREEN 8
@@ -68,7 +69,7 @@ void startMenu() {
 
 	int cursorPosition = 0;
 	u16 pressed, held;
-	while(1) {
+	while(pmMainLoop()) {
 		font->clear(false);
 		font->print(0, 3, false, STR_START_MENU, Alignment::center);
 		for(int i = 0; i < (int)startMenuItems.size(); i++) {
@@ -85,7 +86,7 @@ void startMenu() {
 			scanKeys();
 			pressed = keysDown();
 			held = keysDownRepeat();
-		} while(!held);
+		} while(pmMainLoop() && !held);
 
 		if(held & KEY_UP) {
 			cursorPosition--;
@@ -101,8 +102,9 @@ void startMenu() {
 					systemShutDown();
 					break;
 				case StartMenuItem::reboot:
-					fifoSendValue32(FIFO_USER_02, 1);
-					while(1) swiWaitForVBlank();
+					// TODO: Update for calico
+					// fifoSendValue32(FIFO_USER_02, 1);
+					while(pmMainLoop()) swiWaitForVBlank();
 					break;
 				case StartMenuItem::titleManager:
 					titleManager();
@@ -129,7 +131,7 @@ void languageMenu() {
 		do {
 			scanKeys();
 			swiWaitForVBlank();
-		} while (!(keysDownRepeat() & KEY_A));
+		} while (pmMainLoop() && !(keysDownRepeat() & KEY_A));
 
 		return;
 	}
@@ -146,7 +148,7 @@ void languageMenu() {
 	}
 
 	u16 pressed, held;
-	while(1) {
+	while(pmMainLoop()) {
 		if(cursorPosition - scrollPosition >= ITEMS_PER_SCREEN) {
 			scrollPosition = cursorPosition - ITEMS_PER_SCREEN + 1;
 		} else if(cursorPosition < scrollPosition) {
@@ -169,7 +171,7 @@ void languageMenu() {
 			scanKeys();
 			pressed = keysDown();
 			held = keysDownRepeat();
-		} while(!held);
+		} while(pmMainLoop() && !held);
 
 		if(held & KEY_UP) {
 			cursorPosition--;

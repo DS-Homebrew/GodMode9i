@@ -32,6 +32,7 @@
 #include <nds/arm9/dldi.h>
 #include <fat.h>
 
+#include "calico/nds/pm.h"
 #include "main.h"
 #include "config.h"
 #include "date.h"
@@ -85,7 +86,7 @@ bool getDirectoryContents(std::vector<DirEntry>& dirContents) {
 		font->update(true);
 		return false;
 	} else {
-		while (true) {
+		while (pmMainLoop()) {
 			dirent *pent = readdir(pdir);
 			if (pent == nullptr)
 				break;
@@ -190,7 +191,7 @@ FileOperation fileBrowse_A(DirEntry* entry, const char *curdir) {
 			operations.push_back(FileOperation::trimNds);
 		}
 		if(extension(entry->name, {"sav", "sav1", "sav2", "sav3", "sav4", "sav5", "sav6", "sav7", "sav8", "sav9"})) {
-			if(!(io_dldi_data->ioInterface.features & FEATURE_SLOT_NDS) || entry->size <= (1 << 20))
+			if(!(dldiInterface.disc.features & FEATURE_SLOT_NDS) || entry->size <= (1 << 20))
 				operations.push_back(FileOperation::restoreSaveNds);
 			if(isRegularDS && (entry->size == 512 || entry->size == 8192 || entry->size == 32768 || entry->size == 65536 || entry->size == 131072 
 				|| entry->size == 528 || entry->size == 8208 || entry->size == 32784 || entry->size == 65552 || entry->size == 131088))
@@ -217,7 +218,7 @@ FileOperation fileBrowse_A(DirEntry* entry, const char *curdir) {
 		operations.push_back(FileOperation::copyFatOut);
 	}
 
-	while (true) {
+	while (pmMainLoop()) {
 		font->clear(false);
 
 		font->print(firstCol, 0, false, fullPath, alignStart);
@@ -294,7 +295,7 @@ FileOperation fileBrowse_A(DirEntry* entry, const char *curdir) {
 
 				return FileOperation::none;
 			}
-		} while (!(pressed & (KEY_UP| KEY_DOWN | KEY_A | KEY_B | KEY_L)));
+		} while (pmMainLoop() && !(pressed & (KEY_UP| KEY_DOWN | KEY_A | KEY_B | KEY_L)));
 
 		if (pressed & KEY_UP)		optionOffset -= 1;
 		if (pressed & KEY_DOWN)		optionOffset += 1;
@@ -429,7 +430,7 @@ FileOperation fileBrowse_A(DirEntry* entry, const char *curdir) {
 						if(keysHeld() & KEY_R && pressed & KEY_L) {
 							screenshot();
 						}
-					} while (!(pressed & (KEY_A | KEY_Y | KEY_B | KEY_X)));
+					} while (pmMainLoop() && !(pressed & (KEY_A | KEY_Y | KEY_B | KEY_X)));
 					break;
 				} case FileOperation::none: {
 					break;
@@ -461,7 +462,7 @@ bool fileBrowse_paste(char dest[256]) {
 	int pressed = 0;
 	int optionOffset = 0;
 
-	while (true) {
+	while (pmMainLoop()) {
 		font->clear(false);
 
 		font->print(firstCol, 0, false, STR_PASTE_CLIPBOARD_HERE, alignStart);
@@ -488,7 +489,7 @@ bool fileBrowse_paste(char dest[256]) {
 			scanKeys();
 			pressed = keysDownRepeat();
 			swiWaitForVBlank();
-		} while (!(pressed & (KEY_UP | KEY_DOWN | KEY_A | KEY_B)));
+		} while (pmMainLoop() && !(pressed & (KEY_UP | KEY_DOWN | KEY_A | KEY_B)));
 
 		if (pressed & KEY_UP)		optionOffset -= 1;
 		if (pressed & KEY_DOWN)		optionOffset += 1;
@@ -615,7 +616,7 @@ std::string browseForFile (void) {
 
 	getDirectoryContents(dirContents);
 
-	while (true) {
+	while (pmMainLoop()) {
 		getcwd(curdir, PATH_MAX);
 
 		// Ensure the path ends in a slash
@@ -642,7 +643,7 @@ std::string browseForFile (void) {
 				screenMode = 0;
 				return "null";
 			}
-		} while (!(pressed & ~(KEY_R | KEY_LID)));
+		} while (pmMainLoop() && !(pressed & ~(KEY_R | KEY_LID)));
 
 		if (pressed & KEY_UP) {
 			fileOffset--;
@@ -781,7 +782,7 @@ std::string browseForFile (void) {
 			font->print(firstCol, (!entry->selected || selections == 1) ? 2 : (selections > 5 ? 9 : selections + 3), false, STR_A_YES_B_NO, alignStart);
 			font->update(false);
 
-			while (true) {
+			while (pmMainLoop()) {
 				scanKeys();
 				pressed = keysDownRepeat();
 				swiWaitForVBlank();
@@ -809,7 +810,7 @@ std::string browseForFile (void) {
 						font->print(firstCol, 3, false, STR_A_CONTINUE, alignStart);
 						pressed = 0;
 
-						while (!(pressed & KEY_A)) {
+						while (pmMainLoop() && !(pressed & KEY_A)) {
 							scanKeys();
 							pressed = keysDown();
 							swiWaitForVBlank();
@@ -866,13 +867,13 @@ std::string browseForFile (void) {
 		} else if ((pressed & KEY_L && !(held & KEY_R)) && entry->name != "..") { // Add to selection
 			bool select = !entry->selected;
 			entry->selected = select;
-			while(held & KEY_L) {
+			while(pmMainLoop() && (held & KEY_L)) {
 				do {
 					scanKeys();
 					pressed = keysDownRepeat();
 					held = keysHeld();
 					swiWaitForVBlank();
-				} while ((held & KEY_L) && !(pressed & (KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT)));
+				} while (pmMainLoop() && (held & KEY_L) && !(pressed & (KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT)));
 
 				if(pressed & (KEY_UP | KEY_DOWN)) {
 					if (pressed & KEY_UP) {

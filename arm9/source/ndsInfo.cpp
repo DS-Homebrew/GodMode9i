@@ -115,7 +115,7 @@ void ndsInfo(const char *path) {
 
 	u16 pressed = 0, held = 0;
 	int animationFrame = 0, frameDelay = 0, lang = 1;
-	while(1) {
+	while(pmMainLoop()) {
 		font->clear(false);
 		font->printf(firstCol, 0, false, alignStart, Palette::white, STR_HEADER_TITLE.c_str(), headerTitle);
 		font->printf(firstCol, 1, false, alignStart, Palette::white, STR_TITLE_ID.c_str(), tid);
@@ -143,7 +143,7 @@ void ndsInfo(const char *path) {
 					oamUpdate(&oamSub);
 				}
 			}
-		} while(!held);
+		} while(pmMainLoop() && !held);
 
 		if(held & KEY_UP) {
 			if(lang > 0)

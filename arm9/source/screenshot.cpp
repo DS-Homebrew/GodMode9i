@@ -3,13 +3,13 @@
 #include "bmp.h"
 #include "date.h"
 #include "driveOperations.h"
-#include "file_browse.h"
 #include "font.h"
 
 #include <dirent.h>
 #include <fat.h>
 #include <nds.h>
 #include <stdio.h>
+#include <unistd.h>
 
 void wait();
 
