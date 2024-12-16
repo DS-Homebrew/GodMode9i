@@ -67,7 +67,7 @@ void dumpTitle(TitleInfo &title) {
 
 	int y = font->calcHeight(dumpToStr) + 1;
 
-	while (true) {
+	while (pmMainLoop()) {
 		font->clear(false);
 
 		font->print(firstCol, 0, false, dumpToStr, alignStart);
@@ -113,7 +113,7 @@ void dumpTitle(TitleInfo &title) {
 			pressed = keysDownRepeat();
 			held = keysHeld();
 			swiWaitForVBlank();
-		} while (!(pressed & (KEY_UP| KEY_DOWN | KEY_A | KEY_B | KEY_L | config->screenSwapKey())));
+		} while (pmMainLoop() && !(pressed & (KEY_UP| KEY_DOWN | KEY_A | KEY_B | KEY_L | config->screenSwapKey())));
 
 		if (pressed & KEY_UP)
 			optionOffset--;
@@ -278,7 +278,7 @@ void titleManager() {
 
 	u16 pressed = 0, held = 0;
 	int cursorPosition = 0, scrollOffset = 0;
-	while(1) {
+	while(pmMainLoop()) {
 		font->clear(false);
 		font->printf(firstCol, 0, false, alignStart, Palette::blackGreen, "%*c", SCREEN_COLS, ' ');
 		font->print(0, 0, false, STR_TITLE_MANAGER, Alignment::center, Palette::blackGreen);
@@ -297,7 +297,7 @@ void titleManager() {
 			scanKeys();
 			pressed = keysDown();
 			held = keysDownRepeat();
-		} while(!(held & (KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT | KEY_A | KEY_B | KEY_L | config->screenSwapKey())));
+		} while(pmMainLoop() && !(held & (KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT | KEY_A | KEY_B | KEY_L | config->screenSwapKey())));
 
 		if(held & KEY_UP) {
 			cursorPosition--;

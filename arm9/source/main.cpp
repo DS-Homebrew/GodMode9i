@@ -8,6 +8,11 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "calico/nds/pm.h"
+#include "calico/nds/pxi.h"
+#include "nds/arm9/console.h"
+#include "nds/arm9/input.h"
+#include "nds/interrupts.h"
 #include "nds_loader_arm9.h"
 #include "config.h"
 #include "date.h"
@@ -19,6 +24,8 @@
 #include "language.h"
 #include "my_sd.h"
 #include "nitrofs.h"
+#include "pxiVars.h"
+#include "sys/unistd.h"
 #include "tonccpy.h"
 #include "version.h"
 
@@ -42,10 +49,12 @@ bool applaunch = false;
 
 static int bg3;
 
+extern unsigned g_dvmCalicoNandMount;
+
 //---------------------------------------------------------------------------------
 void stop (void) {
 //---------------------------------------------------------------------------------
-	while (1) {
+	while (pmMainLoop()) {
 		swiWaitForVBlank();
 	}
 }
@@ -60,7 +69,7 @@ void vblankHandler (void) {
 	}
 
 	// Check if GBA cart ejected
-	if(isRegularDS && (io_dldi_data->ioInterface.features & FEATURE_SLOT_NDS) && *(u8*)(0x080000B2) != 0x96 && romTitle[1][0] != '\0') {
+	if(isRegularDS && (dldiInterface.disc.features & FEATURE_SLOT_NDS) && *(u8*)(0x080000B2) != 0x96 && romTitle[1][0] != '\0') {
 		romTitle[1][0] = '\0';
 		romSize[1] = 0;
 	}
@@ -74,6 +83,19 @@ void vblankHandler (void) {
 			font->update(true);
 		}
 	}
+}
+
+void getArm7Vars(void) {
+	// REG_SCFG_EXT, REG_SNDEXCNT, is3DS
+	u32 args[3] = {0};
+	armDCacheFlush(args, sizeof(args));
+	u32 res = pxiSendAndReceive(PXI_MAIN, GET_ARM7_VARS);
+	iprintf("%d", res);
+	// pxiSendWithDataAndReceive(PXI_MAIN, GET_ARM7_VARS, args, sizeof(args) / sizeof(args[0]));
+
+	if(args[0] == 0) arm7SCFGLocked = true;
+	if(args[1] != 0) isRegularDS = false; // If sound frequency setting is found, then the console is not a DS Phat/Lite
+	is3DS = args[2];
 }
 
 //---------------------------------------------------------------------------------
@@ -90,7 +112,7 @@ int main(int argc, char **argv) {
 	
 	bool yHeld = false;
 
-	sprintf(titleName, "GodMode9i %s", VER_NUMBER);
+	sprintf(titleName, "GodMode9i " VER_NUMBER);
 
 	// initialize video mode
 	videoSetMode(MODE_5_2D);
@@ -117,11 +139,7 @@ int main(int argc, char **argv) {
 	font->print(1, 2, false, "----------------------------------------");
 	font->print(1, 3, false, "https://github.com/DS-Homebrew/GodMode9i");
 
-	fifoWaitValue32(FIFO_USER_06);
-	if (fifoGetValue32(FIFO_USER_03) == 0) arm7SCFGLocked = true;
-	u16 arm7_SNDEXCNT = fifoGetValue32(FIFO_USER_07);
-	if (arm7_SNDEXCNT != 0) isRegularDS = false;	// If sound frequency setting is found, then the console is not a DS Phat/Lite
-	fifoSendValue32(FIFO_USER_07, 0);
+	getArm7Vars();
 
 	if (isDSiMode()) {
 		// bios9iEnabled = true;
@@ -139,6 +157,8 @@ int main(int argc, char **argv) {
 	font->update(false);
 	for (int i = 0; i < 60*2; i++) {
 		swiWaitForVBlank();
+		scanKeys();
+		if(keysDown() & KEY_START) break;
 	}
 
 	font->clear(false);
@@ -150,23 +170,29 @@ int main(int argc, char **argv) {
 
 	sysSetCartOwner (BUS_OWNER_ARM9);	// Allow arm9 to access GBA ROM
 
+	g_dvmCalicoNandMount = 1;
+	fatInitDefault();
+	sdMounted = access("sd:/", F_OK) == 0;
+	sdMountedDone = sdMounted;
+	nandMounted = access("nand:/", F_OK) == 0;
+	photoMounted = access("nand2:/", F_OK) == 0;
+
 	if (isDSiMode() || !isRegularDS) {
-		fifoSetValue32Handler(FIFO_USER_04, sdStatusHandler, nullptr);
-		if (!sdRemoved) {
-			sdMounted = sdMount();
-		}
+		// TODO: Update for calico
+		// fifoSetValue32Handler(FIFO_USER_04, sdStatusHandler, nullptr);
+		// if (!sdRemoved) {
+		// 	sdMounted = sdMount();
+		// }
 	}
 	if (isDSiMode()) {
 		scanKeys();
 		yHeld = (keysHeld() & KEY_Y);
-		*(vu32*)(0x0DFFFE0C) = 0x474D3969;		// Check for 32MB of RAM
-		bool ram32MB = *(vu32*)(0x0DFFFE0C) == 0x474D3969;
-		ramdriveMount(ram32MB);
-		if (ram32MB) {
-			is3DS = fifoGetValue32(FIFO_USER_05) != 0xD2;
-		}
+		// TODO: Crashing on Guru Meditation Error
+		// *(vu32*)(0x0DFFFE0C) = 0x474D3969;		// Check for 32MB of RAM
+		// bool ram32MB = *(vu32*)(0x0DFFFE0C) == 0x474D3969;
+		// ramdriveMount(ram32MB);
 		//if (!(keysHeld() & KEY_X)) {
-			nandMount();
+			// nandMount();
 		//}
 		//is3DS = ((access("sd:/Nintendo 3DS", F_OK) == 0) && (*(vu32*)(0x0DFFFE0C) == 0x474D3969));
 		/*FILE* cidFile = fopen("sd:/gm9i/CID.bin", "wb");
@@ -179,9 +205,6 @@ int main(int argc, char **argv) {
 		*(vu32*)(0x0DFFFE0C) = 0x474D3969;		// Check for 32MB of RAM
 		bool ram32MB = *(vu32*)(0x0DFFFE0C) == 0x474D3969;
 		ramdriveMount(ram32MB);
-		if (ram32MB) {
-			is3DS = fifoGetValue32(FIFO_USER_05) != 0xD2;
-		}
 
 		/* FILE* bios = fopen("sd:/_nds/bios9i.bin", "rb");
 		if (!bios) {
@@ -231,9 +254,10 @@ int main(int argc, char **argv) {
 			setVectorBase(0);
 			bios9iEnabled = true; */
 
-			nandMount();
+			// TODO?
+			// nandMount();
 		// }
-	} else if (isRegularDS && (io_dldi_data->ioInterface.features & FEATURE_SLOT_NDS)) {
+	} else if (isRegularDS && (dldiInterface.disc.features & FEATURE_SLOT_NDS)) {
 		ramdriveMount(false);
 	}
 	if (!isDSiMode() || !yHeld) {
@@ -266,7 +290,7 @@ int main(int argc, char **argv) {
 			swiWaitForVBlank();
 	}
 
-	if (nitroMounted && (strcmp(io_dldi_data->friendlyName, "NAND FLASH CARD LIBFATNRIO") == 0) && (*(u32*)0x02FF8000 != 0x53535A4C)) {
+	if (nitroMounted && (strcmp(dldiInterface.iface_name, "NAND FLASH CARD LIBFATNRIO") == 0) && (*(u32*)0x02FF8000 != 0x53535A4C)) {
 		FILE* file = fopen("nitro:/dldi/nrio.lz77", "rb");
 		fread((void*)0x02FF8004, 1, 0x3FFC, file);
 		fclose(file);
@@ -311,7 +335,7 @@ int main(int argc, char **argv) {
 
 	appInited = true;
 
-	while(1) {
+	while(pmMainLoop()) {
 
 		if (screenMode == 0) {
 			driveMenu();
@@ -375,7 +399,8 @@ int main(int argc, char **argv) {
 				free(argarray[0]);
 				argarray[0] = filePath;
 				fcopy(argarray[0], "sd:/bootonce.firm");
-				fifoSendValue32(FIFO_USER_02, 1);	// Reboot into selected .firm payload
+				// TODO: Update for calico
+				// fifoSendValue32(FIFO_USER_02, 1);	// Reboot into selected .firm payload
 				swiWaitForVBlank();
 			}
 
@@ -384,7 +409,7 @@ int main(int argc, char **argv) {
 				argarray.erase(argarray.begin());
 			}
 
-			while (1) {
+			while (pmMainLoop()) {
 				swiWaitForVBlank();
 				scanKeys();
 				if (!(keysHeld() & KEY_A)) break;

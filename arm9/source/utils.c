@@ -145,7 +145,7 @@ int save_sha1_file(const char *filename) {
 	size_t len_buf = 2 * 20 + 1 + 1 + len_fn + 1;
 	char *sha1_buf = (char *)malloc(len_buf + 1); // extra for \0
 	char *p = sha1_buf;
-	char *digest = (char *)malloc(20);
+	u8 *digest = (u8 *)malloc(20);
 	SHA1Final(digest, &sha1ctx);
 	for (int i = 0; i < 20; ++i) {
 		p += siprintf(p, "%02X", digest[i]);

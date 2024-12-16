@@ -3,18 +3,19 @@ OUTPUT_ARCH(arm)
 ENTRY(_start)
 
 MEMORY {
-
-	vram	: ORIGIN = 0x06008000, LENGTH = 128K - 32K
+	wram	: ORIGIN = 0x037f8000, LENGTH = 0x17000
+	vram	: ORIGIN = 0x06000000, LENGTH = 128K
 }
 
-__vram_start	=	ORIGIN(vram);
-__vram_top	=	ORIGIN(vram)+ LENGTH(vram);
-__sp_irq	=	__vram_top - 0x60;
-__sp_svc	=	__sp_irq - 0x100;
-__sp_usr	=	__sp_svc - 0x100;
-
-__irq_flags	=	__vram_top - 8;
-__irq_vector	=	__vram_top - 4;
+PROVIDE_HIDDEN( __sys_start  = ORIGIN(wram) + LENGTH(wram) );
+PROVIDE_HIDDEN( __sp_usr     = __sys_start + 0xe80         );
+PROVIDE_HIDDEN( __sp_irq     = __sp_usr + 0x100            );
+PROVIDE_HIDDEN( __sp_svc     = __sp_irq + 0x40             );
+PROVIDE_HIDDEN( __irq_flags2 = __sp_svc + 0x00             );
+PROVIDE_HIDDEN( __scfg_buf   = __sp_svc + 0x04             );
+PROVIDE_HIDDEN( __dma_fill   = __sp_svc + 0x20             );
+PROVIDE_HIDDEN( __irq_flags  = __sp_svc + 0x38             );
+PROVIDE_HIDDEN( __irq_vector = __sp_svc + 0x3c             );
 
 SECTIONS
 {

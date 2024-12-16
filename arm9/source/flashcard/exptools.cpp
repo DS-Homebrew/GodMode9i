@@ -296,13 +296,13 @@ void cExpansion::WritePSRAM(u32 address,const u8* buffer,u32 size)
   }
 }
 
-void cExpansion::WriteSram(uint32 address,const u8* data,uint32 size)
+void cExpansion::WriteSram(u32 address,const u8* data,u32 size)
 {
   for(u32 i=0;i<size;i++)
     *(u8*)(address+i)=data[i];
 }
 
-void cExpansion::ReadSram(uint32 address,u8* data,uint32 size)
+void cExpansion::ReadSram(u32 address,u8* data,u32 size)
 {
   u16* pData=(u16*)data;
   for(u32 i=0;i<size;i+=2)

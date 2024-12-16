@@ -55,7 +55,7 @@ DumpOption dumpMenu(std::vector<DumpOption> allowedOptions, const char *dumpName
 
 	int y = font->calcHeight(dumpToStr) + 1;
 
-	while (true) {
+	while (pmMainLoop()) {
 		font->clear(false);
 
 		font->print(firstCol, 0, false, dumpToStr, alignStart);
@@ -110,7 +110,7 @@ DumpOption dumpMenu(std::vector<DumpOption> allowedOptions, const char *dumpName
 			pressed = keysDownRepeat();
 			held = keysHeld();
 			swiWaitForVBlank();
-		} while (!(pressed & (KEY_UP| KEY_DOWN | KEY_A | KEY_B | KEY_L)));
+		} while (pmMainLoop() && !(pressed & (KEY_UP| KEY_DOWN | KEY_A | KEY_B | KEY_L)));
 
 		if (pressed & KEY_UP)
 			optionOffset--;
@@ -149,7 +149,7 @@ void dumpFailMsg(std::string_view msg) {
 		scanKeys();
 		pressed = keysDown();
 		swiWaitForVBlank();
-	} while (!(pressed & KEY_A));
+	} while (pmMainLoop() && !(pressed & KEY_A));
 }
 
 //---------------------------------------------------------------------------------
@@ -172,7 +172,7 @@ int cardEepromGetTypeFixed(void) {
 // https://github.com/devkitPro/libnds/blob/master/source/common/cardEeprom.c#L88
 // with type 2 fixed if the first word and another % 8192 location are 0x00000000
 // and type 3 with ID 0xC22017 added
-uint32 cardEepromGetSizeFixed() {
+u32 cardEepromGetSizeFixed() {
 //---------------------------------------------------------------------------------
 
 	int type = cardEepromGetTypeFixed();
@@ -193,7 +193,7 @@ uint32 cardEepromGetSizeFixed() {
 
 		// Loop until the EEPROM mirrors and the first word shows up again
 		int size = 8192;
-		while (1) {
+		while (pmMainLoop()) {
 			cardReadEeprom(size,(u8*)&buf2,4,type);
 			// Check if it matches, if so check again with another value to ensure no false positives
 			if (buf2 == buf3) {
@@ -331,7 +331,7 @@ bool writeToGbaSave(const char* fileName, u8* buffer, u32 size) {
 			swiWaitForVBlank();
 			scanKeys();
 			pressed = keysDownRepeat();
-		} while (!(pressed & (KEY_A | KEY_B)) && *(u8*)(0x080000B2) == 0x96);
+		} while (pmMainLoop() && !(pressed & (KEY_A | KEY_B)) && *(u8*)(0x080000B2) == 0x96);
 
 		if(pressed & KEY_A) {
 			font->clear(false);
@@ -560,7 +560,7 @@ void ndsCardSaveDump(const char* filename) {
 }
 
 void ndsCardSaveRestore(const char *filename) {
-	bool usingFlashcard = (io_dldi_data->ioInterface.features & FEATURE_SLOT_NDS) && flashcardMounted;
+	bool usingFlashcard = (dldiInterface.disc.features & FEATURE_SLOT_NDS) && flashcardMounted;
 
 	font->clear(false);
 	font->print(firstCol, 0, false, (usingFlashcard ? STR_RESTORE_SELECTED_SAVE_CARD_FLASHCARD : STR_RESTORE_SELECTED_SAVE_CARD) + "\n\n" + STR_A_YES_B_NO, alignStart);
@@ -572,7 +572,7 @@ void ndsCardSaveRestore(const char *filename) {
 		scanKeys();
 		pressed = keysDown();
 		swiWaitForVBlank();
-	} while (!(pressed & (KEY_A | KEY_B)));
+	} while (pmMainLoop() && !(pressed & (KEY_A | KEY_B)));
 
 	if(pressed & KEY_A) {
 		int type = cardEepromGetTypeFixed();
@@ -654,7 +654,7 @@ void ndsCardSaveRestore(const char *filename) {
 						scanKeys();
 						pressed = keysDown();
 						swiWaitForVBlank();
-					} while (!(pressed & KEY_A));
+					} while (pmMainLoop() && !(pressed & KEY_A));
 
 					type = cardEepromGetTypeFixed();
 				}
@@ -765,12 +765,12 @@ void ndsCardDump(void) {
 	u16 pressed;
 
 	font->clear(false);
-	if ((io_dldi_data->ioInterface.features & FEATURE_SLOT_NDS) && flashcardMounted) {
+	if ((dldiInterface.disc.features & FEATURE_SLOT_NDS) && flashcardMounted) {
 		font->print(firstCol, 0, false, STR_FLASHCARD_WILL_UNMOUNT, alignStart);
 		font->print(firstCol, 3, false, STR_A_YES_B_NO, alignStart);
 		font->update(false);
 
-		while (true) {
+		while (pmMainLoop()) {
 			scanKeys();
 			pressed = keysDownRepeat();
 			swiWaitForVBlank();
@@ -1005,7 +1005,7 @@ void gbaCartSaveRestore(const char *filename) {
 		scanKeys();
 		pressed = keysDownRepeat();
 		swiWaitForVBlank();
-	} while (!(pressed & (KEY_A | KEY_B)));
+	} while (pmMainLoop() && !(pressed & (KEY_A | KEY_B)));
 
 	if (pressed & KEY_A) {
 		saveTypeGBA type = gbaGetSaveType();

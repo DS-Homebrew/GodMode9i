@@ -49,8 +49,8 @@ enum GbaRtc {
 // --------------------
 bool gbaIsGame();
 saveTypeGBA gbaGetSaveType();
-uint32 gbaGetSaveSize(saveTypeGBA type = SAVE_GBA_NONE);
-uint32 gbaGetSaveSizeLog2(saveTypeGBA type = SAVE_GBA_NONE);
+u32 gbaGetSaveSize(saveTypeGBA type = SAVE_GBA_NONE);
+u32 gbaGetSaveSizeLog2(saveTypeGBA type = SAVE_GBA_NONE);
 u16 gbaGetFlashId();
 
 bool gbaReadSave(u8 *dst, u32 src, u32 len, saveTypeGBA type);

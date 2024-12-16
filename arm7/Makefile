@@ -20,7 +20,7 @@ include $(DEVKITARM)/ds_rules
 TARGET		:=	GodMode9i
 BUILD		:=	build
 SOURCES		:=	source
-INCLUDES	:=	include build
+INCLUDES	:=	include build ../shared/include
 
 #---------------------------------------------------------------------------------
 # options for code generation

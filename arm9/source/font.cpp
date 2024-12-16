@@ -53,7 +53,9 @@ char16_t Font::arabicForm(char16_t current, char16_t prev, char16_t next) {
 }
 
 bool Font::load(const char *path) {
-	FILE *file = fopen(path, "rb");
+	FILE *file = nullptr;
+	if(path)
+		file = fopen(path, "rb");
 	
 	const u8 *fileBuffer = font_default_frf;
 	if(file) {

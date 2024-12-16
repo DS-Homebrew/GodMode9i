@@ -3,6 +3,7 @@
 #include <fat.h>
 #include <stdio.h>
 #include <dirent.h>
+#include <unistd.h>
 #include <vector>
 
 #include "sha1.h"
@@ -102,7 +103,7 @@ bool calculateSHA1(const char *fileName, u8 *sha1) {
 	font->print(0, nameHeight + 5, false, "[");
 	font->print(-1, nameHeight + 5, false, "]");
 
-	while (true) {
+	while (pmMainLoop()) {
 		size_t ret = fread(buf, 1, shaChunkSize, fp);
 		if (!ret) break;
 		SHA1Update(&ctx, buf, ret);
@@ -165,7 +166,7 @@ int trimNds(const char *fileName) {
 			do {
 				swiWaitForVBlank();
 				scanKeys();
-			} while(!(keysDown() & KEY_A));
+			} while(pmMainLoop() && !(keysDown() & KEY_A));
 		} else {
 			font->clear(false);
 			font->printf(firstCol, 0, false, alignStart, Palette::white, (STR_TRIM_TO_N_BYTES + "\n\n" + STR_A_YES_B_NO).c_str(), getBytes(romSize).c_str());
@@ -176,7 +177,7 @@ int trimNds(const char *fileName) {
 				scanKeys();
 				pressed = keysDown();
 				swiWaitForVBlank();
-			} while(!(pressed & (KEY_A | KEY_B)));
+			} while(pmMainLoop() && !(pressed & (KEY_A | KEY_B)));
 
 			if(pressed & KEY_A) {
 				truncate(fileName, romSize);
@@ -243,7 +244,7 @@ bool fcopy(const char *sourcePath, const char *destinationPath) {
 			do {
 				swiWaitForVBlank();
 				scanKeys();
-			} while(!(keysDown() & KEY_A));
+			} while(pmMainLoop() && !(keysDown() & KEY_A));
 
 			chdir(startPath);
 			return false;
@@ -281,7 +282,7 @@ bool fcopy(const char *sourcePath, const char *destinationPath) {
 			do {
 				swiWaitForVBlank();
 				scanKeys();
-			} while(!(keysDown() & KEY_A));
+			} while(pmMainLoop() && !(keysDown() & KEY_A));
 
 			return false;
 		}
@@ -299,7 +300,7 @@ bool fcopy(const char *sourcePath, const char *destinationPath) {
 
 		off_t offset = 0;
 		size_t numr;
-		while (1) {
+		while (pmMainLoop()) {
 			scanKeys();
 			if (keysHeld() & KEY_B) {
 				// Cancel copying
@@ -346,7 +347,7 @@ void changeFileAttribs(const DirEntry *entry) {
 	if(!entry->isDirectory)
 		stat(entry->name.c_str(), &st);
 
-	while (1) {
+	while (pmMainLoop()) {
 		font->clear(false);
 		font->print(firstCol, 0, false, entry->name, alignStart);
 		if (!entry->isDirectory) {
@@ -372,8 +373,7 @@ void changeFileAttribs(const DirEntry *entry) {
 			held = keysHeld();
 			pressed = keysDown();
 			swiWaitForVBlank();
-		} while (!(pressed & KEY_UP) && !(pressed & KEY_DOWN) && !(pressed & KEY_RIGHT) && !(pressed & KEY_LEFT)
-				&& !(pressed & KEY_A) && !(pressed & KEY_B));
+		} while (pmMainLoop() && !(pressed & (KEY_UP | KEY_DOWN | KEY_RIGHT | KEY_LEFT | KEY_A | KEY_B)));
 
 		if(driveWritable(currentDrive)) {
 			if (pressed & KEY_UP) {

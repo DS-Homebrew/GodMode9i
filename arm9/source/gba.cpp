@@ -41,6 +41,10 @@
 #include <dirent.h>
 
 #include "gba.h"
+#include "pxiVars.h"
+// #include "calico/nds/gbacart.h"
+// #include "calico/nds/pxi.h"
+// #include "calico/system/mailbox.h"
 
 inline u32 min(u32 i, u32 j) { return (i < j) ? i : j;}
 inline u32 max(u32 i, u32 j) { return (i > j) ? i : j;}
@@ -56,7 +60,7 @@ inline u32 max(u32 i, u32 j) { return (i > j) ? i : j;}
 bool gbaIsGame()
 {
 	// look for some magic bytes of the compressed Nintendo logo
-	uint32 *data = (uint32*)0x08000004;
+	u32 *data = (u32*)0x08000004;
 	
 	if (*data == 0x51aeff24) {
 		data ++; data ++;
@@ -66,44 +70,35 @@ bool gbaIsGame()
 	return false;
 }
 
-void readEeprom(u8 *dst, u32 src, u32 len) {
+bool readEeprom(u8 *dst, u32 src, u32 len) {
 	// EEPROM reading needs to happen on ARM7
 	sysSetCartOwner(BUS_OWNER_ARM7);
-	fifoSendValue32(FIFO_USER_01, 0x44414552 /* 'READ' */);
-	fifoSendAddress(FIFO_USER_01, dst);
-	fifoSendValue32(FIFO_USER_01, src);
-	fifoSendValue32(FIFO_USER_01, len);
 
-	// Read the data from FIFO
-	u8 *ptr = dst;
-	while(ptr < dst + len) {
-		if(fifoCheckDatamsg(FIFO_USER_02)) {
-			fifoGetDatamsg(FIFO_USER_02, 8, ptr);
-			ptr += 8;
-		}
-	}
+	u32 args[] {(u32)dst, src, len};
+	armDCacheFlush(dst, len);
+	u32 res = pxiSendWithDataAndReceive(PXI_MAIN, GBA_READ_EEPROM, args, sizeof(args) / sizeof(args[0]));
 
 	sysSetCartOwner(BUS_OWNER_ARM9);
+
+	return res;
 }
 
-void writeEeprom(u32 dst, u8 *src, u32 len) {
+bool writeEeprom(u32 dst, u8 *src, u32 len) {
 	// EEPROM writing needs to happen on ARM7
 	sysSetCartOwner(BUS_OWNER_ARM7);
-	fifoSendValue32(FIFO_USER_01, 0x54495257 /* 'WRIT' */);
-	fifoSendValue32(FIFO_USER_01, dst);
-	fifoSendAddress(FIFO_USER_01, src);
-	fifoSendValue32(FIFO_USER_01, len);
 
-	// Wait for it to finish
-	fifoWaitValue32(FIFO_USER_02);
-	fifoGetValue32(FIFO_USER_02);
+	u32 args[] {dst, (u32)src, len};
+	armDCacheFlush(src, len);
+	u32 res = pxiSendWithDataAndReceive(PXI_MAIN, GBA_WRITE_EEPROM, args, sizeof(args) / sizeof(args[0]));
 
 	sysSetCartOwner(BUS_OWNER_ARM9);
+
+	return res;
 }
 
 saveTypeGBA gbaGetSaveType() {
 	// Search for any one of the magic version strings in the ROM. They are always dword-aligned.
-	uint32 *data = (uint32*)0x08000000;
+	u32 *data = (u32*)0x08000000;
 	
 	for (int i = 0; i < (0x02000000 >> 2); i++, data++) {
 		if (*data == MAGIC_EEPR) {
@@ -124,7 +119,7 @@ saveTypeGBA gbaGetSaveType() {
 			return SAVE_GBA_SRAM_32;
 		} else if (*data == MAGIC_FLAS) {
 			// 64 kB oder 128 kB
-			uint32 *data2 = data + 1;
+			u32 *data2 = data + 1;
 			if (*data2 == MAGIC_H1M_)
 				return SAVE_GBA_FLASH_128;
 			else
@@ -135,7 +130,7 @@ saveTypeGBA gbaGetSaveType() {
 	return SAVE_GBA_NONE;
 }
 
-uint32 gbaGetSaveSizeLog2(saveTypeGBA type)
+u32 gbaGetSaveSizeLog2(saveTypeGBA type)
 {
 	if (type == SAVE_GBA_NONE)
 		type = gbaGetSaveType();
@@ -157,7 +152,7 @@ uint32 gbaGetSaveSizeLog2(saveTypeGBA type)
 	}
 }
 
-uint32 gbaGetSaveSize(saveTypeGBA type)
+u32 gbaGetSaveSize(saveTypeGBA type)
 {
 	if (type == SAVE_GBA_NONE)
 		return 0;

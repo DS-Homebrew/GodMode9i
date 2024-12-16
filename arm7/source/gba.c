@@ -2,7 +2,6 @@
 
 #include <nds/dma.h>
 #include <nds/memory.h>
-#include <nds/fifocommon.h>
 #include <string.h>
 
 #define EEPROM_ADDRESS (0x09FFFF00)
@@ -97,20 +96,28 @@ void gbaEepromWrite8Bytes(u8 *in, u16 addr, bool short_addr)
 	while((REG_EEPROM & 1) == 0);
 }
 
-void readEeprom(u8 *dst, u32 src, u32 len)
+bool gbaReadEeprom(u8 *dst, u32 src, u32 len)
 {
+	if(!dst)
+		return false;
+
 	int start, end;
 	start = src >> 3;
 	end = (src + len) >> 3;
-	u8 buffer[8];
+	u8 *ptr = dst;
 	for (int j = start; j < end; j++) {
-		gbaEepromRead8Bytes(buffer, j, len == 0x200);
-		fifoSendDatamsg(FIFO_USER_02, 8, buffer);
+		gbaEepromRead8Bytes(ptr, j, len == 0x200);
+		ptr += 8;
 	}
+
+	return true;
 }
 
-void writeEeprom(u32 dst, u8 *src, u32 len)
+bool gbaWriteEeprom(u32 dst, u8 *src, u32 len)
 {
+	if(!src)
+		return false;
+
 	int start, end;
 	start = dst >> 3;
 	end = (dst + len) >> 3;
@@ -118,6 +125,6 @@ void writeEeprom(u32 dst, u8 *src, u32 len)
 	for (int j = start; j < end; j++, ptr += 8) {
 		gbaEepromWrite8Bytes(ptr, j, len == 0x200);
 	}
-
-	fifoSendValue32(FIFO_USER_02, 0x454E4F44 /* 'DONE' */);
+	
+	return true;
 }

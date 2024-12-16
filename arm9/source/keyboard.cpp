@@ -33,7 +33,7 @@ std::string kbdGetString(std::string label, int maxSize, std::string oldStr) {
 	int key;
 	int labelHeight = font->calcHeight(label);
 	bool done = false;
-	while(!done) {
+	while(pmMainLoop() && !done) {
 		font->clear(false);
 		font->print(firstCol, 0, false, label, alignStart);
 

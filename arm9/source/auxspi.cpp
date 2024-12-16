@@ -35,7 +35,7 @@ using std::max;
 #include "auxspi_core.inc"
 
 
-static uint8 data[0x8000] = {0};
+static u8 data[0x8000] = {0};
 
 #define EXTRA_ARRAY_SIZE 16
 
@@ -44,7 +44,7 @@ static u8 extra_size[EXTRA_ARRAY_SIZE];
 
 // ========================================================
 //  local functions
-uint8 jedec_table(uint32 id)
+u8 jedec_table(u32 id)
 {
 	switch (id) {
 	// 256 kB
@@ -75,10 +75,10 @@ uint8 jedec_table(uint32 id)
 	};
 }
 
-uint8 type2_size(auxspi_extra extra)
+u8 type2_size(auxspi_extra extra)
 {
-	static const uint32 offset0 = (8*1024-1);        //      8KB
-	static const uint32 offset1 = (2*8*1024-1);      //      16KB
+	static const u32 offset0 = (8*1024-1);        //      8KB
+	static const u32 offset1 = (2*8*1024-1);      //      16KB
 	u8 buf1;     //      +0k data        read -> write
 	u8 buf2;     //      +8k data        read -> read
 	u8 buf3;     //      +0k ~data          write
@@ -96,10 +96,10 @@ uint8 type2_size(auxspi_extra extra)
 }
 
 // ========================================================
-uint8 auxspi_save_type(auxspi_extra extra)
+u8 auxspi_save_type(auxspi_extra extra)
 {
-	uint32 jedec = auxspi_save_jedec_id(extra); // 9f
-	int8 sr = auxspi_save_status_register(extra); // 05
+	u32 jedec = auxspi_save_jedec_id(extra); // 9f
+	s8 sr = auxspi_save_status_register(extra); // 05
 	
 	if ((sr & 0xfd) == 0xF0 && (jedec == 0x00ffffff)) return 1;
 	if ((sr & 0xfd) == 0x00 && (jedec == 0x00ffffff)) return 2;
@@ -108,14 +108,14 @@ uint8 auxspi_save_type(auxspi_extra extra)
 	return 0;
 }
 
-uint32 auxspi_save_size(auxspi_extra extra)
+u32 auxspi_save_size(auxspi_extra extra)
 {
 	return 1 << auxspi_save_size_log_2(extra);
 }
 
-uint8 auxspi_save_size_log_2(auxspi_extra extra)
+u8 auxspi_save_size_log_2(auxspi_extra extra)
 {
-	uint8 type = auxspi_save_type(extra);
+	u8 type = auxspi_save_type(extra);
 	switch (type) {
 	case 1:
 		return 0x09; // 512 bytes
@@ -131,9 +131,9 @@ uint8 auxspi_save_size_log_2(auxspi_extra extra)
 	}
 }
 
-uint32 auxspi_save_jedec_id(auxspi_extra extra)
+u32 auxspi_save_jedec_id(auxspi_extra extra)
 {
-	uint32 id = 0;
+	u32 id = 0;
 	if (extra)
 		auxspi_disable_extra(extra);
 	
@@ -147,9 +147,9 @@ uint32 auxspi_save_jedec_id(auxspi_extra extra)
 	return id;
 }
 
-uint8 auxspi_save_status_register(auxspi_extra extra)
+u8 auxspi_save_status_register(auxspi_extra extra)
 {
-	uint8 sr = 0;
+	u8 sr = 0;
 	if (extra)
 		auxspi_disable_extra(extra);
 	auxspi_open(0);
@@ -159,7 +159,7 @@ uint8 auxspi_save_status_register(auxspi_extra extra)
 	return sr;
 }
 
-void auxspi_read_data(uint32 addr, uint8* buf, uint32 cnt, uint8 type, auxspi_extra extra)
+void auxspi_read_data(u32 addr, u8* buf, u32 cnt, u8 type, auxspi_extra extra)
 {
 	if (type == 0)
 		type = auxspi_save_type(extra);
@@ -183,14 +183,14 @@ void auxspi_read_data(uint32 addr, uint8* buf, uint32 cnt, uint8 type, auxspi_ex
 	auxspi_close();
 }
 
-void auxspi_write_data(uint32 addr, uint8 *buf, uint32 cnt, uint8 type, auxspi_extra extra)
+void auxspi_write_data(u32 addr, u8 *buf, u32 cnt, u8 type, auxspi_extra extra)
 {
 	if (type == 0)
 		type = auxspi_save_type();
 	if (type == 0)
 		return;
 
-	uint32 addr_end = addr + cnt;
+	u32 addr_end = addr + cnt;
 	unsigned int i;
     unsigned int maxblocks = 32;
     if(type == 1) maxblocks = 16;
@@ -359,9 +359,9 @@ auxspi_extra auxspi_has_extra()
 
 void auxspi_erase(auxspi_extra extra)
 {
-	uint8 type = auxspi_save_type(extra);
+	u8 type = auxspi_save_type(extra);
 	if (type == 3) {
-		uint32 size;
+		u32 size;
 		size = 1 << (auxspi_save_size_log_2(extra) - 16);
 		for (unsigned int i = 0; i < size; i++) {
 			if (extra)
@@ -390,7 +390,7 @@ void auxspi_erase(auxspi_extra extra)
 			auxspi_close();
 		}
 	} else {
-		int32 size = 1 << max(0, (auxspi_save_size_log_2(extra) - 15));
+		s32 size = 1 << max(0, (auxspi_save_size_log_2(extra) - 15));
 		toncset(data, 0, 0x8000);
 		for (int i = 0; i < size; i++) {
 			auxspi_write_data(i << 15, data, 0x8000, type, extra);
@@ -400,7 +400,7 @@ void auxspi_erase(auxspi_extra extra)
 
 void auxspi_erase_sector(u32 sector, auxspi_extra extra)
 {
-	uint8 type = auxspi_save_type(extra);
+	u8 type = auxspi_save_type(extra);
 	if (type == 3) {
 		if (extra)
 			auxspi_disable_extra(extra);

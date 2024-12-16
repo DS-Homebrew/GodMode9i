@@ -105,11 +105,8 @@
 #define TMIO_MASK_WRITEOP (TMIO_STAT1_TXRQ | TMIO_STAT1_DATAEND)
 
 typedef struct mmcdevice {
-	u8* rData;
-	const u8* tData;
+    u8* data;
     u32 size;
-    u32 startOffset;
-    u32 endOffset;
     u32 error;
     u16 stat0;
     u16 stat1;
@@ -144,10 +141,12 @@ static inline void sdmmc_sdcard_cid( u32 *cid) {
     sdmmc_get_cid(MMC_DEVICE_SDCARD,cid);
 }
 
-int sdmmc_sdcard_readsectors(u32 sector_no, u32 numsectors, void *out);
+bool sdmmc_sdcard_readsectors(u32 sector_no, u32 numsectors, void *out);
+/*
 int sdmmc_sdcard_writesectors(u32 sector_no, u32 numsectors, void *in);
 int sdmmc_nand_readsectors(u32 sector_no, u32 numsectors, void *out);
 int sdmmc_nand_writesectors(u32 sector_no, u32 numsectors, void *in);
+*/
 
 extern u32 sdmmc_cid[];
 extern int sdmmc_curdevice;

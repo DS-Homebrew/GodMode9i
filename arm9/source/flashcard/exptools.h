@@ -41,8 +41,8 @@ class cExpansion
     static void SetShake(u16 data);
     static void EnableBrowser(void);
     static void WritePSRAM(u32 address,const u8* buffer,u32 size);
-    static void WriteSram(uint32 address,const u8* data,uint32 size);
-    static void ReadSram(uint32 address,u8* data,uint32 size);
+    static void WriteSram(u32 address,const u8* data,u32 size);
+    static void ReadSram(u32 address,u8* data,u32 size);
   public:
     void SoftReset(void);
   public:

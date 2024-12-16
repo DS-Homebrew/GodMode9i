@@ -38,7 +38,7 @@ inline void auxspi_wait_wip()
 	do { REG_AUXSPIDATA = 0; auxspi_wait_busy(); } while (REG_AUXSPIDATA & 0x01);	// WIP (Write In Progress) ?
 }
 
-inline void auxspi_open(uint8 device)
+inline void auxspi_open(u8 device)
 {
 	REG_AUXSPICNT = 0xa040 | (device & 3);
 	auxspi_wait_busy();
@@ -58,24 +58,24 @@ inline void auxspi_close_lite()
 	auxspi_wait_busy();
 }
 
-inline uint8 auxspi_transfer(uint8 out)
+inline u8 auxspi_transfer(u8 out)
 {
 	REG_AUXSPIDATA = out;
 	auxspi_wait_busy();
 	return REG_AUXSPIDATA;
 }
 
-inline void auxspi_write(uint8 out)
+inline void auxspi_write(u8 out)
 {
 	auxspi_transfer(out);
 }
 
-inline uint8 auxspi_read()
+inline u8 auxspi_read()
 {
 	return auxspi_transfer(0);
 }
 
-inline uint16 auxspi_read_16()
+inline u16 auxspi_read_16()
 {
 	REG_AUXSPIDATA = 0;
 	auxspi_wait_busy();

@@ -49,13 +49,13 @@ typedef enum {
 } auxspi_extra;
 
 // These functions reimplement relevant parts of "card.cpp", in a way that is easier to modify.
-uint8 auxspi_save_type(auxspi_extra extra = AUXSPI_DEFAULT);
-uint32 auxspi_save_size(auxspi_extra extra = AUXSPI_DEFAULT);
-uint8 auxspi_save_size_log_2(auxspi_extra extra = AUXSPI_DEFAULT);
-uint32 auxspi_save_jedec_id(auxspi_extra extra = AUXSPI_DEFAULT);
-uint8 auxspi_save_status_register(auxspi_extra extra = AUXSPI_DEFAULT);
-void auxspi_read_data(uint32 addr, uint8* buf, uint32 cnt, uint8 type = 0,auxspi_extra extra = AUXSPI_DEFAULT);
-void auxspi_write_data(uint32 addr, uint8 *buf, uint32 cnt, uint8 type = 0,auxspi_extra extra = AUXSPI_DEFAULT);
+u8 auxspi_save_type(auxspi_extra extra = AUXSPI_DEFAULT);
+u32 auxspi_save_size(auxspi_extra extra = AUXSPI_DEFAULT);
+u8 auxspi_save_size_log_2(auxspi_extra extra = AUXSPI_DEFAULT);
+u32 auxspi_save_jedec_id(auxspi_extra extra = AUXSPI_DEFAULT);
+u8 auxspi_save_status_register(auxspi_extra extra = AUXSPI_DEFAULT);
+void auxspi_read_data(u32 addr, u8* buf, u32 cnt, u8 type = 0,auxspi_extra extra = AUXSPI_DEFAULT);
+void auxspi_write_data(u32 addr, u8 *buf, u32 cnt, u8 type = 0,auxspi_extra extra = AUXSPI_DEFAULT);
 void auxspi_erase(auxspi_extra extra = AUXSPI_DEFAULT);
 void auxspi_erase_sector(u32 sector, auxspi_extra extra = AUXSPI_DEFAULT);
 

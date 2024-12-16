@@ -3,6 +3,7 @@
 #include "driveOperations.h"
 
 #include <nds.h>
+#include <unistd.h>
 
 Config *config;
 

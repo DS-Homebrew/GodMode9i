@@ -1,6 +1,7 @@
 #ifndef FLASHCARD_H
 #define FLASHCARD_H
 
+#include "nds/dldi.h"
 #include <string>
 #include <nds/ndstypes.h>
 
@@ -22,6 +23,8 @@ extern bool flashcardMounted;
 extern bool ramdriveMounted;
 extern bool imgMounted;
 extern bool nitroMounted;
+
+extern DLDI_INTERFACE dldiInterface;
 
 extern Drive currentDrive;
 extern Drive nitroCurrentDrive;
@@ -47,9 +50,9 @@ extern bool sdFound(void);
 extern bool flashcardFound(void);
 extern bool bothSDandFlashcard(void);
 extern bool imgFound(void);
-extern bool nandMount(void);
+// extern bool nandMount(void);
 extern void nandUnmount(void);
-extern bool sdMount(void);
+// extern bool sdMount(void);
 extern void sdUnmount(void);
 extern bool flashcardMount(void);
 extern void flashcardUnmount(void);

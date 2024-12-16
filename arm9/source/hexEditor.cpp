@@ -15,7 +15,7 @@
 u32 jumpToOffset(u32 offset) {
 	u8 cursorPosition = 0;
 	u16 pressed = 0, held = 0;
-	while(1) {
+	while(pmMainLoop()) {
 		int y = (ENTRIES_PER_SCREEN - 4) / 2;
 		font->clear(false);
 		font->print(0, y, false, "--------------------", Alignment::center);
@@ -30,7 +30,7 @@ u32 jumpToOffset(u32 offset) {
 			scanKeys();
 			pressed = keysDown();
 			held = keysDownRepeat();
-		} while(!held);
+		} while(pmMainLoop() && !held);
 
 		if(held & KEY_UP) {
 			offset = (offset & ~(0xF0 << cursorPosition * 4)) | ((offset + (0x10 << (cursorPosition * 4))) & (0xF0 << cursorPosition * 4));
@@ -53,7 +53,7 @@ u32 jumpToOffset(u32 offset) {
 u32 search(u32 offset, FILE *file) {
 	u8 cursorPosition = 0;
 	u16 pressed = 0, held = 0;
-	while(1) {
+	while(pmMainLoop()) {
 		int y = (ENTRIES_PER_SCREEN - 3) / 2;
 		font->clear(false);
 		font->print(0, y, false, "--------------------", Alignment::center);
@@ -67,7 +67,7 @@ u32 search(u32 offset, FILE *file) {
 			scanKeys();
 			pressed = keysDown();
 			held = keysDownRepeat();
-		} while(!held);
+		} while(pmMainLoop() && !held);
 
 		if(held & (KEY_UP | KEY_DOWN)) {
 			cursorPosition ^= 1;
@@ -91,7 +91,7 @@ u32 search(u32 offset, FILE *file) {
 			return offset;
 	} else {
 		cursorPosition = 0;
-		while(1) {
+		while(pmMainLoop()) {
 			int y = (ENTRIES_PER_SCREEN - 4) / 2;
 			font->clear(false);
 			font->print(0, y, false, "--------------------", Alignment::center);
@@ -106,7 +106,7 @@ u32 search(u32 offset, FILE *file) {
 				scanKeys();
 				pressed = keysDown();
 				held = keysDownRepeat();
-			} while(!held);
+			} while(pmMainLoop() && !held);
 
 			if(held & KEY_UP) {
 				char val = str[cursorPosition / 2];
@@ -194,7 +194,7 @@ u32 search(u32 offset, FILE *file) {
 	do {
 		swiWaitForVBlank();
 		scanKeys();
-	} while(!keysDown());
+	} while(pmMainLoop() && !keysDown());
 
 	return offset;
 }
@@ -221,7 +221,7 @@ void hexEditor(const char *path, Drive drive) {
 	fseek(file, offset, SEEK_SET);
 	fread(data, 1, sizeof(data), file);
 
-	while(1) {
+	while(pmMainLoop()) {
 		font->clear(false);
 
 		font->printf(0, 0, false, Alignment::left, Palette::blackGreen, "%*c", SCREEN_COLS, ' ');
@@ -270,7 +270,7 @@ void hexEditor(const char *path, Drive drive) {
 
 			if(driveRemoved(currentDrive))
 				return;
-		} while(!held);
+		} while(pmMainLoop() && !held);
 
 		if(mode == 0) {
 			if(keysHeld() & KEY_R && held & (KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT)) {
