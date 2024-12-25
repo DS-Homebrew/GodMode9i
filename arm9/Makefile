@@ -55,20 +55,19 @@ CFLAGS	:=	-g -Wall -Wno-psabi -O2\
 CFLAGS	+=	$(INCLUDE) -DARM9 -D_NO_BOOTSTUB_
 CXXFLAGS	:= $(CFLAGS) -fno-exceptions -std=gnu++17
 
-ASFLAGS	:=	-g $(ARCH)
+ASFLAGS	:=	-g $(ARCH) $(INCLUDE)
 LDFLAGS	=	-specs=../ds_arm9_hi.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project (order is important)
 #---------------------------------------------------------------------------------
-LIBS	:= 	-lfat -lnds329
+LIBS	:= 	-lfat -lnds9
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
 # include and lib
 #---------------------------------------------------------------------------------
 LIBDIRS	:=	$(CURDIR) ../ $(LIBNDS)
-LIBDIRS32	:=	$(CURDIR)/../libnds32
 
 #---------------------------------------------------------------------------------
 # no real need to edit anything past this point unless you need to add additional
@@ -115,8 +114,7 @@ export INCLUDE	:=	$(foreach dir,$(INCLUDES),-iquote $(CURDIR)/$(dir)) \
 					$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
 					-I$(CURDIR)/$(BUILD)
 
-export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib) \
-					$(foreach dir,$(LIBDIRS32),-L$(dir)/lib)
+export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 
 
 export OUTPUT	:=	$(CURDIR)/$(TARGET)

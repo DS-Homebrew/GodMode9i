@@ -63,7 +63,6 @@ When loading GodMode9i will try to load `/gm9i/font.frf` on your SD card and if 
 ## Credits
 - [RocketRobz](https://github.com/RocketRobz): Main Developer.
 - [Evie/Pk11](https://github.com/Epicpkmn11): Contributor.
-- [lifehackerhansol](https://github.com/lifehackerhansol): [libnds32](https://github.com/lifehackerhansol/libnds32) fork for 32KB DLDI driver support
 - [zacchi4k](https://github.com/zacchi4k): Logo designer.
 - [Edo9300](https://github.com/edo9300): Save reading code from his save manager tool.
 - [endrift](https://github.com/endrift): GBA ROM dumping code from [duplo](https://github.com/endrift/duplo), used for 64MB ROMs.
