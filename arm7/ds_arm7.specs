@@ -1,0 +1,7 @@
+%include <sync-none.specs>
+
+*link:
++ -T ../ds_arm7.ld%s --gc-sections --no-warn-rwx-segments
+
+*startfile:
+ds_arm7_crt0%O%s crti%O%s crtbegin%O%s

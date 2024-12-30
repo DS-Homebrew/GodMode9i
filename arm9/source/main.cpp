@@ -160,7 +160,7 @@ int main(int argc, char **argv) {
 		scanKeys();
 		yHeld = (keysHeld() & KEY_Y);
 		*(vu32*)(0x0DFFFE0C) = 0x474D3969;		// Check for 32MB of RAM
-		bool ram32MB = *(vu32*)(0x0DFFFE0C) == 0x474D3969;
+		const bool ram32MB = *(vu32*)(0x0DFFFE0C) == 0x474D3969;
 		ramdriveMount(ram32MB);
 		if (ram32MB) {
 			is3DS = fifoGetValue32(FIFO_USER_05) != 0xD2;
@@ -177,7 +177,7 @@ int main(int argc, char **argv) {
 		fclose(cidFile);*/
 	} else if (REG_SCFG_EXT != 0) {
 		*(vu32*)(0x0DFFFE0C) = 0x474D3969;		// Check for 32MB of RAM
-		bool ram32MB = *(vu32*)(0x0DFFFE0C) == 0x474D3969;
+		const bool ram32MB = *(vu32*)(0x0DFFFE0C) == 0x474D3969;
 		ramdriveMount(ram32MB);
 		if (ram32MB) {
 			is3DS = fifoGetValue32(FIFO_USER_05) != 0xD2;

@@ -13,10 +13,15 @@ const static u8 bootSector[] = {
 	'I', 'V', 'E', ' ', ' ', ' ', 'F', 'A', 'T'
 };
 
+static bool largeSize = false;
 u32 ramdSectors = 0;
 u8* ramdLoc = (u8*)NULL;
 u8* ramdLocMep = (u8*)NULL;
 const u16 bootSectorSignature = 0xAA55;
+
+void ramd_setSize(const bool ram32MB) {
+	largeSize = ram32MB;
+}
 
 bool ramd_startup() {
 	if(isDSiMode() || REG_SCFG_EXT != 0) {
@@ -40,10 +45,24 @@ bool ramd_is_inserted() {
 bool ramd_read_sectors(sec_t sector, sec_t numSectors, void *buffer) {
 	for(int i = 0; i < numSectors; i++, sector++) {
 		if(isDSiMode() || REG_SCFG_EXT != 0) {
-			if(sector < 0x6000) {
-				tonccpy(buffer + (i * SECTOR_SIZE), ramdLoc + (sector * SECTOR_SIZE), SECTOR_SIZE);
-			} else if(sector <= 0xE000) {
-				tonccpy(buffer + (i * SECTOR_SIZE), (void*)0x0D000000 + ((sector - 0x6000) * SECTOR_SIZE), SECTOR_SIZE);
+			if (largeSize) {
+				if(sector >= 0xE440) {
+					tonccpy(buffer + (i * SECTOR_SIZE), (void*)0x037C0000 + ((sector - 0xE440) * SECTOR_SIZE), SECTOR_SIZE);
+				} else if(sector >= 0xE000) {
+					tonccpy(buffer + (i * SECTOR_SIZE), (void*)0x036F8000 + ((sector - 0xE000) * SECTOR_SIZE), SECTOR_SIZE);
+				} else if(sector >= 0x6000) {
+					tonccpy(buffer + (i * SECTOR_SIZE), (void*)0x0D000000 + ((sector - 0x6000) * SECTOR_SIZE), SECTOR_SIZE);
+				} else {
+					tonccpy(buffer + (i * SECTOR_SIZE), ramdLoc + (sector * SECTOR_SIZE), SECTOR_SIZE);
+				}
+			} else {
+				if(sector >= 0x6440) {
+					tonccpy(buffer + (i * SECTOR_SIZE), (void*)0x037C0000 + ((sector - 0x6440) * SECTOR_SIZE), SECTOR_SIZE);
+				} else if(sector >= 0x6000) {
+					tonccpy(buffer + (i * SECTOR_SIZE), (void*)0x036F8000 + ((sector - 0x6000) * SECTOR_SIZE), SECTOR_SIZE);
+				} else {
+					tonccpy(buffer + (i * SECTOR_SIZE), ramdLoc + (sector * SECTOR_SIZE), SECTOR_SIZE);
+				}
 			}
 		} else if(sector < 0x8) {
 			tonccpy(buffer + (i * SECTOR_SIZE), ramdLoc + (sector * SECTOR_SIZE), SECTOR_SIZE);
@@ -60,10 +79,24 @@ bool ramd_read_sectors(sec_t sector, sec_t numSectors, void *buffer) {
 bool ramd_write_sectors(sec_t sector, sec_t numSectors, const void *buffer) {
 	for(int i = 0; i < numSectors; i++, sector++) {
 		if(isDSiMode() || REG_SCFG_EXT != 0) {
-			if(sector < 0x6000) {
-				tonccpy(ramdLoc + (sector * SECTOR_SIZE), buffer + (i * SECTOR_SIZE), SECTOR_SIZE);
-			} else if(sector <= 0xE000) {
-				tonccpy((void*)0x0D000000 + ((sector - 0x6000) * SECTOR_SIZE), buffer + (i * SECTOR_SIZE), SECTOR_SIZE);
+			if (largeSize) {
+				if(sector >= 0xE440) {
+					tonccpy((void*)0x037C0000 + ((sector - 0xE440) * SECTOR_SIZE), buffer + (i * SECTOR_SIZE), SECTOR_SIZE);
+				} else if(sector >= 0xE000) {
+					tonccpy((void*)0x036F8000 + ((sector - 0xE000) * SECTOR_SIZE), buffer + (i * SECTOR_SIZE), SECTOR_SIZE);
+				} else if(sector >= 0x6000) {
+					tonccpy((void*)0x0D000000 + ((sector - 0x6000) * SECTOR_SIZE), buffer + (i * SECTOR_SIZE), SECTOR_SIZE);
+				} else {
+					tonccpy(ramdLoc + (sector * SECTOR_SIZE), buffer + (i * SECTOR_SIZE), SECTOR_SIZE);
+				}
+			} else {
+				if(sector >= 0x6440) {
+					tonccpy((void*)0x037C0000 + ((sector - 0x6440) * SECTOR_SIZE), buffer + (i * SECTOR_SIZE), SECTOR_SIZE);
+				} else if(sector >= 0x6000) {
+					tonccpy((void*)0x036F8000 + ((sector - 0x6000) * SECTOR_SIZE), buffer + (i * SECTOR_SIZE), SECTOR_SIZE);
+				} else {
+					tonccpy(ramdLoc + (sector * SECTOR_SIZE), buffer + (i * SECTOR_SIZE), SECTOR_SIZE);
+				}
 			}
 		} else if(sector < 0x8) {
 			tonccpy(ramdLoc + (sector * SECTOR_SIZE), buffer + (i * SECTOR_SIZE), SECTOR_SIZE);

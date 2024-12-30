@@ -496,9 +496,33 @@ void flashcardUnmount(void) {
 }
 
 void ramdriveMount(bool ram32MB) {
-	if(isDSiMode() || REG_SCFG_EXT != 0) {
-		ramdSectors = ram32MB ? 0xE000 : 0x6000;
+	if (isDSiMode() || REG_SCFG_EXT != 0) {
+		ramdSectors = ram32MB ? 0xE000 : 0x6000; // Main Memory
+		ramdSectors += 0x40; // Shared WRAM
 
+		WRAM_CR = 3;
+
+		// DSi WRAM
+		*(vu32*)0x03700000 = 0x49394D47;
+		if (*(vu32*)0x03700000 == 0x49394D47) {
+			if (*(vu32*)0x03700000 == 0x49394D47 && *(vu32*)0x03708000 == 0x49394D47) {
+				ramdSectors += 0x40;
+			} else {
+				ramdSectors += 0x400;
+
+				REG_MBK6=0x080037C0;
+				*((vu32*)REG_MBK1) = 0x8C888480;
+
+				*(vu32*)0x037C0000 = 0x49394D47;
+				if (*(vu32*)0x037C0000 == 0x49394D47) {
+					ramdSectors += 0x200;
+				}
+			}
+		}
+
+		WRAM_CR = 0;
+
+		ramd_setSize(ram32MB);
 		fatMountSimple("ram", &io_ram_drive);
 	} else if (isRegularDS) {
 		ramdSectors = 0x8 + 0x4000;
