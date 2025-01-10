@@ -16,7 +16,6 @@
 #include "screenshot.h"
 #include "version.h"
 
-#include <cctype>
 #include <dirent.h>
 #include <nds.h>
 #include <nds/arm9/dldi.h>
@@ -826,8 +825,18 @@ void ndsCardDump(void) {
 		sprintf(gameTitle, "NO-TITLE");
 	} else {
 		for(uint i = 0; i < sizeof(gameTitle); i++) {
-			if(!isalnum(gameTitle[i]))
-				gameTitle[i] = '_';
+			switch(gameTitle[i]) {
+				case '>':
+				case '<':
+				case ':':
+				case '"':
+				case '/':
+				case '\x5C':
+				case '|':
+				case '?':
+				case '*':
+					gameTitle[i] = '_';
+			}
 		}
 	}
 	if (gameCode[0] == 0 || gameCode[0] == 0x23 || gameCode[0] == 0xFF) {
