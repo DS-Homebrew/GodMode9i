@@ -479,7 +479,7 @@ bool readFromGbaCart() {
 	return true;
 }
 
-void ndsCardSaveDump(const char* filename) {
+void ndsCardSaveDump(const char* filename, Drive selectedDrive) {
 	font->clear(false);
 	font->print(firstCol, 0, false, STR_DUMPING_SAVE, alignStart);
 	font->print(firstCol, 1, false, STR_DO_NOT_REMOVE_CARD, alignStart);
@@ -503,6 +503,7 @@ void ndsCardSaveDump(const char* filename) {
 			font->print(0, 5, false, "[");
 			font->print(-1, 5, false, "]");
 			for (u32 src = 0; src < saveSize; src += 0x8000) {
+				u32 writeSize = currentSize >= 0x8000 ? 0x8000 : currentSize;
 				int progressPos = (src / (saveSize / (SCREEN_COLS - 2))) + 1;
 				if(rtl)
 					progressPos = (progressPos + 1) * -1;
@@ -513,8 +514,14 @@ void ndsCardSaveDump(const char* filename) {
 				for (u32 i = 0; i < 0x8000; i += 0x200) {
 					cardRead(cardNandRwStart + src + i, copyBuf + i, true);
 				}
-				if (fwrite(copyBuf, 1, (currentSize >= 0x8000 ? 0x8000 : currentSize), destinationFile) < 1) {
-					dumpFailMsg(STR_FAILED_TO_DUMP_SAVE);
+
+				if (fwrite(copyBuf, 1, writeSize, destinationFile) < 1) {
+					if (driveSizeFree(selectedDrive) < writeSize) {
+						dumpFailMsg(STR_FAILED_TO_DUMP_SAVE_DEST_SPACE);	
+					}
+					else {
+						dumpFailMsg(STR_FAILED_TO_DUMP_SAVE);
+					}
 					break;
 				}
 				currentSize -= 0x8000;
@@ -868,6 +875,11 @@ void ndsCardDump(void) {
 		}
 	}
 
+	Drive selectedDrive = Drive::nand;
+	if (sdMounted || flashcardMounted) {
+		selectedDrive = sdMounted ? Drive::sdCard : Drive::flashcard;
+	}
+
 	// Dump ROM
 	if((dumpOption & allowedBitfield) & (DumpOption::rom | DumpOption::romTrimmed)) {
 		font->clear(false);
@@ -884,48 +896,60 @@ void ndsCardDump(void) {
 			romSize = 0x20000 << ndsCardHeader.deviceSize;
 		}
 
-		// Dump!
-		char destPath[256];
-		sprintf(destPath, "%s:/gm9i/out/%s.nds", (sdMounted ? "sd" : "fat"), fileName);
-		u32 currentSize = romSize;
-		FILE* destinationFile = fopen(destPath, "wb");
-		if (destinationFile) {
-			font->print(firstCol, 4, false, STR_PROGRESS, alignStart);
-			font->print(0, 5, false, "[");
-			font->print(-1, 5, false, "]");
-			for (u32 src = 0; src < romSize; src += 0x8000) {
-				int progressPos = (src / (romSize / (SCREEN_COLS - 2))) + 1;
-				if(rtl)
-					progressPos = (progressPos + 1) * -1;
-				font->print(progressPos, 5, false, "=");
-				font->printf(firstCol, 6, false, alignStart, Palette::white, STR_N_OF_N_BYTES.c_str(), src, romSize);
-				font->update(false);
+		if (driveSizeFree(selectedDrive) < romSize) {
+			dumpFailMsg(STR_FAILED_TO_DUMP_ROM_DEST_SPACE);
+		}
+		else {
+			// Dump!
+			char destPath[256];
+			sprintf(destPath, "%s:/gm9i/out/%s.nds", (sdMounted ? "sd" : "fat"), fileName);
+			u32 currentSize = romSize;
+			FILE* destinationFile = fopen(destPath, "wb");
+			if (destinationFile) {
+				font->print(firstCol, 4, false, STR_PROGRESS, alignStart);
+				font->print(0, 5, false, "[");
+				font->print(-1, 5, false, "]");
+				for (u32 src = 0; src < romSize; src += 0x8000) {
+					int progressPos = (src / (romSize / (SCREEN_COLS - 2))) + 1;
+					if(rtl)
+						progressPos = (progressPos + 1) * -1;
+					font->print(progressPos, 5, false, "=");
+					font->printf(firstCol, 6, false, alignStart, Palette::white, STR_N_OF_N_BYTES.c_str(), src, romSize);
+					font->update(false);
 
-				for (u32 i = 0; i < 0x8000; i += 0x200) {
-					cardRead (src+i, copyBuf+i, false);
-				}
-
-				if (currentSize < 0x8000) {
-					if (romSize == ndsCardHeader.romSize + 0x88) {
-						// Trimming, check for RSA key
-						// 'ac', auth code -- magic number
-						if (*(u16 *)(copyBuf + (ndsCardHeader.romSize % 0x8000)) != 0x6361) {
-							romSize -= 0x88;
-							currentSize -= 0x88;
-						}
+					for (u32 i = 0; i < 0x8000; i += 0x200) {
+						cardRead (src+i, copyBuf+i, false);
 					}
 
-					fwrite(copyBuf, 1, currentSize, destinationFile);
-				} else if (fwrite(copyBuf, 1, 0x8000, destinationFile) < 1) {
-					dumpFailMsg(STR_FAILED_TO_DUMP_ROM);
-					break;
-				}
+					if (currentSize < 0x8000) {
+						if (romSize == ndsCardHeader.romSize + 0x88) {
+							// Trimming, check for RSA key
+							// 'ac', auth code -- magic number
+							if (*(u16 *)(copyBuf + (ndsCardHeader.romSize % 0x8000)) != 0x6361) {
+								romSize -= 0x88;
+								currentSize -= 0x88;
+							}
+						}
 
-				currentSize -= 0x8000;
+						fwrite(copyBuf, 1, currentSize, destinationFile);
+					} else if (fwrite(copyBuf, 1, 0x8000, destinationFile) < 1) {
+						// check if destination has space
+						if (driveSizeFree(selectedDrive) < 0x8000) {
+							dumpFailMsg(STR_FAILED_TO_DUMP_ROM_DEST_SPACE);
+						}
+						else {
+							dumpFailMsg(STR_FAILED_TO_DUMP_ROM);
+						}
+						
+						break;
+					}
+
+					currentSize -= 0x8000;
+				}
+				fclose(destinationFile);
+			} else {
+				dumpFailMsg(STR_FAILED_TO_DUMP_ROM);
 			}
-			fclose(destinationFile);
-		} else {
-			dumpFailMsg(STR_FAILED_TO_DUMP_ROM);
 		}
 	}
 
@@ -933,7 +957,7 @@ void ndsCardDump(void) {
 	if ((dumpOption & allowedBitfield) & DumpOption::save) {
 		char destPath[256];
 		sprintf(destPath, "%s:/gm9i/out/%s.sav", (sdMounted ? "sd" : "fat"), fileName);
-		ndsCardSaveDump((sdMounted || flashcardMounted) ? destPath : fileName);
+		ndsCardSaveDump((sdMounted || flashcardMounted) ? destPath : fileName, selectedDrive);
 	}
 
 	// Dump metadata
