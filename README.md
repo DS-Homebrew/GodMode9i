@@ -48,9 +48,9 @@ GodMode9i is a full access file browser for the Nintendo DS, Nintendo DSi and th
 If you don't want to compile yourself but you still want to get the latest build, please use our [TWLBot github repository](https://github.com/TWLBot/Builds/blob/master/extras/GodMode9i.7z)
 
 ### With Docker
-A `Dockerfile` is provided in this repository for easy cross-platform builds. To compile with Docker, simply run:
+A `Dockerfile` is provided in this repository for easy cross-platform builds. You will first need to [install Docker](https://docs.docker.com/engine/install/). Once you have Docker installed, simply run:
 ```sh
-$ docker build -t godmode9i --label godmode9i ./
+$ docker build -t godmode9i .
 $ docker run --rm -it -v "./:/data" godmode9i make
 ```
 
