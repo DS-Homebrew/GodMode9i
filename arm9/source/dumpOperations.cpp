@@ -931,7 +931,7 @@ void ndsCardDump(void) {
 				} else if (fwrite(copyBuf, 1, 0x8000, destinationFile) < 1) {
 					// check if destination has space
 					if (driveSizeFree(selectedDrive) < 0x8000) {
-						dumpFailMsg(STR_FAILED_TO_DUMP_ROM_DEST_SPACE)
+						dumpFailMsg(STR_FAILED_TO_DUMP_ROM_DEST_SPACE);
 					}
 					else {
 						dumpFailMsg(STR_FAILED_TO_DUMP_ROM);
