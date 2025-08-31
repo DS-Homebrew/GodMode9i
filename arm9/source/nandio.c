@@ -91,27 +91,32 @@ bool my_nand_ReadSectors(sec_t sector, sec_t numSectors,void* buffer) {
 	return result == 0;
 }
 
+static void loadCid(bool isDSi) {
+	if(*(u32*)(0x2FFD7BC) != 0)
+		return;
+	if (!isDSi) {
+		FILE* cidFile = fopen("sd:/gm9/out/nand_cid.mem", "rb");
+		if (cidFile) {
+			int read = fread((void*)0x2FFD7BC, 1, 16, cidFile);
+			fclose(cidFile);
+			if(read == 16)
+				return;
+		}
+	}
+	// Get eMMC CID
+	*(u32*)(0xCFFFD0C) = 0x454D4D43;
+	while (*(u32*)(0xCFFFD0C) != 0) {
+		swiDelay(100);
+	}
+}
+
 bool nandio_startup() {
 	if (!my_nand_Startup()) return false;
 
 	my_nand_ReadSectors(0, 1, sector_buf);
 	bool isDSi = parse_ncsd(sector_buf, 0) != 0;
-	//if (!isDSi) return false;
 
-	if (*(u32*)(0x2FFD7BC) == 0) {
-		if (!isDSi) {
-			FILE* cidFile = fopen("sd:/gm9/out/nand_cid.mem", "rb");
-			if (!cidFile) return false;
-			fread((void*)0x2FFD7BC, 1, 16, cidFile);
-			fclose(cidFile);
-		} else {
-			// Get eMMC CID
-			*(u32*)(0xCFFFD0C) = 0x454D4D43;
-			while (*(u32*)(0xCFFFD0C) != 0) {
-				swiDelay(100);
-			}
-		}
-	}
+	loadCid(isDSi);
 
 	u8 consoleID[8];
 	u8 consoleIDfixed[8];
