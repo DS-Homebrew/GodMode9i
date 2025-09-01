@@ -246,6 +246,25 @@ int main(int argc, char **argv) {
 	char sdnandPath[64] = {0};
 	if(isDSiMode()) {
 		sprintf(nandPath, "nand:/title/%08x/%08x/content/000000%02x.app", *(unsigned int*)0x02FFE234, *(unsigned int*)0x02FFE230, *(u8*)0x02FFE01E);
+		if (is3DS) {
+			// The .app file is named differently on 3DS
+			sprintf(nandPath, "nand:/title/%08x/%08x/content/000000%02x.tmd", *(unsigned int*)0x02FFE234, *(unsigned int*)0x02FFE230, *(u8*)0x02FFE01E);
+			FILE* tmdFile = fopen(nandPath, "rb");
+			if (tmdFile) {
+				u8 appNameTemp[4] = {0};
+				u8 appName8[4] = {0};
+				fseek(tmdFile, 0xB04, SEEK_SET);
+				fread(appNameTemp, 1, 4, tmdFile);
+				fclose(tmdFile);
+				for (int i = 0; i < 4; i++) {
+					appName8[i] = appNameTemp[3-i];
+				}
+				u32 appName = 0;
+				tonccpy(&appName, appName8, 4);
+
+				sprintf(nandPath, "nand:/title/%08x/%08x/content/%08x.app", *(unsigned int*)0x02FFE234, *(unsigned int*)0x02FFE230, (unsigned int)appName);
+			}
+		}
 		sprintf(sdnandPath, "sd:/title/%08x/%08x/content/000000%02x.app", *(unsigned int*)0x02FFE234, *(unsigned int*)0x02FFE230, *(u8*)0x02FFE01E);
 	}
 	ownNitroFSMounted = 0;
