@@ -27,7 +27,7 @@ export GAME_TITLE := $(TARGET)
 
 export NITRODATA := nitrofiles
 
-.PHONY: all bootloader bootstub clean arm7/$(TARGET).elf arm9/$(TARGET).elf
+.PHONY: all libfat4 bootloader bootstub clean arm7/$(TARGET).elf arm9/$(TARGET).elf
 
 all:	libfat4 bootloader bootstub $(TARGET).nds $(TARGET).dsi
 
