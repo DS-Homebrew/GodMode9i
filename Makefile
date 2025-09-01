@@ -41,7 +41,7 @@ $(TARGET).dsi:	arm7/$(TARGET).elf arm9/$(TARGET).elf
 			-b icon.bmp "GodMode9i;Rocket Robz" \
 			-g HGMA 00 "GODMODE9I" -z 80040000 -u 00030004
 
-	@$(TOPDIR)/$(MAKECIA) --srl=$(TARGET).dsi
+	@$(CURDIR)/$(MAKECIA) --srl=$(TARGET).dsi
 
 #---------------------------------------------------------------------------------
 arm7/$(TARGET).elf:
