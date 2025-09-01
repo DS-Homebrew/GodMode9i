@@ -31,7 +31,7 @@ jobs:
       - name: Build & Package GodMode9i
         id: build
         run: |
-          make all dsi
+          make
           chmod +x make_cia
           ./make_cia --srl="GodMode9i.dsi" --id_0=$(git rev-parse --short=7 HEAD) --tikID=$(git rev-parse --short=16 HEAD)
           mkdir GodMode9i/
