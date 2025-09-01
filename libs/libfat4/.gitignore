@@ -1,0 +1,15 @@
+gba/lib
+gba/release
+include/libfatversion.h
+libogc/cube_release
+libogc/lib
+libogc/wii_release
+nds/lib
+nds/release
+gp2x/lib
+gp2x/gp2x_release
+distribute
+gba/include
+libogc/include
+nds/include
+gp2x/include
