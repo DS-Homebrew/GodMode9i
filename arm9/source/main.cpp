@@ -248,7 +248,7 @@ int main(int argc, char **argv) {
 		sprintf(nandPath, "nand:/title/%08x/%08x/content/000000%02x.app", *(unsigned int*)0x02FFE234, *(unsigned int*)0x02FFE230, *(u8*)0x02FFE01E);
 		if (is3DS) {
 			// The .app file is named differently on 3DS
-			sprintf(nandPath, "nand:/title/%08x/%08x/content/000000%02x.tmd", *(unsigned int*)0x02FFE234, *(unsigned int*)0x02FFE230, *(u8*)0x02FFE01E);
+			sprintf(nandPath, "nand:/title/%08x/%08x/content/00000000.tmd", *(unsigned int*)0x02FFE234, *(unsigned int*)0x02FFE230);
 			FILE* tmdFile = fopen(nandPath, "rb");
 			if (tmdFile) {
 				u8 appNameTemp[4] = {0};
