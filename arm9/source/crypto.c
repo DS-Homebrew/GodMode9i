@@ -80,6 +80,7 @@ static inline void rol42_128(uint32_t *a){
 
 static void dsi_aes_set_key(uint32_t *rk, const uint32_t *console_id, key_mode_t mode) {
 	uint32_t key[4];
+	uint8_t* fifo_is_dev = (uint8_t*)(0x02F00000 + 16);
 	switch (mode) {
 	case NAND:
 		key[0] = console_id[0];
@@ -89,8 +90,15 @@ static void dsi_aes_set_key(uint32_t *rk, const uint32_t *console_id, key_mode_t
 		break;
 	case NAND_3DS:
 		key[0] = console_id[0];
-		key[1] = 0x544e494e;
-		key[2] = 0x4f444e45;
+		// Dev 3DSs have a different middle section...
+		if(*fifo_is_dev) {
+			key[1] = 0x35df37b7;
+			key[2] = 0xa9057901;
+		}
+		else {
+			key[1] = 0x544e494e;
+			key[2] = 0x4f444e45;
+		}
 		key[3] = console_id[1];
 		break;
 	case ES:

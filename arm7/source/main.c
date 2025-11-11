@@ -146,10 +146,17 @@ int main() {
 		my_i2cWriteRegister(0x4A, 0x71, byteBak);
 	}
 
-	if (isDSiMode() || ((REG_SCFG_EXT & BIT(17)) && (REG_SCFG_EXT & BIT(18)))) {
-		u8 *out=(u8*)0x02F00000;
-		memset(out, 0, 16);
+	u8 *out=(u8*)0x02F00000;
 
+	if (isDSiMode()) {
+		memset(out, 0, 17);
+
+		// Save whether this is a dev unit or not. For 3DS NAND reading...
+		// This does not imply 32 MBs of RAM!
+		out[16] = (*((uint16_t*)0x04004024)) & 0x13; // Is this a dev unit?
+	}
+
+	if (isDSiMode() || ((REG_SCFG_EXT & BIT(17)) && (REG_SCFG_EXT & BIT(18)))) {
 		// first check whether we can read the console ID directly and it was not hidden by SCFG
 		if (((*(vu16*)0x04004000) & (1u << 10)) == 0 && ((*(vu8*)0x04004D08) & 0x1) == 0)
 		{
