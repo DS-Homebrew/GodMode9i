@@ -434,6 +434,8 @@ TWL_CODE bool twl_flashcardMount(void) {
 			return false;
 		}
 
+		bool doCardInit = false;
+
 		// Read a DLDI driver specific to the cart
 		if (!memcmp(gamename, "QMATETRIAL", 9) || !memcmp(gamename, "R4DSULTRA", 9) // R4iDSN/R4 Ultra
 		 || !memcmp(gameid, "ACEK", 4) || !memcmp(gameid, "YCEP", 4) || !memcmp(gameid, "AHZH", 4) || !memcmp(gameid, "CHPJ", 4) || !memcmp(gameid, "ADLP", 4)) { // Acekard 2(i)
