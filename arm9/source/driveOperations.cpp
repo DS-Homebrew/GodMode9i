@@ -438,19 +438,33 @@ TWL_CODE bool twl_flashcardMount(void) {
 		if (!memcmp(gamename, "QMATETRIAL", 9) || !memcmp(gamename, "R4DSULTRA", 9) // R4iDSN/R4 Ultra
 		 || !memcmp(gameid, "ACEK", 4) || !memcmp(gameid, "YCEP", 4) || !memcmp(gameid, "AHZH", 4) || !memcmp(gameid, "CHPJ", 4) || !memcmp(gameid, "ADLP", 4)) { // Acekard 2(i)
 			dldiLoadFromBin(ak2_dldi);
-			fatMountSimple("fat", dldiGet());
 		} else if (!memcmp(gameid, "ASMA", 4)) {
-			cardInit((sNDSHeaderExt*)((u32*)0x02FFC000)); // Original R4 needs card init for some cursed reason.
-			for (int i = 0; i < 30; i++) swiWaitForVBlank();
-			dldiLoadFromBin(r4tf_dldi);
-			fatMountSimple("fat", dldiGet());
+			doCardInit = true;
+			if (!memcmp(gamename, "MEDIAPLAYER", 11)) { dldiLoadFromBin(gmtf_dldi);  } else { dldiLoadFromBin(r4tf_dldi); }
+		} else if (!memcmp(gameid, "ASME", 4)) {
+			doCardInit = true;
+			dldiLoadFromBin(cyclods_dldi);
+		} else if (!memcmp(gameid, "ABJJ", 4)) {
+			doCardInit = true;
+			dldiLoadFromBin(ez5n_dldi);
+		} else if (!memcmp(gameid, "TTDS", 4)) {
+			dldiLoadFromBin(ttio_dldi);
+		} else if (!memcmp(gamename, "20130628ver", 11)) { // Some DSTTi clones report 0x0 of their flashrom instead of their rom title with certain homebrew header reads.... lol
+			doCardInit = true; // Demon clones require card init else they hang on DLDI init.
+			dldiLoadFromBin(ttio_dldi);
 		} else if (!memcmp(gameid, "DSGB", 4)) {
 			dldiLoadFromLzss(nrio_lz77, 0x30DD);
-			fatMountSimple("fat", dldiGet());
-		} /* else if (!memcmp(gameid, "ALXX", 4)) { // SuperCard DSTWO
+		} /*else if (!memcmp(gameid, "ALXX", 4)) { // SuperCard DSTWO
 			dldiLoadFromBin(dstwo_dldi);
 			fatMountSimple("fat", dldiGet());
-		} */
+		}*/
+
+		if (doCardInit) {
+			cardInit((sNDSHeaderExt*)((u32*)0x02FFC000)); // Certain flashcarts require card init before DLDI will work.
+			for (int i = 0; i < 30; i++) swiWaitForVBlank();
+		}
+
+		fatMountSimple("fat", dldiGet());
 
 		if (flashcardFound()) {
 			fatGetVolumeLabel("fat", fatLabel);
