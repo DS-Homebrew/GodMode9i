@@ -60,6 +60,30 @@ typedef union
 	u32 key;
 } GameCode;
 
+#define MCCNT0_MODE_ROM         (0 << 13)
+#define MCCNT0_ROM_XFER_IRQ        (1<<14)
+#define MCCNT1_LEN_0     (0 << 24)
+
+#define CARD_R  (0 << 30)
+
+void picoInit(bool irq) {
+    *(vu64*)REG_CARD_COMMAND = __builtin_bswap64(0xFC00000000000000ull);
+    
+    REG_AUXSPICNT = (REG_AUXSPICNT & ~(CARD_SPI_ENABLE | MCCNT0_ROM_XFER_IRQ)) | MCCNT0_MODE_ROM | (irq ? MCCNT0_ROM_XFER_IRQ : 0) | CARD_ENABLE;
+    REG_ROMCTRL = (CARD_ACTIVATE | (CARD_R | CARD_nRESET | CARD_CLK_SLOW | MCCNT1_LEN_0 | CARD_SEC_CMD |
+                                    CARD_DELAY2(0) | CARD_SEC_EN | CARD_DELAY1(24)));
+    
+    while(REG_ROMCTRL & CARD_BUSY) {}
+        
+    // Init scrambler with 0 key. Required for DSPico DLDI init to work externally.
+    REG_ROMCTRL = 0;
+    REG_CARD_1B0 = 0;
+    REG_CARD_1B4 = 0;
+    REG_CARD_1B8 = 0;
+    REG_CARD_1BA = 0;
+    REG_ROMCTRL = CARD_nRESET | CARD_SEC_SEED | CARD_SEC_EN | CARD_SEC_DAT;
+}
+
 static bool twlBlowfish = false;
 
 static bool normalChip = false;	// As defined by GBAtek, normal chip secure area is accessed in blocks of 0x200, other chip in blocks of 0x1000

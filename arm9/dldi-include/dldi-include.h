@@ -8,6 +8,7 @@ extern unsigned char cyclods_dldi[];
 extern unsigned char gmtf_dldi[];
 extern unsigned char ez5n_dldi[];
 extern unsigned char ttio_dldi[];
+extern unsigned char pico_dldi[];
 // extern unsigned char dstwo_dldi[];
 
 #endif //DLDIINCLUDE_H

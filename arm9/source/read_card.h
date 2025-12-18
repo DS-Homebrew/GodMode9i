@@ -36,6 +36,8 @@
 extern "C" {
 #endif
 
+extern void picoInit(bool irq);
+
 extern u32 cardNandRomEnd;
 extern u32 cardNandRwStart;
 

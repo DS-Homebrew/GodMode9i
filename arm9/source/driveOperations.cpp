@@ -435,9 +435,14 @@ TWL_CODE bool twl_flashcardMount(void) {
 		}
 
 		bool doCardInit = false;
+		bool isDSPico = false;
 
 		// Read a DLDI driver specific to the cart
-		if (!memcmp(gamename, "QMATETRIAL", 9) || !memcmp(gamename, "R4DSULTRA", 9) // R4iDSN/R4 Ultra
+		if (!memcmp(gameid, "DSPI", 4) || !memcmp(gameid, "NTRJ", 4)) { // DSpico
+			doCardInit = true;
+			isDSPico = true;
+			dldiLoadFromBin(pico_dldi);
+		} else if (!memcmp(gamename, "QMATETRIAL", 9) || !memcmp(gamename, "R4DSULTRA", 9) // R4iDSN/R4 Ultra
 		 || !memcmp(gameid, "ACEK", 4) || !memcmp(gameid, "YCEP", 4) || !memcmp(gameid, "AHZH", 4) || !memcmp(gameid, "CHPJ", 4) || !memcmp(gameid, "ADLP", 4)) { // Acekard 2(i)
 			dldiLoadFromBin(ak2_dldi);
 		} else if (!memcmp(gameid, "ASMA", 4)) {
@@ -464,6 +469,7 @@ TWL_CODE bool twl_flashcardMount(void) {
 		if (doCardInit) {
 			cardInit((sNDSHeaderExt*)((u32*)0x02FFC000)); // Certain flashcarts require card init before DLDI will work.
 			for (int i = 0; i < 30; i++) swiWaitForVBlank();
+			if (isDSPico) picoInit(false);
 		}
 
 		fatMountSimple("fat", dldiGet());
