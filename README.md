@@ -37,6 +37,12 @@ GodMode9i is a full access file browser for the Nintendo DS, Nintendo DSi and th
 - Calculate the SHA-1 hash of files.
 - Browse files on supported flashcards when running GM9i from the NAND or SD Card.
    - Acekard 2(i)
+   - CycloDS Evolution
+   - DSpico
+   - DSTT
+   - Demon/DSTTi clones
+   - EZ Flash Parellel
+   - Games n' Music
    - N-Card
    - R4 (Original, no SDHC)
    - R4(i) Ultra (r4ultra.com)
