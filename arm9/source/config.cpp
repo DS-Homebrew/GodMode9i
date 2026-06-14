@@ -35,14 +35,23 @@ Config::Config() {
 	// Load from config file
 	CIniFile ini(_configPath);
 
-	char defaultLanguagePath[40];
-	sniprintf(defaultLanguagePath, sizeof(defaultLanguagePath), "nitro:/languages/%s/language.ini", getSystemLanguage());
-	_languageIniPath = ini.GetString("GODMODE9I", "LANGUAGE_INI_PATH", defaultLanguagePath);
+	std::string langPath = ini.GetString("GODMODE9I", "LANGUAGE_INI_PATH", "DEFAULT_NOT_FOUND");
+	if (langPath == "DEFAULT_NOT_FOUND") {
+		_languagePromptNeeded = true;
+		char defaultLanguagePath[40];
+		sniprintf(defaultLanguagePath, sizeof(defaultLanguagePath), "nitro:/languages/%s/language.ini", getSystemLanguage());
+		_languageIniPath = defaultLanguagePath;
+		// Do not write LANGUAGE_INI_PATH to disk yet — languageMenu() will do it after the user confirms
+	} else {
+		_languageIniPath = langPath;
+		_languagePromptNeeded = false;
+	}
+
 	_fontPath = ini.GetString("GODMODE9I", "FONT_PATH", "sd:/gm9i/font.frf");
 	_screenSwap = ini.GetInt("GODMODE9I", "SCREEN_SWAP", 0);
 
-	// If the config doesn't exist, create it
-	if(access(_configPath, F_OK) != 0)
+	// Create the config file if it doesn't exist (but only when language is already known)
+	if (access(_configPath, F_OK) != 0 && !_languagePromptNeeded)
 		save();
 }
 

@@ -119,7 +119,7 @@ void startMenu() {
 	}
 }
 
-void languageMenu() {
+bool languageMenu(bool cancellable) {
 	if(ownNitroFSMounted != 0) {
 		font->clear(false);
 		font->print(firstCol, 0, false, ownNitroFSMounted == 1 ? STR_NITROFS_NOT_MOUNTED : STR_NITROFS_UNMOUNTED, alignStart);
@@ -131,7 +131,7 @@ void languageMenu() {
 			swiWaitForVBlank();
 		} while (!(keysDownRepeat() & KEY_A));
 
-		return;
+		return false;
 	}
 
 	int cursorPosition = 0, scrollPosition = 0;
@@ -161,7 +161,7 @@ void languageMenu() {
 			else
 				font->print(0, 5 + i, false, languageList[scrollPosition + i].second, Alignment::center);
 		}
-		font->print(0, 5 + std::min(ITEMS_PER_SCREEN, (int)languageList.size()) + 1, false, STR_A_SELECT_B_CANCEL, Alignment::center);
+		font->print(0, 5 + std::min(ITEMS_PER_SCREEN, (int)languageList.size()) + 1, false, cancellable ? STR_A_SELECT_B_CANCEL : STR_A_SELECT_LANGUAGE, Alignment::center);
 		font->update(false);
 
 		do {
@@ -193,9 +193,9 @@ void languageMenu() {
 				else
 					font = new Font(nullptr);
 			}
-			return;
-		} else if(pressed & KEY_B) {
-			return;
+			return true;
+		} else if(cancellable && (pressed & KEY_B)) {
+			return false;
 		} else if(keysHeld() & KEY_R && pressed & KEY_L) {
 			screenshot();
 		}
