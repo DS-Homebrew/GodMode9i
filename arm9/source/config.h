@@ -11,6 +11,7 @@ class Config {
 	std::string _languageIniPath;
 	std::string _fontPath;
 	bool _screenSwap;
+	bool _languagePromptNeeded;
 
 	static const char *getSystemLanguage(void);
 
@@ -28,6 +29,8 @@ public:
 	bool screenSwap(void) { return _screenSwap; }
 	void screenSwap(bool &screenSwap) { _screenSwap = screenSwap; }
 	u32 screenSwapKey(void) { return _screenSwap ? KEY_TOUCH : 0; }
+
+	bool languagePromptNeeded(void) { return _languagePromptNeeded; }
 };
 
 extern Config *config;

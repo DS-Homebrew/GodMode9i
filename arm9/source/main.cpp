@@ -17,6 +17,7 @@
 #include "fileOperations.h"
 #include "font.h"
 #include "language.h"
+#include "startMenu.h"
 #include "my_sd.h"
 #include "nitrofs.h"
 #include "tonccpy.h"
@@ -322,6 +323,13 @@ int main(int argc, char **argv) {
 
 	// Load translations
 	langInit(false);
+
+	if (config->languagePromptNeeded()) {
+		if (!languageMenu(/*cancellable=*/false)) {
+			// NitroFS unavailable — save auto-detected fallback so we don't prompt again
+			config->save();
+		}
+	}
 
 	keysSetRepeat(25,5);
 
