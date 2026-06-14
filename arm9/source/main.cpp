@@ -7,6 +7,7 @@
 
 #include <string.h>
 #include <unistd.h>
+#include <string>
 
 #include "nds_loader_arm9.h"
 #include "config.h"
@@ -113,9 +114,35 @@ int main(int argc, char **argv) {
 	decompress(gm9i_logoBitmap, bgGetGfxPtr(bg3), LZ77Vram);
 	tonccpy(BG_PALETTE, gm9i_logoPal, gm9i_logoPalLen);
 
+	std::string bootSource = "Unknown";
+	if (argc > 0 && argv[0]) {
+		std::string path(argv[0]);
+		if (path.compare(0, 4, "sd:/") == 0) {
+			bootSource = "SD Card (sd:/)";
+		} else if (path.compare(0, 5, "fat:/") == 0) {
+			bootSource = "Flashcard (fat:/)";
+		} else if (path.compare(0, 6, "nand:/") == 0) {
+			bootSource = "NAND (nand:/)";
+		} else {
+			size_t colon = path.find(':');
+			if (colon != std::string::npos) {
+				bootSource = "Drive (" + path.substr(0, colon + 1) + ")";
+			} else {
+				bootSource = path;
+			}
+		}
+	} else {
+		if (isDSiMode()) {
+			bootSource = "SD Card (DSi Mode)";
+		} else {
+			bootSource = "Flashcard (Slot-1)";
+		}
+	}
+
 	font->print(1, 1, false, titleName);
 	font->print(1, 2, false, "----------------------------------------");
 	font->print(1, 3, false, "https://github.com/DS-Homebrew/GodMode9i");
+	font->print(1, 5, false, "Booted from: " + bootSource);
 
 	fifoWaitValue32(FIFO_USER_06);
 	if (fifoGetValue32(FIFO_USER_03) == 0) arm7SCFGLocked = true;
@@ -145,6 +172,7 @@ int main(int argc, char **argv) {
 	font->print(1, 1, false, titleName);
 	font->print(1, 2, false, "----------------------------------------");
 	font->print(1, 3, false, "https://github.com/DS-Homebrew/GodMode9i");
+	font->print(1, 5, false, "Booted from: " + bootSource);
 	font->print(-2, -2, false, "Mounting drive(s)...", Alignment::right);
 	font->update(false);
 
