@@ -23,7 +23,7 @@ jobs:
 
       - name: Build GodMode9i
         run: |
-          make all dsi
+          make all
 
       - name: Push to Crowdin
         uses: crowdin/github-action@v2

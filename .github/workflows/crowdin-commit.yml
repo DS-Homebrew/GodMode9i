@@ -40,7 +40,7 @@ jobs:
       # This makes sure that the site actually builds before pushing to master
       - name: Build GodMode9i
         run: |
-          make all dsi
+          make all
 
       - name: Commit changes
         continue-on-error: true
