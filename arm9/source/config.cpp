@@ -37,7 +37,8 @@ Config::Config() {
 
 	std::string langPath = ini.GetString("GODMODE9I", "LANGUAGE_INI_PATH", "DEFAULT_NOT_FOUND");
 	if (langPath == "DEFAULT_NOT_FOUND") {
-		_languagePromptNeeded = true;
+		bool isWritable = sdMounted ? driveWritable(Drive::sdCard) : (flashcardMounted && driveWritable(Drive::flashcard));
+		_languagePromptNeeded = isWritable;
 		char defaultLanguagePath[40];
 		sniprintf(defaultLanguagePath, sizeof(defaultLanguagePath), "nitro:/languages/%s/language.ini", getSystemLanguage());
 		_languageIniPath = defaultLanguagePath;
