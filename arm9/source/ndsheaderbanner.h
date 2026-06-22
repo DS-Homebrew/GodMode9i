@@ -45,7 +45,9 @@ typedef struct {
 	u8 unitCode;				//!< identifies the required hardware.
 	u8 deviceType;				//!< type of device in the game card
 	u8 deviceSize;				//!< capacity of the device (1 << n Mbit)
-	u8 reserved1[9];
+	u8 reserved1[7];
+	u8 dsiTwlRegionFlags;
+	u8 ndsRegion_dsiJump;
 	u8 romversion;				//!< version of the ROM.
 	u8 flags;					//!< bit 2: auto-boot flag.
 
