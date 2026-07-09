@@ -79,6 +79,21 @@ void vblankHandler (void) {
 }
 
 //---------------------------------------------------------------------------------
+// Describe the detected console model and the mode GodMode9i is running in.
+// Requires isRegularDS/is3DS to be detected first (see the FIFO sync in main()).
+static std::string getConsoleModeStr(void) {
+//---------------------------------------------------------------------------------
+	std::string model;
+	if (is3DS)
+		model = "Nintendo 3DS";
+	else if (!isRegularDS)
+		model = "Nintendo DSi";
+	else
+		model = "Nintendo DS";
+	return model + (isDSiMode() ? " (DSi mode)" : " (DS mode)");
+}
+
+//---------------------------------------------------------------------------------
 int main(int argc, char **argv) {
 //---------------------------------------------------------------------------------
 
@@ -151,6 +166,19 @@ int main(int argc, char **argv) {
 	if (arm7_SNDEXCNT != 0) isRegularDS = false;	// If sound frequency setting is found, then the console is not a DS Phat/Lite
 	fifoSendValue32(FIFO_USER_07, 0);
 
+	// Detect RAM size and console model up front (3DS has 32MB of RAM).
+	// arm7 sends FIFO_USER_05 before the sync above, so this is ready here.
+	bool ram32MB = false;
+	if (isDSiMode() || REG_SCFG_EXT != 0) {
+		*(vu32*)(0x0DFFFE0C) = 0x474D3969;		// Check for 32MB of RAM
+		ram32MB = *(vu32*)(0x0DFFFE0C) == 0x474D3969;
+		if (ram32MB) {
+			is3DS = fifoGetValue32(FIFO_USER_05) != 0xD2;
+		}
+	}
+
+	font->print(1, 6, false, "Running on:  " + getConsoleModeStr());
+
 	if (isDSiMode()) {
 		// bios9iEnabled = true;
 		if (!arm7SCFGLocked) {
@@ -174,6 +202,7 @@ int main(int argc, char **argv) {
 	font->print(1, 2, false, "----------------------------------------");
 	font->print(1, 3, false, "https://github.com/DS-Homebrew/GodMode9i");
 	font->print(1, 5, false, "Booted from: " + bootSource);
+	font->print(1, 6, false, "Running on:  " + getConsoleModeStr());
 	font->print(-2, -2, false, "Mounting drive(s)...", Alignment::right);
 	font->update(false);
 
@@ -189,12 +218,7 @@ int main(int argc, char **argv) {
 	if (isDSiMode()) {
 		scanKeys();
 		yHeld = (keysHeld() & KEY_Y);
-		*(vu32*)(0x0DFFFE0C) = 0x474D3969;		// Check for 32MB of RAM
-		const bool ram32MB = *(vu32*)(0x0DFFFE0C) == 0x474D3969;
 		ramdriveMount(ram32MB);
-		if (ram32MB) {
-			is3DS = fifoGetValue32(FIFO_USER_05) != 0xD2;
-		}
 		//if (!(keysHeld() & KEY_X)) {
 			nandMounted = nandMount();
 		//}
@@ -206,12 +230,7 @@ int main(int argc, char **argv) {
 		fwrite((void*)0x2FFFD00, 1, 8, cidFile);
 		fclose(cidFile);*/
 	} else if (REG_SCFG_EXT != 0) {
-		*(vu32*)(0x0DFFFE0C) = 0x474D3969;		// Check for 32MB of RAM
-		const bool ram32MB = *(vu32*)(0x0DFFFE0C) == 0x474D3969;
 		ramdriveMount(ram32MB);
-		if (ram32MB) {
-			is3DS = fifoGetValue32(FIFO_USER_05) != 0xD2;
-		}
 
 		/* FILE* bios = fopen("sd:/_nds/bios9i.bin", "rb");
 		if (!bios) {
