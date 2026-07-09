@@ -35,6 +35,7 @@ bool screenSwapped = false;
 
 bool arm7SCFGLocked = false;
 bool isRegularDS = true;
+bool isDSLite = false;
 // bool bios9iEnabled = false;
 bool is3DS = false;
 int ownNitroFSMounted;
@@ -88,6 +89,8 @@ static std::string getConsoleModeStr(void) {
 		model = "Nintendo 3DS";
 	else if (!isRegularDS)
 		model = "Nintendo DSi";
+	else if (isDSLite)
+		model = "Nintendo DS Lite";
 	else
 		model = "Nintendo DS";
 	return model + (isDSiMode() ? " (DSi mode)" : " (DS mode)");
@@ -162,9 +165,16 @@ int main(int argc, char **argv) {
 
 	fifoWaitValue32(FIFO_USER_06);
 	if (fifoGetValue32(FIFO_USER_03) == 0) arm7SCFGLocked = true;
-	u16 arm7_SNDEXCNT = fifoGetValue32(FIFO_USER_07);
+	u32 arm7_fifo7 = fifoGetValue32(FIFO_USER_07);
+	u16 arm7_SNDEXCNT = arm7_fifo7 & 0xFFFF;
 	if (arm7_SNDEXCNT != 0) isRegularDS = false;	// If sound frequency setting is found, then the console is not a DS Phat/Lite
 	fifoSendValue32(FIFO_USER_07, 0);
+
+	// The arm7 packs power-management register 4 into the high bits of that value.
+	// A DS Lite's reg 4 (backlight) has bits 4-7 fixed to 4; on the original DS it
+	// just mirrors register 0, so this distinguishes a DS Lite from a DS Phat.
+	u8 arm7_pmBacklight = (arm7_fifo7 >> 16) & 0xFF;
+	if (isRegularDS && ((arm7_pmBacklight >> 4) & 0xF) == 4) isDSLite = true;
 
 	// Detect RAM size and console model up front (3DS has 32MB of RAM).
 	// arm7 sends FIFO_USER_05 before the sync above, so this is ready here.
