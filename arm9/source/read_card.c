@@ -225,12 +225,6 @@ static void switchToTwlBlowfish(sNDSHeaderExt* ndsHeader) {
 
 	// Used for dumping the DSi arm9i/7i binaries
 
-	u32 portFlagsKey1, portFlagsSecRead;
-	int secureBlockNumber;
-	int i;
-	u8 cmdData[8] __attribute__ ((aligned));
-	GameCode* gameCode;
-
 	if (isDSiMode()) { 
 		// Reset card slot
 		disableSlot1();
@@ -242,17 +236,26 @@ static void switchToTwlBlowfish(sNDSHeaderExt* ndsHeader) {
 		cardParamCommand (CARD_CMD_DUMMY, 0,
 			CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(1) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
 			NULL, 0);
-	} else {
-		REG_ROMCTRL=0;
-		REG_AUXSPICNT=0;
-		//ioDelay2(167550);
-		for(i = 0; i < 25; i++) { swiWaitForVBlank(); }
-		REG_AUXSPICNT=CARD_CR1_ENABLE|CARD_CR1_IRQ;
-		REG_ROMCTRL=CARD_nRESET|CARD_SEC_SEED;
-		while(REG_ROMCTRL&CARD_BUSY) ;
-		cardReset();
-		while(REG_ROMCTRL&CARD_BUSY) ;
+		cardTwlBlowfishInit(ndsHeader);
 	}
+	// On NTR hardware, DSi blowfish init requires physical hotswap.
+	// This is handled by the caller in dumpOperations.cpp.
+}
+
+bool cardIsTwlBlowfish(void) {
+	return twlBlowfish;
+}
+
+void cardSetTwlBlowfish(void) {
+	twlBlowfish = true;
+}
+
+void cardTwlBlowfishInit(sNDSHeaderExt* ndsHeader) {
+	u32 portFlagsKey1, portFlagsSecRead;
+	int secureBlockNumber;
+	int i;
+	u8 cmdData[8] __attribute__ ((aligned));
+	GameCode* gameCode;
 
 	//int iCardDevice = 1;
 
