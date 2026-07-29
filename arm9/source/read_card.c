@@ -90,6 +90,7 @@ static bool normalChip = false;	// As defined by GBAtek, normal chip secure area
 static u32 portFlags = 0;
 static u32 headerData[0x1000/sizeof(u32)] = {0};
 static u32 secureArea[CARD_SECURE_AREA_SIZE/sizeof(u32)] = {0};
+static u32 ntrSecureArea[CARD_SECURE_AREA_SIZE/sizeof(u32)] = {0};
 static u32 iCardId;
 
 static bool nandChip = false;
@@ -220,11 +221,7 @@ static void cardDelay (u16 readTimeout) {
 	TIMER_DATA(0) = 0;
 }
 
-static void switchToTwlBlowfish(sNDSHeaderExt* ndsHeader) {
-	if (twlBlowfish || ndsHeader->unitCode == 0) return;
-
-	// Used for dumping the DSi arm9i/7i binaries
-
+void cardDSiSlot1Reset(void) {
 	if (isDSiMode()) { 
 		// Reset card slot
 		disableSlot1();
@@ -236,18 +233,11 @@ static void switchToTwlBlowfish(sNDSHeaderExt* ndsHeader) {
 		cardParamCommand (CARD_CMD_DUMMY, 0,
 			CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(1) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
 			NULL, 0);
-		cardTwlBlowfishInit(ndsHeader);
 	}
-	// On NTR hardware, DSi blowfish init requires physical hotswap.
-	// This is handled by the caller in dumpOperations.cpp.
 }
 
 bool cardIsTwlBlowfish(void) {
 	return twlBlowfish;
-}
-
-void cardSetTwlBlowfish(void) {
-	twlBlowfish = true;
 }
 
 void cardTwlBlowfishInit(sNDSHeaderExt* ndsHeader) {
@@ -361,18 +351,7 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 	twlBlowfish = false;
 
 	sysSetCardOwner (BUS_OWNER_ARM9);	// Allow arm9 to access NDS cart
-	if (isDSiMode()) {
-		// Reset card slot
-		disableSlot1();
-		for(i = 0; i < 25; i++) { swiWaitForVBlank(); }
-		enableSlot1();
-		for(i = 0; i < 15; i++) { swiWaitForVBlank(); }
-
-		// Dummy command sent after card reset
-		cardParamCommand (CARD_CMD_DUMMY, 0,
-			CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(1) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
-			NULL, 0);
-	}
+	cardDSiSlot1Reset();
 
 	REG_ROMCTRL=0;
 	REG_AUXSPICNT=0;
@@ -525,6 +504,9 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 		//return normalChip ? ERR_SEC_NORM : ERR_SEC_OTHR;
 	}
 
+	// Save decrypted NTR secure area for use after TWL switch
+	tonccpy(ntrSecureArea, secureArea, CARD_SECURE_AREA_SIZE);
+
 	// Set NAND card section location variables
 	if (nandChip) {
 		if(ndsHeader->nandRomEnd != 0) {
@@ -557,8 +539,8 @@ void cardRead (u32 src, void* dest, bool nandSave)
 		toncset (dest, 0, 0x200);
 		return;
 	} else if (src < CARD_DATA_OFFSET) {
-		// Read data from secure area
-		tonccpy (dest, (u8*)secureArea + src - CARD_SECURE_AREA_OFFSET, 0x200);
+		// Read data from secure area (NTR copy, preserved across TWL switch)
+		tonccpy (dest, (u8*)ntrSecureArea + src - CARD_SECURE_AREA_OFFSET, 0x200);
 		return;
 	} else if ((ndsHeader->unitCode != 0) && (src >= ndsHeader->arm9iromOffset) && (src < ndsHeader->arm9iromOffset+CARD_SECURE_AREA_SIZE)) {
 		// Read data from secure area
@@ -581,10 +563,6 @@ void cardRead (u32 src, void* dest, bool nandSave)
 	cardParamCommand (CARD_CMD_DATA_READ, src,
 		portFlags | CARD_ACTIVATE | CARD_nRESET | CARD_BLK_SIZE(1),
 		dest, 0x200/sizeof(u32));
-
-	if (src > ndsHeader->romSize && !(nandSave && src >= cardNandRwStart)) {
-		switchToTwlBlowfish(ndsHeader);
-	}
 }
 
 // src must be a 0x800 byte array

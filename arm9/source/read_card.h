@@ -50,7 +50,7 @@ u32 cardGetId (void);
 void cardWriteNand (void* src, u32 dest);
 
 bool cardIsTwlBlowfish(void);
-void cardSetTwlBlowfish(void);
+void cardDSiSlot1Reset(void);
 void cardTwlBlowfishInit(sNDSHeaderExt* ndsHeader);
 
 #ifdef __cplusplus
