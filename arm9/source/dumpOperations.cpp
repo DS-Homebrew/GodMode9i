@@ -906,19 +906,15 @@ void ndsCardDump(void) {
 			u32 currentSize = romSize;
 			FILE* destinationFile = fopen(destPath, "wb");
 			if (destinationFile) {
-				font->print(firstCol, 4, false, STR_PROGRESS, alignStart);
-				font->print(0, 5, false, "[");
-				font->print(-1, 5, false, "]");
-				for (u32 src = 0; src < romSize; src += 0x8000) {
-					int progressPos = (src / (romSize / (SCREEN_COLS - 2))) + 1;
-					if(rtl)
-						progressPos = (progressPos + 1) * -1;
-					font->print(progressPos, 5, false, "=");
-					font->printf(firstCol, 6, false, alignStart, Palette::white, STR_N_OF_N_BYTES.c_str(), src, romSize);
-					font->update(false);
-
-					// Hotswap: on NTR hardware with DSi cart, wait for cartridge reinsert
-					if (!isDSiMode() && ndsCardHeader.unitCode != 0 && !cardIsTwlBlowfish() && src >= ndsCardHeader.romSize) {
+				// NTR key init has already been done and backuped ntrSecureArea.
+				// Perform TWL key init upfront for DSi cartridges
+				if (ndsCardHeader.unitCode != 0 && !cardIsTwlBlowfish()) {
+					// card slot1 reset
+					if (isDSiMode())
+						// TWL hardware: no need to hotswap
+						cardDSiSlot1Reset();
+					else {
+						// NTR hardware: prompt user to hotswap
 						font->clear(false);
 						if (ndsCardHeader.unitCode == 0x2) // dsi enhanced cartridge
 							font->print(firstCol, 0, false, STR_DUMP_DSI_HOTSWAP_ENH + "\n\n" + STR_DUMP_DSI_HOTSWAP_EJECT, alignStart);
@@ -935,25 +931,26 @@ void ndsCardDump(void) {
 
 						// Wait for card to stabilize after reinsertion
 						for(int w = 0; w < 40; w++) swiWaitForVBlank();
-
-						// Reinitialize card slot with DSi blowfish keys
-						cardTwlBlowfishInit(&ndsCardHeader);
-
-						// Refresh progress display with previously completed portion
-						font->clear(false);
-						font->printf(firstCol, 0, false, alignStart, Palette::white, STR_NDS_IS_DUMPING.c_str(), fileName);
-						font->print(firstCol, 2, false, STR_DO_NOT_REMOVE_CARD, alignStart);
-						font->print(firstCol, 4, false, STR_PROGRESS, alignStart);
-						font->print(0, 5, false, "[");
-						font->print(-1, 5, false, "]");
-						// Redraw completed progress markers
-						for (u32 ps = 0; ps <= src; ps += 0x8000) {
-							int progressPos = (ps / (romSize / (SCREEN_COLS - 2))) + 1;
-							if(rtl)
-								progressPos = (progressPos + 1) * -1;
-							font->print(progressPos, 5, false, "=");
-						}
 					}
+					// Reinitialize card slot1 with DSi blowfish keys
+					cardTwlBlowfishInit(&ndsCardHeader);
+
+					// Reset display after hotswap/software reset
+					font->clear(false);
+					font->printf(firstCol, 0, false, alignStart, Palette::white, STR_NDS_IS_DUMPING.c_str(), fileName);
+					font->print(firstCol, 2, false, STR_DO_NOT_REMOVE_CARD, alignStart);
+				}
+
+				font->print(firstCol, 4, false, STR_PROGRESS, alignStart);
+				font->print(0, 5, false, "[");
+				font->print(-1, 5, false, "]");
+				for (u32 src = 0; src < romSize; src += 0x8000) {
+					int progressPos = (src / (romSize / (SCREEN_COLS - 2))) + 1;
+					if(rtl)
+						progressPos = (progressPos + 1) * -1;
+					font->print(progressPos, 5, false, "=");
+					font->printf(firstCol, 6, false, alignStart, Palette::white, STR_N_OF_N_BYTES.c_str(), src, romSize);
+					font->update(false);
 
 					for (u32 i = 0; i < 0x8000; i += 0x200) {
 						cardRead (src+i, copyBuf+i, false);
