@@ -172,7 +172,7 @@ STRING(RESTORE_SELECTED_SAVE_CART, "Restore the selected save to the inserted ga
 STRING(EJECT_FLASHCARD_INSERT_GAME, "Eject your flashcard and insert the game card to restore to.")
 STRING(DUMP_DSI_HOTSWAP_ENH, "This is a DSi enhanced cartridge.\nHotswap is required to read the DSi region data.")
 STRING(DUMP_DSI_HOTSWAP_EXCL, "This is a DSi exclusive cartridge.\nHotswap is required to read the DSi region data.")
-STRING(DUMP_DSI_HOTSWAP_EJECT, "Please eject and reinsert the cartridge, then press \A to continue...")
+STRING(DUMP_DSI_HOTSWAP_EJECT, "Please eject and reinsert the cartridge, then press \\A to continue...")
 STRING(PROGRESS, "Progress:")
 STRING(N_OF_N_BYTES, "%d/%d Bytes")
 STRING(NDS_IS_DUMPING, "%s.nds\nis dumping...")
