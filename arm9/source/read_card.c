@@ -89,8 +89,8 @@ static bool twlBlowfish = false;
 static bool normalChip = false;	// As defined by GBAtek, normal chip secure area is accessed in blocks of 0x200, other chip in blocks of 0x1000
 static u32 portFlags = 0;
 static u32 headerData[0x1000/sizeof(u32)] = {0};
-static u32 secureArea[CARD_SECURE_AREA_SIZE/sizeof(u32)] = {0};
 static u32 ntrSecureArea[CARD_SECURE_AREA_SIZE/sizeof(u32)] = {0};
+static u32 twlSecureArea[CARD_SECURE_AREA_SIZE/sizeof(u32)] = {0};
 static u32 iCardId;
 
 static bool nandChip = false;
@@ -312,11 +312,11 @@ void cardTwlBlowfishInit(sNDSHeaderExt* ndsHeader) {
 			cardPolledTransfer(portFlagsSecRead, NULL, 0, cmdData);
 			cardDelay(ndsHeader->readTimeout);
 			for (i = 8; i > 0; i--) {
-				cardPolledTransfer(portFlagsSecRead | CARD_BLK_SIZE(1), secureArea + secureAreaOffset, 0x200, cmdData);
+				cardPolledTransfer(portFlagsSecRead | CARD_BLK_SIZE(1), twlSecureArea + secureAreaOffset, 0x200, cmdData);
 				secureAreaOffset += 0x200/sizeof(u32);
 			}
 		} else {
-			cardPolledTransfer(portFlagsSecRead | CARD_BLK_SIZE(4) | CARD_SEC_LARGE, secureArea + secureAreaOffset, 0x1000, cmdData);
+			cardPolledTransfer(portFlagsSecRead | CARD_BLK_SIZE(4) | CARD_SEC_LARGE, twlSecureArea + secureAreaOffset, 0x1000, cmdData);
 			secureAreaOffset += 0x1000/sizeof(u32);
 		}
 	}
@@ -331,7 +331,7 @@ void cardTwlBlowfishInit(sNDSHeaderExt* ndsHeader) {
 	cardPolledTransfer(portFlagsKey1, NULL, 0, cmdData);
 
 	// The 0x800 bytes are modcrypted, so this function isn't ran
-	//decryptSecureArea (gameCode->key, secureArea, card_device_key);
+	//decryptSecureArea (gameCode->key, twlSecureArea, card_device_key);
 
 	twlBlowfish = true;
 }
@@ -472,11 +472,11 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 			cardPolledTransfer(portFlagsSecRead, NULL, 0, cmdData);
 			cardDelay(ndsHeader->readTimeout);
 			for (i = 8; i > 0; i--) {
-				cardPolledTransfer(portFlagsSecRead | CARD_BLK_SIZE(1), secureArea + secureAreaOffset, 0x200, cmdData);
+				cardPolledTransfer(portFlagsSecRead | CARD_BLK_SIZE(1), ntrSecureArea + secureAreaOffset, 0x200, cmdData);
 				secureAreaOffset += 0x200/sizeof(u32);
 			}
 		} else {
-			cardPolledTransfer(portFlagsSecRead | CARD_BLK_SIZE(4) | CARD_SEC_LARGE, secureArea + secureAreaOffset, 0x1000, cmdData);
+			cardPolledTransfer(portFlagsSecRead | CARD_BLK_SIZE(4) | CARD_SEC_LARGE, ntrSecureArea + secureAreaOffset, 0x1000, cmdData);
 			secureAreaOffset += 0x1000/sizeof(u32);
 		}
 	}
@@ -491,21 +491,18 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 	cardPolledTransfer(portFlagsKey1, NULL, 0, cmdData);
 
     //CycloDS doesn't like the dsi secure area being decrypted
-    if((ndsHeader->arm9romOffset != 0x4000) || secureArea[0] || secureArea[1])
+    if((ndsHeader->arm9romOffset != 0x4000) || ntrSecureArea[0] || ntrSecureArea[1])
     {
-		decryptSecureArea (gameCode->key, secureArea, NTR_CARD_KEY);
+		decryptSecureArea (gameCode->key, ntrSecureArea, NTR_CARD_KEY);
 	}
 
-	if (secureArea[0] == 0x72636e65 /*'encr'*/ && secureArea[1] == 0x6a624f79 /*'yObj'*/) {
+	if (ntrSecureArea[0] == 0x72636e65 /*'encr'*/ && ntrSecureArea[1] == 0x6a624f79 /*'yObj'*/) {
 		// Secure area exists, so just clear the tag
-		secureArea[0] = 0xe7ffdeff;
-		secureArea[1] = 0xe7ffdeff;
+		ntrSecureArea[0] = 0xe7ffdeff;
+		ntrSecureArea[1] = 0xe7ffdeff;
 	} else {
 		//return normalChip ? ERR_SEC_NORM : ERR_SEC_OTHR;
 	}
-
-	// Save decrypted NTR secure area for use after TWL switch
-	tonccpy(ntrSecureArea, secureArea, CARD_SECURE_AREA_SIZE);
 
 	// Set NAND card section location variables
 	if (nandChip) {
@@ -544,7 +541,7 @@ void cardRead (u32 src, void* dest, bool nandSave)
 		return;
 	} else if ((ndsHeader->unitCode != 0) && (src >= ndsHeader->arm9iromOffset) && (src < ndsHeader->arm9iromOffset+CARD_SECURE_AREA_SIZE)) {
 		// Read data from secure area
-		tonccpy (dest, (u8*)secureArea + src - ndsHeader->arm9iromOffset, 0x200);
+		tonccpy (dest, (u8*)twlSecureArea + src - ndsHeader->arm9iromOffset, 0x200);
 		return;
 	}
 
