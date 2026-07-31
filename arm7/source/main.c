@@ -190,7 +190,8 @@ int main() {
 	}
 
 	fifoSendValue32(FIFO_USER_03, REG_SCFG_EXT);
-	fifoSendValue32(FIFO_USER_07, *(u16*)(0x4004700));
+	// Low 16 bits are SNDEXCNT; high 8 bits carry power-management reg 4 (for DS Lite detection).
+	fifoSendValue32(FIFO_USER_07, ((u32)readPowerManagement(4) << 16) | (*(u16*)(0x4004700) & 0xFFFF));
 	fifoSendValue32(FIFO_USER_06, 1);
 
 	// Keep the ARM7 mostly idle
