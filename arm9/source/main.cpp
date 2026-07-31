@@ -152,7 +152,7 @@ int main(int argc, char **argv) {
 		}
 	} else {
 		if (isDSiMode()) {
-			bootSource = "SD Card (DSi Mode)";
+			bootSource = (strcmp(io_dldi_data->friendlyName, "Default (No interface)") == 0) ? "NAND/SD (DSi Mode)" : "Flashcard (Slot-1)";
 		} else {
 			bootSource = "Flashcard (Slot-1)";
 		}
