@@ -170,13 +170,19 @@ int main(int argc, char **argv) {
 	if (arm7_SNDEXCNT != 0) isRegularDS = false;	// If sound frequency setting is found, then the console is not a DS Phat/Lite
 	fifoSendValue32(FIFO_USER_07, 0);
 
-	// The arm7 packs the firmware "console type" byte (offset 0x1D) into the high bits.
-	// 20h = DS Lite, 63h = iQue DS Lite; FFh/00h = original DS. This is Nintendo's own
-	// stamp, so unlike the backlight register it doesn't trip on late "CPU-20" DS Phats
-	// that borrow the DS Lite's power chip. Match exact values: old phats store FFh,
-	// which has bit 5 set, so a "bit 5 = Lite" test would flag every phat.
-	u8 arm7_consoleType = (arm7_fifo7 >> 16) & 0xFF;
-	if (isRegularDS && (arm7_consoleType == 0x20 || arm7_consoleType == 0x63)) isDSLite = true;
+	// Two DS Lite signals from the arm7, cross-checked so neither's blind spot leaks through:
+	//  - power-management register 4 (backlight): a Lite fixes bits 4-7 to 4, but so does the
+	//    late "CPU-20" DS Phat that borrows the Lite's power chip, so this alone over-reports.
+	//  - firmware "console type" byte (offset 0x1D): 20h/35h/63h = Lite family, FFh = Phat. This
+	//    is Nintendo's factory stamp, but it lives in flashable firmware, so it alone can be spoofed.
+	// A factory CPU-20 Phat ships Phat firmware (FFh), so requiring both to agree keeps it labelled
+	// a Phat while still catching real Lites. The only case this can't tell apart is a Lite running
+	// cross-flashed Phat firmware (reads as Phat), which is rare and cosmetic.
+	u8 arm7_pmBacklight = (arm7_fifo7 >> 16) & 0xFF;
+	u8 arm7_consoleType = (arm7_fifo7 >> 24) & 0xFF;
+	bool pmSaysLite = ((arm7_pmBacklight >> 4) & 0xF) == 4;
+	bool fwSaysLite = (arm7_consoleType == 0x20 || arm7_consoleType == 0x35 || arm7_consoleType == 0x63);
+	if (isRegularDS && pmSaysLite && fwSaysLite) isDSLite = true;
 
 	// Detect RAM size and console model up front (3DS has 32MB of RAM).
 	// arm7 sends FIFO_USER_05 before the sync above, so this is ready here.
