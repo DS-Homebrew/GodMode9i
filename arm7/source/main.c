@@ -190,8 +190,10 @@ int main() {
 	}
 
 	fifoSendValue32(FIFO_USER_03, REG_SCFG_EXT);
-	// Low 16 bits are SNDEXCNT; high 8 bits carry power-management reg 4 (for DS Lite detection).
-	fifoSendValue32(FIFO_USER_07, ((u32)readPowerManagement(4) << 16) | (*(u16*)(0x4004700) & 0xFFFF));
+	// Low 16 bits are SNDEXCNT; high 8 bits carry the firmware "console type" byte (for DS Lite detection).
+	u8 consoleType = 0xFF;			// FFh/00h = original DS; left untouched if readFirmware fails
+	readFirmware(0x1D, &consoleType, 1);
+	fifoSendValue32(FIFO_USER_07, ((u32)consoleType << 16) | (*(u16*)(0x4004700) & 0xFFFF));
 	fifoSendValue32(FIFO_USER_06, 1);
 
 	// Keep the ARM7 mostly idle
