@@ -172,8 +172,10 @@ int main(int argc, char **argv) {
 
 	// DS Lite detection via the arm7's WiFi controller chip ID (W_ID): on a regular DS it reads
 	// 1440h on the original DS and C340h on the DS Lite. That ID lives in WiFi silicon, not in a
-	// reflashable firmware byte, so it can't be spoofed by cross-flashing. (A DSi/3DS also reports
-	// C340h, but those are already excluded by isRegularDS above.)
+	// reflashable firmware byte, so it can't be spoofed by cross-flashing. It also reads the WiFi
+	// chip rather than the power-management chip, so the late "CPU-20" DS Phat (standard-Phat WiFi
+	// but a DS-Lite PMIC) still reads 1440h and is correctly seen as a Phat, where power-chip checks
+	// mislabel it. (A DSi/3DS also reports C340h, but those are already excluded by isRegularDS above.)
 	if (isRegularDS && arm7_wifiChipId == 0xC340) isDSLite = true;
 
 	// Detect RAM size and console model up front (3DS has 32MB of RAM).
