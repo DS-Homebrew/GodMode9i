@@ -190,12 +190,16 @@ int main() {
 	}
 
 	fifoSendValue32(FIFO_USER_03, REG_SCFG_EXT);
-	// Two DS Lite signals for the arm9 to cross-check: bits 16-23 = power-management
-	// register 4 (backlight), bits 24-31 = firmware "console type" byte (offset 0x1D).
-	// Low 16 bits stay SNDEXCNT.
-	u8 consoleType = 0xFF;			// FFh/00h = original DS; left untouched if readFirmware fails
-	readFirmware(0x1D, &consoleType, 1);
-	fifoSendValue32(FIFO_USER_07, ((u32)consoleType << 24) | ((u32)readPowerManagement(4) << 16) | (*(u16*)(0x4004700) & 0xFFFF));
+	fifoSendValue32(FIFO_USER_07, *(u16*)(0x4004700) & 0xFFFF);	// SNDEXCNT (low 16 bits)
+
+	// DS Lite detection: the WiFi controller chip ID (W_ID, 4808000h) is 1440h on the original
+	// DS and C340h on the DS Lite. It lives in WiFi silicon, so unlike the firmware console-type
+	// byte (offset 1Dh) it can't be reflashed or spoofed. POWCNT2 (4000304h) bit1 gates the WiFi
+	// port region 4800000h-480FFFFh, so enable it before reading the ID.
+	*(volatile u16*)0x04000304 |= (1 << 1);
+	for (volatile int i = 0; i < 0x4000; i++) { /* let the WiFi region settle */ }
+	fifoSendValue32(FIFO_USER_08, *(volatile u16*)0x04808000);
+
 	fifoSendValue32(FIFO_USER_06, 1);
 
 	// Keep the ARM7 mostly idle
