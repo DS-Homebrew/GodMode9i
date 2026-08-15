@@ -102,6 +102,34 @@ void aes(void* in, void* out, void* iv, u32 method){ //this is sort of a bodged 
 }
 
 //---------------------------------------------------------------------------------
+// Read the firmware flash JEDEC ID (RDID, 9Fh) over the firmware SPI. Returns the
+// three ID bytes (manufacturer, device type, capacity per GBATEK) packed big-endian
+// (id[0]<<16 | id[1]<<8 | id[2]). Informational for the hardware-info screen only; the
+// firmware flash is second-sourced so the value varies by chip and is NOT used for
+// detection. IRQs are masked for the transaction because the VCOUNT handler reads the
+// touchscreen over the same SPI bus and would otherwise interleave and corrupt it.
+static u32 readFirmwareJEDEC(void) {
+//---------------------------------------------------------------------------------
+	u32 id = 0;
+	int oldIME = REG_IME;
+	REG_IME = 0;
+
+	while (REG_SPICNT & SPI_BUSY);
+	REG_SPICNT = SPI_ENABLE | SPI_CONTINUOUS | SPI_DEVICE_NVRAM;
+	REG_SPIDATA = 0x9F;			// RDID
+	while (REG_SPICNT & SPI_BUSY);
+	for (int i = 0; i < 3; i++) {
+		REG_SPIDATA = 0;		// clock out a dummy byte to read one in
+		while (REG_SPICNT & SPI_BUSY);
+		id = (id << 8) | (REG_SPIDATA & 0xFF);
+	}
+	REG_SPICNT = 0;				// release chip-select
+
+	REG_IME = oldIME;
+	return id;
+}
+
+//---------------------------------------------------------------------------------
 int main() {
 //---------------------------------------------------------------------------------
 	*(vu32*)0x400481C = 0;				// Clear SD IRQ stat register
@@ -190,12 +218,37 @@ int main() {
 	}
 
 	fifoSendValue32(FIFO_USER_03, REG_SCFG_EXT);
-	// Two DS Lite signals for the arm9 to cross-check: bits 16-23 = power-management
-	// register 4 (backlight), bits 24-31 = firmware "console type" byte (offset 0x1D).
-	// Low 16 bits stay SNDEXCNT.
-	u8 consoleType = 0xFF;			// FFh/00h = original DS; left untouched if readFirmware fails
-	readFirmware(0x1D, &consoleType, 1);
-	fifoSendValue32(FIFO_USER_07, ((u32)consoleType << 24) | ((u32)readPowerManagement(4) << 16) | (*(u16*)(0x4004700) & 0xFFFF));
+
+	// Signals for the hardware-info screen.
+	// SCFG_OP (4004024h) is a DSi ARM7 register; bit0-1 = debugger type (0=retail). SCFG does
+	// not exist on a plain DS, so read it only where SCFG is present and otherwise send FFh as a
+	// "not applicable" sentinel. WiFi board (firmware 1FDh: 01h=DWM-W015, 02h=W024, 03h=W028;
+	// FFh on the original DS) and the 48-bit WiFi MAC (firmware 036h) come from the wifi firmware
+	// via the safe libnds readFirmware path.
+	u8 scfgOp = 0xFF;
+	if (isDSiMode() || REG_SCFG_EXT)
+		scfgOp = *(vu16*)0x04004024 & 0x3;
+	u8 wifiBoard = 0xFF;
+	readFirmware(0x1FD, &wifiBoard, 1);
+	u8 mac[6] = {0};
+	readFirmware(0x36, mac, 6);
+	fifoSendValue32(FIFO_USER_07, ((u32)scfgOp << 24) | ((u32)wifiBoard << 16) | (*(u16*)(0x4004700) & 0xFFFF));
+
+	// DS Lite detection: the WiFi controller chip ID (W_ID, 4808000h) is 1440h on the original
+	// DS and C340h on the DS Lite. It lives in WiFi silicon, so unlike the firmware console-type
+	// byte (offset 1Dh) it can't be reflashed or spoofed. POWCNT2 (4000304h) bit1 gates the WiFi
+	// port region 4800000h-480FFFFh, so enable it before reading the ID.
+	*(volatile u16*)0x04000304 |= (1 << 1);
+	for (volatile int i = 0; i < 0x4000; i++) { /* let the WiFi region settle */ }
+	fifoSendValue32(FIFO_USER_08, *(volatile u16*)0x04808000);
+
+	// WiFi MAC, queued after W_ID: bytes 0-3 then bytes 4-5 (little-endian in each word).
+	fifoSendValue32(FIFO_USER_08, mac[0] | (mac[1] << 8) | (mac[2] << 16) | ((u32)mac[3] << 24));
+	fifoSendValue32(FIFO_USER_08, mac[4] | (mac[5] << 8));
+
+	// Firmware flash JEDEC ID, queued last on the channel (hardware-info screen only).
+	fifoSendValue32(FIFO_USER_08, readFirmwareJEDEC());
+
 	fifoSendValue32(FIFO_USER_06, 1);
 
 	// Keep the ARM7 mostly idle

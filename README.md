@@ -35,6 +35,7 @@ GodMode9i is a full access file browser for the Nintendo DS, Nintendo DSi and th
 - Mount the NitroFS of NDS files, DSiWare saves, and FAT images.
 - View and edit the contents of files with a hex editor.
 - Calculate the SHA-1 hash of files.
+- View console hardware info (model, region, serial, Console ID, WiFi MAC, and more) by pressing SELECT at the boot screen.
 - Browse files on supported flashcards when running GM9i from the NAND or SD Card.
    - Acekard 2(i)
    - CycloDS Evolution
