@@ -16,7 +16,7 @@
 	</a>
 </p>
 
-Inspired by the original GodMode9, GodMode9**i** is a full access file browser for the Nintendo DS, Nintendo DSi and the Nintendo 3DS's TWL_FIRM.
+Inspired by the original [GodMode9](https://github.com/d0k3/GodMode9), GodMode9**i** is a full access file browser for the Nintendo DS, Nintendo DSi and the Nintendo 3DS's TWL_FIRM.
 
 <div align="center">
 	<img src="https://github.com/DS-Homebrew/GodMode9i/raw/master/resources/screenshots/drive-menu.png" alt="Drive menu">
