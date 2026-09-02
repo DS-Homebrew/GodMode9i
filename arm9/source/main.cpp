@@ -12,6 +12,7 @@
 #include "nds_loader_arm9.h"
 #include "config.h"
 #include "date.h"
+#include "diagnostics.h"
 #include "driveMenu.h"
 #include "driveOperations.h"
 #include "file_browse.h"
@@ -20,6 +21,7 @@
 #include "language.h"
 #include "startMenu.h"
 #include "my_sd.h"
+#include "nandio.h"
 #include "nitrofs.h"
 #include "tonccpy.h"
 #include "version.h"
@@ -165,24 +167,24 @@ int main(int argc, char **argv) {
 
 	fifoWaitValue32(FIFO_USER_06);
 	if (fifoGetValue32(FIFO_USER_03) == 0) arm7SCFGLocked = true;
-	u32 arm7_fifo7 = fifoGetValue32(FIFO_USER_07);
-	u16 arm7_SNDEXCNT = arm7_fifo7 & 0xFFFF;
+	u32 arm7_07 = fifoGetValue32(FIFO_USER_07);
+	u16 arm7_SNDEXCNT = arm7_07 & 0xFFFF;
+	u8 arm7_wifiBoard = (arm7_07 >> 16) & 0xFF;
+	u8 arm7_scfgOp = (arm7_07 >> 24) & 0xFF;	// SCFG_OP debugger type; 0xFF = not applicable (DS)
+	u16 arm7_wifiChipId = fifoGetValue32(FIFO_USER_08) & 0xFFFF;	// WiFi chip ID (W_ID): 1440h=DS, C340h=DS Lite
+	u32 arm7_macLo = fifoGetValue32(FIFO_USER_08);			// MAC bytes 0-3
+	u32 arm7_macHi = fifoGetValue32(FIFO_USER_08) & 0xFFFF;		// MAC bytes 4-5
+	u32 arm7_jedecId = fifoGetValue32(FIFO_USER_08) & 0xFFFFFF;	// firmware flash JEDEC ID
 	if (arm7_SNDEXCNT != 0) isRegularDS = false;	// If sound frequency setting is found, then the console is not a DS Phat/Lite
 	fifoSendValue32(FIFO_USER_07, 0);
 
-	// Two DS Lite signals from the arm7, cross-checked so neither's blind spot leaks through:
-	//  - power-management register 4 (backlight): a Lite fixes bits 4-7 to 4, but so does the
-	//    late "CPU-20" DS Phat that borrows the Lite's power chip, so this alone over-reports.
-	//  - firmware "console type" byte (offset 0x1D): 20h/35h/63h = Lite family, FFh = Phat. This
-	//    is Nintendo's factory stamp, but it lives in flashable firmware, so it alone can be spoofed.
-	// A factory CPU-20 Phat ships Phat firmware (FFh), so requiring both to agree keeps it labelled
-	// a Phat while still catching real Lites. The only case this can't tell apart is a Lite running
-	// cross-flashed Phat firmware (reads as Phat), which is rare and cosmetic.
-	u8 arm7_pmBacklight = (arm7_fifo7 >> 16) & 0xFF;
-	u8 arm7_consoleType = (arm7_fifo7 >> 24) & 0xFF;
-	bool pmSaysLite = ((arm7_pmBacklight >> 4) & 0xF) == 4;
-	bool fwSaysLite = (arm7_consoleType == 0x20 || arm7_consoleType == 0x35 || arm7_consoleType == 0x63);
-	if (isRegularDS && pmSaysLite && fwSaysLite) isDSLite = true;
+	// DS Lite detection via the arm7's WiFi controller chip ID (W_ID): on a regular DS it reads
+	// 1440h on the original DS and C340h on the DS Lite. That ID lives in WiFi silicon, not in a
+	// reflashable firmware byte, so it can't be spoofed by cross-flashing. It also reads the WiFi
+	// chip rather than the power-management chip, so the late "CPU-20" DS Phat (standard-Phat WiFi
+	// but a DS-Lite PMIC) still reads 1440h and is correctly seen as a Phat, where power-chip checks
+	// mislabel it. (A DSi/3DS also reports C340h, but those are already excluded by isRegularDS above.)
+	if (isRegularDS && arm7_wifiChipId == 0xC340) isDSLite = true;
 
 	// Detect RAM size and console model up front (3DS has 32MB of RAM).
 	// arm7 sends FIFO_USER_05 before the sync above, so this is ready here.
@@ -197,6 +199,43 @@ int main(int argc, char **argv) {
 
 	font->print(1, 6, false, "Running on:  " + getConsoleModeStr());
 
+	// Affordance for the hardware-info screen. Plain literal (not a localized STR_ string)
+	// because this splash draws before langInit(), where STR_ strings would still be empty.
+	font->print(1, 8, false, "Press SELECT for hardware info");
+
+	HardwareInfo hwInfo = {};
+	// Console type — GBATEK 01Dh spelling, derived from the reliable W_ID/is3DS detection above
+	// (NOT the app's getConsoleModeStr(), which keeps its own string for the boot splash).
+	if (is3DS)              hwInfo.consoleType = "Nintendo 3DS";
+	else if (!isRegularDS)  hwInfo.consoleType = "Nintendo DSi";
+	else if (isDSLite)      hwInfo.consoleType = "Nintendo DS-lite";
+	else                    hwInfo.consoleType = "Nintendo DS";
+
+	hwInfo.wifiChipId = arm7_wifiChipId;
+	hwInfo.jedecId = arm7_jedecId;
+	hwInfo.ramMB = is3DS ? 32 : (isRegularDS ? 4 : 16);
+	hwInfo.mac[0] = arm7_macLo & 0xFF;
+	hwInfo.mac[1] = (arm7_macLo >> 8) & 0xFF;
+	hwInfo.mac[2] = (arm7_macLo >> 16) & 0xFF;
+	hwInfo.mac[3] = (arm7_macLo >> 24) & 0xFF;
+	hwInfo.mac[4] = arm7_macHi & 0xFF;
+	hwInfo.mac[5] = (arm7_macHi >> 8) & 0xFF;
+
+	// Unit (SCFG_OP): 0xFF sentinel means SCFG not present (a plain DS) → omit.
+	hwInfo.hasUnit = (arm7_scfgOp != 0xFF);
+	hwInfo.unitRetail = (arm7_scfgOp == 0);
+
+	// WiFi board: firmware 1FDh is FFh on the original DS, so only 01/02/03 are shown.
+	hwInfo.hasWifiBoard = (arm7_wifiBoard >= 1 && arm7_wifiBoard <= 3);
+	hwInfo.wifiBoard = arm7_wifiBoard;
+
+	// SCFG_EXT exists only on the DSi family.
+	hwInfo.hasScfgExt = isDSiMode() || (REG_SCFG_EXT != 0);
+	hwInfo.scfgExt = REG_SCFG_EXT;
+
+	// Region, Serial and Console ID are DSi-only and need the NAND (not mounted yet here). They
+	// are filled in later, right before the screen opens — see the diagnosticsShow call below.
+
 	if (isDSiMode()) {
 		// bios9iEnabled = true;
 		if (!arm7SCFGLocked) {
@@ -209,9 +248,17 @@ int main(int argc, char **argv) {
 		}*/
 	}
 
-	// Display for 2 seconds
+	// Display for 2 seconds; latch a SELECT hold to open the hardware info screen later.
+	bool diagnosticsRequested = false;
 	font->update(false);
 	for (int i = 0; i < 60*2; i++) {
+		scanKeys();
+		if (!diagnosticsRequested && (keysHeld() & KEY_SELECT)) {
+			diagnosticsRequested = true;
+			// Confirm the hold registered; the screen itself opens later, after drives mount.
+			font->print(1, 8, false, "Hardware info selected, opening...");
+			font->update(false);
+		}
 		swiWaitForVBlank();
 	}
 
@@ -397,6 +444,48 @@ int main(int argc, char **argv) {
 	}
 
 	keysSetRepeat(25,5);
+
+	if (diagnosticsRequested) {
+		// Console ID: the value derived during NAND mount (the 0x02F00000 buffer holds AES key3
+		// material, not the plain ID; 4004D00h reads as zeros for homebrew per GBATEK).
+		if (nandConsoleIDValid) {
+			hwInfo.hasConsoleId = true;
+			memcpy(hwInfo.consoleId, nandConsoleID, 8);
+		}
+		// Region + Serial come from the real NAND file — the 2FFFD68h RAM mirror is only populated
+		// by the retail System Menu, which homebrew launchers bypass. Same file melonDS reads. The
+		// Console ID derived above means NAND crypto is up, so open the file directly rather than
+		// trusting the local nandMounted flag, which is stale at this point.
+		FILE *hw = fopen("nand:/sys/HWINFO_S.dat", "rb");
+		if (!hw) {
+			// The nand: FAT mount can be stale here even though NAND crypto is up (Console ID
+			// derived). Mount it and retry so Region/Serial don't intermittently vanish.
+			nandMount();
+			hw = fopen("nand:/sys/HWINFO_S.dat", "rb");
+		}
+		if (hw) {
+			u8 region = 0xFF;
+			if (fseek(hw, 0x90, SEEK_SET) == 0 && fread(&region, 1, 1, hw) == 1 && region <= 5) {
+				hwInfo.hasRegion = true;
+				hwInfo.region = region;
+			}
+			char serial[13] = {0};
+			if (fseek(hw, 0x91, SEEK_SET) == 0 && fread(serial, 1, 12, hw) == 12) {
+				bool ok = (serial[0] >= 0x20 && serial[0] <= 0x7E);
+				for (int i = 0; ok && i < 12; i++) {
+					if (serial[i] == 0) break;
+					if (serial[i] < 0x20 || serial[i] > 0x7E) ok = false;
+				}
+				if (ok) {
+					hwInfo.hasSerial = true;
+					memcpy(hwInfo.serial, serial, 13);
+				}
+			}
+			fclose(hw);
+		}
+
+		diagnosticsShow(hwInfo);
+	}
 
 	// Top bar
 	font->printf(0, 0, true, Alignment::left, Palette::blackGreen, "%*c", 256 / font->width(), ' ');
