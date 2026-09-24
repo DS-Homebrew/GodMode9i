@@ -16,7 +16,7 @@
 	</a>
 </p>
 
-GodMode9i is a full access file browser for the Nintendo DS, Nintendo DSi and the Nintendo 3DS's TWL_FIRM.
+Inspired by the original [GodMode9](https://github.com/d0k3/GodMode9), GodMode9**i** is a full access file browser for the Nintendo DS, Nintendo DSi and the Nintendo 3DS's TWL_FIRM.
 
 <div align="center">
 	<img src="https://github.com/DS-Homebrew/GodMode9i/raw/master/resources/screenshots/drive-menu.png" alt="Drive menu">
@@ -92,7 +92,7 @@ When loading GodMode9i will try to load `/gm9i/font.frf` on your SD card and if 
 ### Translators
 - Chinese (Simplified): [cai_miao](https://crowdin.com/profile/cai_miao), [James-Makoto](https://crowdin.com/profile/vcmod55)
 - Dutch: [Minionguyjpro](https://crowdin.com/profile/minionguyjpro)
-- French: [Benjamin](https://crowdin.com/profile/sombrabsol), [Dhalian.](https://crowdin.com/profile/dhalian3630)
+- French: [SombrAbsol](https://crowdin.com/profile/sombrabsol), [Dhalian.](https://crowdin.com/profile/dhalian3630)
 - German: [redstonekasi](https://crowdin.com/profile/redstonekasi)
 - Hebrew: [Yaniv Levin](https://crowdin.com/profile/y4niv)
 - Hungarian: [Viktor Varga](http://github.com/vargaviktor)
