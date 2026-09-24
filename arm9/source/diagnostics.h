@@ -29,5 +29,5 @@ struct HardwareInfo {
 	u8 consoleId[8];
 };
 
-// Shows the hardware-info screen and blocks until the user presses B.
+// Shows the hardware-info screen and blocks until the user presses A.
 void diagnosticsShow(const HardwareInfo &info);
