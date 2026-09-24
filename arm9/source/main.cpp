@@ -37,6 +37,7 @@ bool screenSwapped = false;
 
 bool arm7SCFGLocked = false;
 bool isRegularDS = true;
+bool isDebugDS = false;
 bool isDSLite = false;
 // bool bios9iEnabled = false;
 bool is3DS = false;
@@ -195,6 +196,14 @@ int main(int argc, char **argv) {
 		if (ram32MB) {
 			is3DS = fifoGetValue32(FIFO_USER_05) != 0xD2;
 		}
+	} else if (isRegularDS) {
+		u32 wordBak = *(vu32*)0x02800000;
+		u32 wordBak2 = *(vu32*)0x02C00000;
+		*(vu32*)(0x02800000) = 0x314D454D;
+		*(vu32*)(0x02C00000) = 0x324D454D;
+		isDebugDS = ((*(vu32*)(0x02800000) == 0x314D454D) && (*(vu32*)(0x02C00000) == 0x324D454D));
+		*(vu32*)(0x02800000) = wordBak;
+		*(vu32*)(0x02C00000) = wordBak2;
 	}
 
 	font->print(1, 6, false, "Running on:  " + getConsoleModeStr());
@@ -213,7 +222,7 @@ int main(int argc, char **argv) {
 
 	hwInfo.wifiChipId = arm7_wifiChipId;
 	hwInfo.jedecId = arm7_jedecId;
-	hwInfo.ramMB = is3DS ? 32 : (isRegularDS ? 4 : 16);
+	hwInfo.ramMB = ram32MB ? 32 : (isRegularDS ? (isDebugDS ? 8 : 4) : 16);
 	hwInfo.mac[0] = arm7_macLo & 0xFF;
 	hwInfo.mac[1] = (arm7_macLo >> 8) & 0xFF;
 	hwInfo.mac[2] = (arm7_macLo >> 16) & 0xFF;
