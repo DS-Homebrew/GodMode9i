@@ -20,6 +20,9 @@ static u32 fat_sig_fix_offset = 0;
 static u32 sector_buf32[SECTOR_SIZE/sizeof(u32)];
 static u8 *sector_buf = (u8*)sector_buf32;
 
+u8 nandConsoleID[8];
+u8 nandConsoleIDValid = 0;
+
 static inline void nandio_set_fat_sig_fix(u32 offset) {
 	fat_sig_fix_offset = offset;
 }
@@ -130,6 +133,11 @@ bool nandio_startup() {
 	for (int i = 0; i < 8; i++) {
 		consoleIDfixed[i] = consoleID[7-i];
 	}
+
+	// Publish the derived Console ID for the hardware-info screen in the byte order that dumps and
+	// tools report it — the getConsoleID() output as-is, NOT the reversed "fixed" NAND-key form.
+	tonccpy(nandConsoleID, consoleID, 8);
+	nandConsoleIDValid = 1;
 
 	// iprintf("sector 0 is %s\n", is3DS ? "3DS" : "DSi");
 	dsi_crypt_init((const u8*)consoleIDfixed, (const u8*)0x2FFD7BC, !isDSi, is_dev_3DS);
