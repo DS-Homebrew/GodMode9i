@@ -38,6 +38,7 @@ constexpr std::array<std::pair<const char *, const char *>, 18> languageList = {
 	{"hu-HU", "Magyar"},
 	{"nl-NL", "Nederlands"},
 	{"pl-PL", "Polski"},
+	{"pt-BR", "Português"},
 	{"ro-RO", "Română"},
 	{"tr-TR", "Türkçe"},
 	{"ru-RU", "Русский"},
