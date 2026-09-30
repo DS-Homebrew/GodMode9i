@@ -113,6 +113,9 @@ static void loadCid(bool isDSi) {
 	while (*(u32*)(0xCFFFD0C) != 0) {
 		swiDelay(100);
 	}
+	// ARM7 wrote the CID straight to RAM, but the check above already pulled 0x2FFD7BC into
+	// the ARM9 data cache as zeros. Drop those lines so the NAND IV is hashed from the real CID.
+	DC_InvalidateRange((void*)0x2FFD7BC, 16);
 }
 
 bool nandio_startup() {
