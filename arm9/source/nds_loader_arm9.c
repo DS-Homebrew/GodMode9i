@@ -323,6 +323,10 @@ int runNds (const void* loader, u32 loaderSize, u32 cluster, bool initDisc, bool
 
 	irqDisable(IRQ_ALL);
 
+	// swiSoftReset invalidates the data cache without writing it back, so push the
+	// patched loader DLDI (0x02FF8000) and loader parameters out to main RAM first.
+	DC_FlushAll();
+
 	// Give the VRAM to the ARM7
 	VRAM_C_CR = VRAM_ENABLE | VRAM_C_ARM7_0x06000000;	
 	// Reset into a passme loop
