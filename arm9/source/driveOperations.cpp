@@ -487,22 +487,35 @@ TWL_CODE bool twl_flashcardMount(void) {
 	return false;
 }
 
+static bool flashcardReadVolumeInfo(void) {
+	if (!flashcardFound())
+		return false;
+
+	fatGetVolumeLabel("fat", fatLabel);
+	fixLabel(fatLabel);
+	struct statvfs st;
+	if (statvfs("fat:/", &st) == 0) {
+		fatSize = st.f_bsize * st.f_blocks;
+	}
+	return true;
+}
+
 bool flashcardMount(void) {
 	if (!isDSiMode() || (arm7SCFGLocked && !sdMountedDone)) {
 		fatInitDefault();
-		if (flashcardFound()) {
-			fatGetVolumeLabel("fat", fatLabel);
-			fixLabel(fatLabel);
-			struct statvfs st;
-			if (statvfs("fat:/", &st) == 0) {
-				fatSize = st.f_bsize * st.f_blocks;
-			}
-			return true;
-		}
-		return false;
-	} else {
-		return twl_flashcardMount();
+		return flashcardReadVolumeInfo();
 	}
+
+	// Started from the DSpico: the card is already set up and a working driver is
+	// patched in. Power cycling and re-initializing it breaks reads in chainloaded
+	// homebrew, so keep both as is.
+	if (!appInited && memcmp(&io_dldi_data->ioInterface.ioType, "PICO", 4) == 0) {
+		fatMountSimple("fat", dldiGet());
+		if (flashcardReadVolumeInfo())
+			return true;
+	}
+
+	return twl_flashcardMount();
 }
 
 void flashcardUnmount(void) {
