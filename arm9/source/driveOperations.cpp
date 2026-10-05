@@ -29,6 +29,8 @@
 
 static sNDSHeader nds;
 
+static bool sdMountAttempted = false;
+
 static bool slot1Enabled = true;
 
 bool nandMounted = false;
@@ -167,6 +169,7 @@ void nandUnmount(void) {
 }
 
 bool sdMount(void) {
+	sdMountAttempted = true;
 	fatMountSimple("sd", __my_io_dsisd());
 	if (sdFound()) {
 		sdMountedDone = true;
@@ -425,18 +428,20 @@ TWL_CODE bool twl_flashcardMount(void) {
 		// Follow HBMenu Deluxe's ARM7-first initialization order, without a later slot reset:
 		// https://github.com/ApacheThunder/ntr-hb-menu/blob/deluxe/arm7/source/main.c
 		// https://github.com/ApacheThunder/ntr-hb-menu/blob/deluxe/arm9/include/read_card.c
-		sysSetCardOwner(BUS_OWNER_ARM7);
-		if (!fifoSendValue32(FLASHCARD_INIT_CHANNEL, FLASHCARD_INIT_REQUEST)) {
+		if (sdMountAttempted) {
+			sysSetCardOwner(BUS_OWNER_ARM7);
+			if (!fifoSendValue32(FLASHCARD_INIT_CHANNEL, FLASHCARD_INIT_REQUEST)) {
+				sysSetCardOwner(BUS_OWNER_ARM9);
+				printf("Failed to request ARM7 card initialization.\n");
+				return false;
+			}
+			fifoWaitValue32(FLASHCARD_INIT_CHANNEL);
+			u32 cardInitResult = fifoGetValue32(FLASHCARD_INIT_CHANNEL);
 			sysSetCardOwner(BUS_OWNER_ARM9);
-			printf("Failed to request ARM7 card initialization.\n");
-			return false;
-		}
-		fifoWaitValue32(FLASHCARD_INIT_CHANNEL);
-		u32 cardInitResult = fifoGetValue32(FLASHCARD_INIT_CHANNEL);
-		sysSetCardOwner(BUS_OWNER_ARM9);
-		if (cardInitResult != FLASHCARD_INIT_OK) {
-			printf("ARM7 card initialization failed: %lu\n", (unsigned long)cardInitResult);
-			return false;
+			if (cardInitResult != FLASHCARD_INIT_OK) {
+				printf("ARM7 card initialization failed: %lu\n", (unsigned long)cardInitResult);
+				return false;
+			}
 		}
 
 		nds.gameCode[0] = 0;
@@ -484,11 +489,16 @@ TWL_CODE bool twl_flashcardMount(void) {
 			fatMountSimple("fat", dldiGet());
 		}*/
 
-		if (doCardInit) {
-			int result = cardInitWithoutSlotReset((sNDSHeaderExt*)((u32*)0x02FFC000)); // Certain flashcarts require card init before DLDI will work.
-			if (result != 0) {
-				printf("ARM9 card initialization failed: %d\n", result);
-				return false;
+		if (doCardInit) { // Certain flashcarts require card init before DLDI will work.
+			sNDSHeaderExt* cardHeader = (sNDSHeaderExt*)((u32*)0x02FFC000);
+			if (sdMountAttempted) {
+				int result = cardInitWithoutSlotReset(cardHeader);
+				if (result != 0) {
+					printf("ARM9 card initialization failed: %d\n", result);
+					return false;
+				}
+			} else {
+				cardInit(cardHeader);
 			}
 			for (int i = 0; i < 30; i++) swiWaitForVBlank();
 			if (isDSPico) picoInit(false);
