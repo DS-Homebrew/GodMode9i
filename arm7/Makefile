@@ -20,7 +20,7 @@ include $(DEVKITARM)/ds_rules
 TARGET		:=	GodMode9i
 BUILD		:=	build
 SOURCES		:=	source
-INCLUDES	:=	include build
+INCLUDES	:=	include build ../arm9/source
 
 #---------------------------------------------------------------------------------
 # options for code generation
@@ -50,6 +50,8 @@ LIBS	:= -lnds7
 #---------------------------------------------------------------------------------
 LIBDIRS	:=	$(LIBNDS)
 
+vpath encryption.c $(SHARED_ARM9_SOURCE)
+vpath tonccpy.c $(SHARED_BOOTLOADER_SOURCE)
 
 #---------------------------------------------------------------------------------
 # no real need to edit anything past this point unless you need to add additional
@@ -59,8 +61,10 @@ ifneq ($(BUILD),$(notdir $(CURDIR)))
 #---------------------------------------------------------------------------------
 
 export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir))
+export SHARED_ARM9_SOURCE := $(CURDIR)/../arm9/source
+export SHARED_BOOTLOADER_SOURCE := $(CURDIR)/../bootloader/source
 
-CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
+CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c))) encryption.c tonccpy.c
 CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
 SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 

@@ -31,6 +31,8 @@
 #include <string.h>
 
 #include "gba.h"
+#include "card_init.h"
+#include "flashcard_init.h"
 
 #define SD_IRQ_STATUS (*(vu32*)0x400481C)
 
@@ -262,6 +264,13 @@ int main() {
 		}
 		resyncClock();
 
+		if (fifoCheckValue32(FLASHCARD_INIT_CHANNEL)) {
+			u32 command = fifoGetValue32(FLASHCARD_INIT_CHANNEL);
+			if (command == FLASHCARD_INIT_REQUEST) {
+				fifoSendValue32(FLASHCARD_INIT_CHANNEL, initFlashcardArm7());
+			}
+		}
+
 		// Send SD status
 		if(isDSiMode() || *(u16*)(0x4004700) != 0)
 			fifoSendValue32(FIFO_USER_04, SD_IRQ_STATUS);
@@ -282,4 +291,3 @@ int main() {
 	}
 	return 0;
 }
-
