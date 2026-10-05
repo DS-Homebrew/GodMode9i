@@ -86,7 +86,7 @@ When loading GodMode9i will try to load `/gm9i/font.frf` on your SD card and if 
      - Language selection on first boot
 	 - Showing boot info on boot splash
 	 - Hardware info screen
-	 - Allowing booting homebrew from flashcards without the need to launch them first
+	 - Allowing booting homebrew from flashcards without the need to launch them first if running from DSi/3DS SD
 - [Wokann](https://github.com/Wokann): Support for properly dumping ROMs from DSi game cards when running from Slot-2 flashcarts.
 - [endrift](https://github.com/endrift): GBA ROM dumping code from [duplo](https://github.com/endrift/duplo), used for 64MB ROMs.
 - [JimmyZ](https://github.com/JimmyZ): NAND code from twlnf (with writing code stripped for safety reasons).
