@@ -337,7 +337,7 @@ void cardTwlBlowfishInit(sNDSHeaderExt* ndsHeader) {
 }
 
 
-int cardInit (sNDSHeaderExt* ndsHeader)
+static int cardInitInternal (sNDSHeaderExt* ndsHeader, bool resetSlot)
 {
 	u32 portFlagsKey1, portFlagsSecRead;
 	normalChip = false; // As defined by GBAtek, normal chip secure area and header are accessed in blocks of 0x200, other chip in blocks of 0x1000
@@ -351,7 +351,8 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 	twlBlowfish = false;
 
 	sysSetCardOwner (BUS_OWNER_ARM9);	// Allow arm9 to access NDS cart
-	cardDSiSlot1Reset();
+	if (resetSlot)
+		cardDSiSlot1Reset();
 
 	REG_ROMCTRL=0;
 	REG_AUXSPICNT=0;
@@ -518,6 +519,14 @@ int cardInit (sNDSHeaderExt* ndsHeader)
 	}
 
 	return ERR_NONE;
+}
+
+int cardInit (sNDSHeaderExt* ndsHeader) {
+	return cardInitInternal(ndsHeader, true);
+}
+
+int cardInitWithoutSlotReset (sNDSHeaderExt* ndsHeader) {
+	return cardInitInternal(ndsHeader, false);
 }
 
 u32 cardGetId() {
