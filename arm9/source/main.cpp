@@ -460,6 +460,8 @@ int main(int argc, char **argv) {
 		if (nandConsoleIDValid) {
 			hwInfo.hasConsoleId = true;
 			memcpy(hwInfo.consoleId, nandConsoleID, 8);
+			hwInfo.hasEmmcCid = true;
+			memcpy(hwInfo.emmcCid, nandEmmcCID, 16);
 		}
 		// Region + Serial come from the real NAND file — the 2FFFD68h RAM mirror is only populated
 		// by the retail System Menu, which homebrew launchers bypass. Same file melonDS reads. The

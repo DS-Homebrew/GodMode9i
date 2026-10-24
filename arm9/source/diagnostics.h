@@ -26,7 +26,9 @@ struct HardwareInfo {
 	bool hasSerial;
 	char serial[13];           // up to 12 ASCII + NUL
 	bool hasConsoleId;
-	u8 consoleId[8];
+	u8 consoleId[8];           // little-endian bytes, as stored in NAND dump footers
+	bool hasEmmcCid;
+	u8 emmcCid[16];            // raw CID bytes used by NAND crypto, without reversal
 };
 
 // Shows the hardware-info screen and blocks until the user presses A.
