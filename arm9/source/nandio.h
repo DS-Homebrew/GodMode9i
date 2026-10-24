@@ -11,3 +11,5 @@ extern const DISC_INTERFACE io_dsi_nand;
 // plain ID). Valid (nandConsoleIDValid != 0) only after a successful nandio_startup on a DSi.
 extern u8 nandConsoleID[8];
 extern u8 nandConsoleIDValid;
+// Raw CID bytes, valid under the same condition as nandConsoleID.
+extern u8 nandEmmcCID[16];

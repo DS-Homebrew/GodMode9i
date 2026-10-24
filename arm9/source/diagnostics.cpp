@@ -38,12 +38,12 @@ void diagnosticsShow(const HardwareInfo &info) {
 	int labelW = 8;
 	for (const std::string *s : { &STR_DIAG_CONSOLE_TYPE, &STR_DIAG_UNIT, &STR_DIAG_WIFI_BOARD,
 	                              &STR_DIAG_RAM, &STR_DIAG_REGION, &STR_DIAG_SERIAL,
-	                              &STR_DIAG_CONSOLE_ID, &STR_DIAG_WIFI_MAC })
+	                              &STR_DIAG_CONSOLE_ID, &STR_DIAG_EMMC_CID, &STR_DIAG_WIFI_MAC })
 		if ((int)s->length() > labelW) labelW = (int)s->length();
 	labelW += 1;
 
 	auto addLine = [&](const char *label, const char *value) {
-		snprintf(lbl, sizeof(lbl), "%s:", label);
+		snprintf(lbl, sizeof(lbl), "%s%s", label, *label ? ":" : "");
 		snprintf(buf, sizeof(buf), "%-*s %s", labelW, lbl, value);
 		lines.push_back(buf);
 	};
@@ -70,9 +70,16 @@ void diagnosticsShow(const HardwareInfo &info) {
 		addLine(STR_DIAG_SERIAL.c_str(), info.serial);
 	if (info.hasConsoleId) {
 		snprintf(val, sizeof(val), "%02X%02X%02X%02X%02X%02X%02X%02X",
-			info.consoleId[0], info.consoleId[1], info.consoleId[2], info.consoleId[3],
-			info.consoleId[4], info.consoleId[5], info.consoleId[6], info.consoleId[7]);
+			info.consoleId[7], info.consoleId[6], info.consoleId[5], info.consoleId[4],
+			info.consoleId[3], info.consoleId[2], info.consoleId[1], info.consoleId[0]);
 		addLine(STR_DIAG_CONSOLE_ID.c_str(), val);
+	}
+	if (info.hasEmmcCid) {
+		for (int i = 0; i < 16; i++)
+			snprintf(val + i * 2, sizeof(val) - i * 2, "%02X", info.emmcCid[i]);
+		std::string cid(val);
+		addLine(STR_DIAG_EMMC_CID.c_str(), cid.substr(0, 16).c_str());
+		addLine("", cid.c_str() + 16);
 	}
 	snprintf(val, sizeof(val), "%02X:%02X:%02X:%02X:%02X:%02X",
 		info.mac[0], info.mac[1], info.mac[2], info.mac[3], info.mac[4], info.mac[5]);
