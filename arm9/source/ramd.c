@@ -25,7 +25,7 @@ void ramd_setSize(const bool ram32MB) {
 
 bool ramd_startup() {
 	if(isDSiMode() || REG_SCFG_EXT != 0) {
-		ramdLoc = (u8*)malloc(0x6008 * SECTOR_SIZE);
+		ramdLoc = (u8*)calloc(0x6008 * SECTOR_SIZE, 1); // Fill with 00, as the loader may not have cleared RAM
 	} else {
 		ramdLoc = (u8*)calloc(0x8 * SECTOR_SIZE, 1);
 		toncset(ramdLocMep, 0, (ramdSectors - 0x8) * SECTOR_SIZE); // Fill MEP with 00 to avoid displaying weird files
