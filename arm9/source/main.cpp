@@ -13,6 +13,7 @@
 #include "config.h"
 #include "date.h"
 #include "diagnostics.h"
+#include "consoleDetection.h"
 #include "driveMenu.h"
 #include "driveOperations.h"
 #include "file_browse.h"
@@ -41,6 +42,9 @@ bool isDebugDS = false;
 bool isDSLite = false;
 // bool bios9iEnabled = false;
 bool is3DS = false;
+// 3DS from WiFi firmware, which also works in DS mode. Display only; is3DS drives NAND.
+static bool is3DSByFirmware = false;
+static constexpr u32 DIAGNOSTICS_REQUEST = 0x44494147;
 int ownNitroFSMounted;
 std::string prevTime;
 
@@ -88,7 +92,7 @@ void vblankHandler (void) {
 static std::string getConsoleModeStr(void) {
 //---------------------------------------------------------------------------------
 	std::string model;
-	if (is3DS)
+	if (is3DS || is3DSByFirmware)
 		model = "Nintendo 3DS";
 	else if (!isRegularDS)
 		model = "Nintendo DSi";
@@ -169,23 +173,27 @@ int main(int argc, char **argv) {
 	fifoWaitValue32(FIFO_USER_06);
 	if (fifoGetValue32(FIFO_USER_03) == 0) arm7SCFGLocked = true;
 	u32 arm7_07 = fifoGetValue32(FIFO_USER_07);
-	u16 arm7_SNDEXCNT = arm7_07 & 0xFFFF;
+	bool arm7_isDSiFamily = (arm7_07 & 1) != 0;
+	bool arm7_isCpu20 = (arm7_07 & 2) != 0;
 	u8 arm7_wifiBoard = (arm7_07 >> 16) & 0xFF;
 	u8 arm7_scfgOp = (arm7_07 >> 24) & 0xFF;	// SCFG_OP debugger type; 0xFF = not applicable (DS)
-	u16 arm7_wifiChipId = fifoGetValue32(FIFO_USER_08) & 0xFFFF;	// WiFi chip ID (W_ID): 1440h=DS, C340h=DS Lite
-	u32 arm7_macLo = fifoGetValue32(FIFO_USER_08);			// MAC bytes 0-3
-	u32 arm7_macHi = fifoGetValue32(FIFO_USER_08) & 0xFFFF;		// MAC bytes 4-5
-	u32 arm7_jedecId = fifoGetValue32(FIFO_USER_08) & 0xFFFFFF;	// firmware flash JEDEC ID
-	if (arm7_SNDEXCNT != 0) isRegularDS = false;	// If sound frequency setting is found, then the console is not a DS Phat/Lite
+	u32 arm7_08 = fifoGetValue32(FIFO_USER_08);
+	u16 arm7_wifiChipId = arm7_08 & 0xFFFF;	// WiFi chip ID (W_ID): 1440h=DS, C340h=DS Lite
+	u8 arm7_wifiVersion = (arm7_08 >> 16) & 0xFF;
+	if (arm7_isDSiFamily) isRegularDS = false;
 	fifoSendValue32(FIFO_USER_07, 0);
 
 	// DS Lite detection via the arm7's WiFi controller chip ID (W_ID): on a regular DS it reads
 	// 1440h on the original DS and C340h on the DS Lite. That ID lives in WiFi silicon, not in a
 	// reflashable firmware byte, so it can't be spoofed by cross-flashing. It also reads the WiFi
 	// chip rather than the power-management chip, so the late "CPU-20" DS Phat (standard-Phat WiFi
-	// but a DS-Lite PMIC) still reads 1440h and is correctly seen as a Phat, where power-chip checks
-	// mislabel it. (A DSi/3DS also reports C340h, but those are already excluded by isRegularDS above.)
+	// but a DS-Lite PMIC) still reads 1440h and is correctly seen as a Phat; the ARM7 flags it
+	// separately from that PMIC. (A DSi/3DS also reports C340h, but those are already excluded by
+	// isRegularDS above.)
 	if (isRegularDS && arm7_wifiChipId == 0xC340) isDSLite = true;
+
+	// Firmware 02Fh is 15/24 on a DSi; within the DSi family anything else is a 3DS.
+	if (!isRegularDS && consoleHas3DSFirmware(arm7_wifiVersion)) is3DSByFirmware = true;
 
 	// Detect RAM size and console model up front (3DS has 32MB of RAM).
 	// arm7 sends FIFO_USER_05 before the sync above, so this is ready here.
@@ -215,28 +223,25 @@ int main(int argc, char **argv) {
 	HardwareInfo hwInfo = {};
 	// Console type — GBATEK 01Dh spelling, derived from the reliable W_ID/is3DS detection above
 	// (NOT the app's getConsoleModeStr(), which keeps its own string for the boot splash).
-	if (is3DS)              hwInfo.consoleType = "Nintendo 3DS";
+	if (is3DS || is3DSByFirmware) hwInfo.consoleType = "Nintendo 3DS";
 	else if (!isRegularDS)  hwInfo.consoleType = "Nintendo DSi";
 	else if (isDSLite)      hwInfo.consoleType = "Nintendo DS-lite";
+	else if (arm7_isCpu20)  hwInfo.consoleType = "Nintendo DS (CPU-20)";
 	else                    hwInfo.consoleType = "Nintendo DS";
 
 	hwInfo.wifiChipId = arm7_wifiChipId;
-	hwInfo.jedecId = arm7_jedecId;
-	hwInfo.ramMB = ram32MB ? 32 : (isRegularDS ? (isDebugDS ? 8 : 4) : 16);
-	hwInfo.mac[0] = arm7_macLo & 0xFF;
-	hwInfo.mac[1] = (arm7_macLo >> 8) & 0xFF;
-	hwInfo.mac[2] = (arm7_macLo >> 16) & 0xFF;
-	hwInfo.mac[3] = (arm7_macLo >> 24) & 0xFF;
-	hwInfo.mac[4] = arm7_macHi & 0xFF;
-	hwInfo.mac[5] = (arm7_macHi >> 8) & 0xFF;
+	hwInfo.ramMB = (ram32MB || is3DSByFirmware) ? 32 : (isRegularDS ? (isDebugDS ? 8 : 4) : 16);
 
 	// Unit (SCFG_OP): 0xFF sentinel means SCFG not present (a plain DS) → omit.
 	hwInfo.hasUnit = (arm7_scfgOp != 0xFF);
 	hwInfo.unitRetail = (arm7_scfgOp == 0);
 
 	// WiFi board: firmware 1FDh is FFh on the original DS, so only 01/02/03 are shown.
-	hwInfo.hasWifiBoard = (arm7_wifiBoard >= 1 && arm7_wifiBoard <= 3);
+	// DSi family only: on a DS that byte can hold FlashMe data.
+	hwInfo.hasWifiBoard = !isRegularDS && (arm7_wifiBoard >= 1 && arm7_wifiBoard <= 3);
 	hwInfo.wifiBoard = arm7_wifiBoard;
+
+	hwInfo.hasDsFirmware = isRegularDS;
 
 	// SCFG_EXT exists only on the DSi family.
 	hwInfo.hasScfgExt = isDSiMode() || (REG_SCFG_EXT != 0);
@@ -455,6 +460,34 @@ int main(int argc, char **argv) {
 	keysSetRepeat(25,5);
 
 	if (diagnosticsRequested) {
+		// Request diagnostic-only SPI reads on demand instead of blocking startup.
+		fifoSendValue32(FIFO_USER_08, DIAGNOSTICS_REQUEST);
+		fifoWaitValue32(FIFO_USER_08);
+		hwInfo.jedecId = fifoGetValue32(FIFO_USER_08) & 0xFFFFFF;
+		fifoWaitValue32(FIFO_USER_08);
+		u32 arm7_macLo = fifoGetValue32(FIFO_USER_08);
+		fifoWaitValue32(FIFO_USER_08);
+		u32 arm7_macHi = fifoGetValue32(FIFO_USER_08);
+		fifoWaitValue32(FIFO_USER_08);
+		u32 arm7_fwStamp = fifoGetValue32(FIFO_USER_08);
+		fifoWaitValue32(FIFO_USER_08);
+		u32 arm7_fwHeader = fifoGetValue32(FIFO_USER_08);
+		fifoWaitValue32(FIFO_USER_08);
+		u32 arm7_fwTail = fifoGetValue32(FIFO_USER_08);
+		fifoWaitValue32(FIFO_USER_08);
+		hwInfo.fwFingerprint = fifoGetValue32(FIFO_USER_08) & 0xFFFF;
+		hwInfo.mac[0] = arm7_macLo & 0xFF;
+		hwInfo.mac[1] = (arm7_macLo >> 8) & 0xFF;
+		hwInfo.mac[2] = (arm7_macLo >> 16) & 0xFF;
+		hwInfo.mac[3] = (arm7_macLo >> 24) & 0xFF;
+		hwInfo.mac[4] = arm7_macHi & 0xFF;
+		hwInfo.mac[5] = (arm7_macHi >> 8) & 0xFF;
+		memcpy(hwInfo.fwStamp, &arm7_fwStamp, 4);
+		hwInfo.fwStamp[4] = arm7_fwHeader & 0xFF;
+		hwInfo.fwPartCrc = arm7_fwHeader >> 16;
+		hwInfo.flashMeTail = arm7_fwTail & BIT(0);
+		hwInfo.flashMeOrigCrc = arm7_fwTail >> 16;
+
 		// Console ID: the value derived during NAND mount (the 0x02F00000 buffer holds AES key3
 		// material, not the plain ID; 4004D00h reads as zeros for homebrew per GBATEK).
 		if (nandConsoleIDValid) {
