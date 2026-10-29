@@ -20,9 +20,8 @@ static const char *wifiBoardName(u8 b) {
 	}
 }
 
-// Official DS firmware by build timestamp (018h) and part1/2 CRC16 (006h), with community names
-// from Wokann's DS firmware history. FlashMe keeps the timestamp and saves the replaced firmware's
-// CRC at 17Eh.
+// Official DS firmware by build timestamp (018h) and part1/2 CRC16 (006h). FlashMe keeps the
+// timestamp and saves the replaced firmware's CRC at 17Eh.
 struct OfficialFirmware {
 	u8 stamp[5];	// BCD minute, hour, day, month, year
 	u16 partCrc;
@@ -56,8 +55,6 @@ static const OfficialFirmware *findFirmwareByCrc(u16 partCrc) {
 }
 
 // Known DS firmware images by fingerprint (see arm7 main.c). A null flashMe is stock firmware.
-// Built from Wokann's dsofw (bbdc2be) and dscfw (87cab6c), plus v8a on Phat v5 and Lite v7 from
-// tasken/flashme-v8a-builder. No source exists for FlashMe v2 or the v7_old Lite.
 struct FirmwareImage {
 	u16 crc;
 	bool tvOut;
@@ -165,8 +162,7 @@ static const char *flashMeName(const HardwareInfo &info, const FirmwareImage *im
 	return STR_DIAG_UNKNOWN.c_str();
 }
 
-// JEP106 owner of the JEDEC manufacturer code. 20h passed to Numonyx and Micron with ST's flash
-// business, so it names the code, not necessarily the maker.
+// JEP106 owner of the JEDEC manufacturer code, not necessarily the chip maker.
 static const char *flashMaker(u32 jedecId) {
 	switch (jedecId >> 16) {
 		case 0x20: return "STMicro";
@@ -211,7 +207,6 @@ void diagnosticsShow(const HardwareInfo &info) {
 		lines.push_back(line);
 	};
 
-	// Blank row between groups; never leading or doubled.
 	auto addGap = [&]() {
 		if (!lines.empty() && !lines.back().empty())
 			lines.push_back("");
@@ -268,7 +263,7 @@ void diagnosticsShow(const HardwareInfo &info) {
 		snprintf(val, sizeof(val), "%06lX", (unsigned long)info.jedecId);
 	addLine("JEDEC ID", val);
 
-	// Identity fields (unique-ish IDs).
+	// Identity group
 	addGap();
 	if (info.hasSerial)
 		addLine(STR_DIAG_SERIAL.c_str(), info.serial);

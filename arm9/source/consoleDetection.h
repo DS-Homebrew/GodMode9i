@@ -4,7 +4,7 @@
 #include <nds/ndstypes.h>
 
 static inline bool consoleIsDSiFamily(bool dsiMode, u16 wifiChipId, u8 power5) {
-	// GBATEK: DS Power Management Device. Old DS mirrors register 1 at 5 (excluded by W_ID 1440h),
+	// Power management register 5: old DS mirrors register 1 at 5 (excluded by W_ID 1440h),
 	// DS Lite mirrors register 4 at 5 (never 00h), DSi/3DS read 00h.
 	return dsiMode || (wifiChipId != 0x1440 && power5 == 0);
 }
