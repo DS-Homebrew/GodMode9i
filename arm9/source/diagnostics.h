@@ -29,6 +29,14 @@ struct HardwareInfo {
 	u8 consoleId[8];           // little-endian bytes, as stored in NAND dump footers
 	bool hasEmmcCid;
 	u8 emmcCid[16];            // raw CID bytes used by NAND crypto, without reversal
+
+	// DS firmware (DS only; the DSi and 3DS keep it in NAND)
+	bool hasDsFirmware;
+	u8 fwStamp[5];             // 018h build timestamp (BCD)
+	u16 fwPartCrc;             // 006h part1/2 CRC16
+	bool flashMeTail;          // 17Ch-1FFh holds FlashMe data
+	u16 flashMeOrigCrc;        // 17Eh: part1/2 CRC16 of the firmware FlashMe replaced
+	u16 fwFingerprint;         // see arm7 main.c
 };
 
 // Shows the hardware-info screen and blocks until the user presses A.

@@ -33,8 +33,11 @@
 #include "gba.h"
 #include "card_init.h"
 #include "flashcard_init.h"
+#include "consoleDetection.h"
 
 #define SD_IRQ_STATUS (*(vu32*)0x400481C)
+
+static bool isDSiFamily = false;
 
 void my_installSystemFIFO(void);
 void my_sdmmc_get_cid(int devicenumber, u32 *cid);
@@ -131,6 +134,56 @@ static u32 readFirmwareJEDEC(void) {
 	return id;
 }
 
+#define DIAGNOSTICS_REQUEST 0x44494147
+
+//---------------------------------------------------------------------------------
+static void sendDiagnosticsInfo(void) {
+//---------------------------------------------------------------------------------
+	u32 fwStamp = 0, fwHeader = 0, fwTail = 0, fwFingerprint = 0;
+	u8 mac[6] = {0};
+	u32 jedecId = readFirmwareJEDEC();
+	readFirmware(0x36, mac, sizeof(mac));
+
+	// DS firmware identity, DS family only: build timestamp, part1/2 CRC16, the 17Ch-1FFh
+	// area where FlashMe keeps its data and the replaced firmware's CRC16 (17Eh), and a CRC16
+	// fingerprint. The fingerprint skips the WiFi calibration (028h-17Bh) and what the FlashMe
+	// installer writes per console: 17Eh and a calibration backup at 3F6AAh (7F6AAh on 512K firmware,
+	// sized from the user settings offset at 020h).
+	if (!isDSiFamily) {
+		static u8 fwBuf[0x400] __attribute__((aligned(4)));	// swiCRC16 needs 2-byte alignment
+
+		readFirmware(0, fwBuf, 0x28);
+		fwStamp = *(u32*)&fwBuf[0x18];
+		fwHeader = fwBuf[0x1C] | ((u32)*(u16*)&fwBuf[0x06] << 16);
+		u32 fwEnd = (*(u16*)&fwBuf[0x20] * 8 >= 0x7FE00) ? 0x7F600 : 0x3F600;
+		u16 crc = swiCRC16(0xFFFF, fwBuf, 0x28);
+
+		readFirmware(0x17C, fwBuf, 0x200 - 0x17C);
+		for (u32 i = 0; i < 0x200 - 0x17C; i++) {
+			if (fwBuf[i] != 0xFF) {
+				fwTail = BIT(0) | ((u32)*(u16*)&fwBuf[2] << 16);
+				break;
+			}
+		}
+		crc = swiCRC16(crc, fwBuf, 2);
+
+		for (u32 addr = 0x180; addr < fwEnd; addr += sizeof(fwBuf)) {
+			u32 len = (fwEnd - addr < sizeof(fwBuf)) ? fwEnd - addr : sizeof(fwBuf);
+			readFirmware(addr, fwBuf, len);
+			crc = swiCRC16(crc, fwBuf, len);
+		}
+		fwFingerprint = crc;
+	}
+
+	fifoSendValue32(FIFO_USER_08, jedecId);
+	fifoSendValue32(FIFO_USER_08, mac[0] | (mac[1] << 8) | (mac[2] << 16) | ((u32)mac[3] << 24));
+	fifoSendValue32(FIFO_USER_08, mac[4] | (mac[5] << 8));
+	fifoSendValue32(FIFO_USER_08, fwStamp);
+	fifoSendValue32(FIFO_USER_08, fwHeader);
+	fifoSendValue32(FIFO_USER_08, fwTail);
+	fifoSendValue32(FIFO_USER_08, fwFingerprint);
+}
+
 //---------------------------------------------------------------------------------
 int main() {
 //---------------------------------------------------------------------------------
@@ -221,35 +274,30 @@ int main() {
 
 	fifoSendValue32(FIFO_USER_03, REG_SCFG_EXT);
 
-	// Signals for the hardware-info screen.
+	// Startup identity needed for console detection and SCFG reporting.
 	// SCFG_OP (4004024h) is a DSi ARM7 register; bit0-1 = debugger type (0=retail). SCFG does
 	// not exist on a plain DS, so read it only where SCFG is present and otherwise send FFh as a
 	// "not applicable" sentinel. WiFi board (firmware 1FDh: 01h=DWM-W015, 02h=W024, 03h=W028;
-	// FFh on the original DS) and the 48-bit WiFi MAC (firmware 036h) come from the wifi firmware
-	// via the safe libnds readFirmware path.
+	// FFh on the original DS) is read via libnds readFirmware.
 	u8 scfgOp = 0xFF;
 	if (isDSiMode() || REG_SCFG_EXT)
 		scfgOp = *(vu16*)0x04004024 & 0x3;
 	u8 wifiBoard = 0xFF;
 	readFirmware(0x1FD, &wifiBoard, 1);
-	u8 mac[6] = {0};
-	readFirmware(0x36, mac, 6);
-	fifoSendValue32(FIFO_USER_07, ((u32)scfgOp << 24) | ((u32)wifiBoard << 16) | (*(u16*)(0x4004700) & 0xFFFF));
+	u8 wifiVersion = 0xFF;
+	readFirmware(0x2F, &wifiVersion, 1);
 
 	// DS Lite detection: the WiFi controller chip ID (W_ID, 4808000h) is 1440h on the original
 	// DS and C340h on the DS Lite. It lives in WiFi silicon, so unlike the firmware console-type
 	// byte (offset 1Dh) it can't be reflashed or spoofed. POWCNT2 (4000304h) bit1 gates the WiFi
 	// port region 4800000h-480FFFFh, so enable it before reading the ID.
 	*(volatile u16*)0x04000304 |= (1 << 1);
-	for (volatile int i = 0; i < 0x4000; i++) { /* let the WiFi region settle */ }
-	fifoSendValue32(FIFO_USER_08, *(volatile u16*)0x04808000);
-
-	// WiFi MAC, queued after W_ID: bytes 0-3 then bytes 4-5 (little-endian in each word).
-	fifoSendValue32(FIFO_USER_08, mac[0] | (mac[1] << 8) | (mac[2] << 16) | ((u32)mac[3] << 24));
-	fifoSendValue32(FIFO_USER_08, mac[4] | (mac[5] << 8));
-
-	// Firmware flash JEDEC ID, queued last on the channel (hardware-info screen only).
-	fifoSendValue32(FIFO_USER_08, readFirmwareJEDEC());
+	u16 wifiChipId = *(volatile u16*)0x04808000;
+	isDSiFamily = consoleIsDSiFamily(isDSiMode(), wifiChipId, readPowerManagement(5));
+	bool isCpu20 = !isDSiFamily && consoleIsCpu20(wifiChipId, readPowerManagement(4));
+	fifoSendValue32(FIFO_USER_07, ((u32)scfgOp << 24) | ((u32)wifiBoard << 16)
+		| (isCpu20 ? 2 : 0) | (isDSiFamily ? 1 : 0));
+	fifoSendValue32(FIFO_USER_08, ((u32)wifiVersion << 16) | wifiChipId);
 
 	fifoSendValue32(FIFO_USER_06, 1);
 
@@ -271,8 +319,14 @@ int main() {
 			}
 		}
 
+		if (fifoCheckValue32(FIFO_USER_08)) {
+			u32 command = fifoGetValue32(FIFO_USER_08);
+			if (command == DIAGNOSTICS_REQUEST)
+				sendDiagnosticsInfo();
+		}
+
 		// Send SD status
-		if(isDSiMode() || *(u16*)(0x4004700) != 0)
+		if(isDSiFamily)
 			fifoSendValue32(FIFO_USER_04, SD_IRQ_STATUS);
 
 		// Dump EEPROM save
