@@ -474,6 +474,9 @@ TWL_CODE bool twl_flashcardMount(void) {
 		} else if (!memcmp(gameid, "ASME", 4)) {
 			doCardInit = true;
 			dldiLoadFromBin(cyclods_dldi);
+		} else if (!memcmp(gameid, "VCKE", 4) || !memcmp(gameid, "AEAE", 4)) {
+			doCardInit = true;
+			dldiLoadFromBin(cycloievo_dldi);
 		} else if (!memcmp(gameid, "ABJJ", 4)) {
 			doCardInit = true;
 			dldiLoadFromBin(ez5n_dldi);
