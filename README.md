@@ -39,6 +39,7 @@ Inspired by the original [GodMode9](https://github.com/d0k3/GodMode9), GodMode9*
 - Browse files on supported flashcards when running GM9i from the NAND or SD Card.
    - Acekard 2(i)
    - CycloDS Evolution
+   - CycloDS iEvolution
    - DSpico
    - DSTT
    - Demon/DSTTi clones
